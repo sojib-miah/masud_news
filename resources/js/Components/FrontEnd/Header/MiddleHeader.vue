@@ -1,41 +1,76 @@
 <script setup>
 import { Link } from "@inertiajs/vue3";
-import { defineProps, ref, onMounted, onUnmounted, computed } from "vue";
+import { defineProps, ref, onMounted, onUnmounted, computed, watch } from "vue";
 import { route } from "ziggy-js";
 
 const props = defineProps({
-    headers: {
-        type: Array,
-        default: () => [],
-    },
-    siteSetting: {
-        type: Object,
-        default: () => ({}),
-    },
+    headers: { type: Array, default: () => [] },
+    siteSetting: { type: Object, default: () => ({}) },
 });
 
-const currentIndex = ref(0);
-let intervalId = null;
-
-// Only rotate if more than 1 ad
-const hasMultipleAds = computed(
-    () => Array.isArray(props.headers) && props.headers.length > 1,
+// Only ads that actually have an image
+const validHeaders = computed(() =>
+    (props.headers || []).filter(
+        (h) => h && typeof h.ad === "string" && h.ad.trim() !== "",
+    ),
 );
 
-function nextSlide() {
-    if (!props.headers?.length) return;
-    currentIndex.value = (currentIndex.value + 1) % props.headers.length;
+const currentIndex = ref(0);
+
+// Safe index — never out of bounds
+const safeIndex = computed(() => {
+    const len = validHeaders.value.length;
+    if (len === 0) return -1;
+    return ((currentIndex.value % len) + len) % len;
+});
+
+let intervalId = null;
+
+function preloadNext() {
+    const len = validHeaders.value.length;
+    if (len < 2) return;
+    const next = (safeIndex.value + 1) % len;
+    const nextAd = validHeaders.value[next];
+    if (nextAd?.ad) {
+        const img = new Image();
+        img.src = `/storage/${nextAd.ad}`;
+    }
 }
 
-onMounted(() => {
-    if (hasMultipleAds.value) {
+function nextSlide() {
+    const len = validHeaders.value.length;
+    if (len < 2) return;
+    preloadNext();
+    currentIndex.value = (currentIndex.value + 1) % len;
+}
+
+function startInterval() {
+    stopInterval();
+    if (validHeaders.value.length > 1) {
         intervalId = setInterval(nextSlide, 10000);
     }
+}
+
+function stopInterval() {
+    if (intervalId) {
+        clearInterval(intervalId);
+        intervalId = null;
+    }
+}
+
+onMounted(startInterval);
+onUnmounted(stopInterval);
+
+// Restart whenever Inertia navigates / props change
+watch(validHeaders, () => {
+    currentIndex.value = 0;
+    startInterval();
 });
 
-onUnmounted(() => {
-    if (intervalId) clearInterval(intervalId);
-});
+function onImgError(e) {
+    // Last-resort fallback so a blank never appears
+    e.target.src = "/images/default.jpg";
+}
 </script>
 
 <template>
@@ -44,7 +79,7 @@ onUnmounted(() => {
             <div
                 class="flex flex-col lg:flex-row items-center justify-between gap-3 lg:gap-6 py-3 lg:py-4"
             >
-                <!-- ============ LOGO ============ -->
+                <!-- LOGO -->
                 <Link
                     :href="route('home')"
                     class="logo-wrap shrink-0 flex items-center justify-center lg:justify-start w-full lg:w-auto"
@@ -54,33 +89,36 @@ onUnmounted(() => {
                         :src="`/storage/${$page.props.site?.logo}`"
                         alt="Logo"
                         class="logo-img"
+                        @error="onImgError"
                     />
                 </Link>
 
-                <!-- ============ AD SLIDER ============ -->
+                <!-- AD SLIDER -->
                 <div
                     class="ad-wrap w-full lg:flex-1 lg:max-w-[65%] flex justify-center lg:justify-end"
                 >
                     <transition name="fade" mode="out-in">
-                        <a
-                            v-if="props.headers?.[currentIndex]"
-                            :key="currentIndex"
+                        <div
+                            v-if="safeIndex !== -1"
+                            :key="safeIndex"
                             class="ad-card"
-                            href="#"
-                            @click.prevent
                         >
                             <img
                                 class="ad-img"
-                                :src="`/storage/${props.headers[currentIndex].ad}`"
+                                :src="`/storage/${validHeaders[safeIndex].ad}`"
+                                @error="onImgError"
                                 alt="Advertisement"
+                                loading="eager"
                             />
-                        </a>
+                        </div>
+
+                        <!-- Empty placeholder while loading -->
+                        <div v-else class="ad-card ad-card-empty"></div>
                     </transition>
                 </div>
             </div>
         </div>
 
-        <!-- Subtle bottom accent -->
         <div class="header-accent" aria-hidden="true"></div>
     </header>
 </template>
@@ -213,6 +251,20 @@ onUnmounted(() => {
     .logo-wrap:hover,
     .ad-card:hover {
         transform: none;
+    }
+}
+.ad-card-empty {
+    background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s linear infinite;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
     }
 }
 </style>

@@ -11,7 +11,7 @@
     @endphp
 
     <!-- Basic SEO -->
-    <title inertia>Agro Voice BD</title>
+    <title inertia>Bangladesh News Today</title>
 
     <!-- Favicon -->
     @if ($site && $site->favaicon)

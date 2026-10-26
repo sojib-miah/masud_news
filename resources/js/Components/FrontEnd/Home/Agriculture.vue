@@ -14,8 +14,20 @@ const props = defineProps({
 });
 
 // Safe image resolver
-function imgUrl(path, fallback = "/images/default.jpg") {
-    return path ? `/storage/${path}` : fallback;
+// function imgUrl(path, fallback = "/images/default.jpg") {
+//     return path ? `/storage/${path}` : fallback;
+// }
+function imgUrl(path) {
+    if (!path || typeof path !== "string" || !path.trim()) {
+        return "/images/default.jpg";
+    }
+
+    return `/storage/${path}`;
+}
+
+function handleImageError(event) {
+    event.target.onerror = null;
+    event.target.src = "/images/default.jpg";
 }
 
 // Safe title truncation
@@ -123,6 +135,7 @@ function subLink(cat, sub) {
                                     :src="imgUrl(category.news[0].image)"
                                     alt="News Image"
                                     loading="lazy"
+                                    @error="handleImageError"
                                 />
                             </Link>
 
@@ -183,6 +196,7 @@ function subLink(cat, sub) {
                                         class="list-thumb"
                                         :src="imgUrl(post.image)"
                                         alt="News Image"
+                                        @error="handleImageError"
                                         loading="lazy"
                                     />
                                 </Link>
@@ -251,6 +265,7 @@ function subLink(cat, sub) {
                                 <img
                                     class="featured-img"
                                     :src="imgUrl(subCategory.news[0].image)"
+                                    @error="handleImageError"
                                     alt="News Image"
                                     loading="lazy"
                                 />
@@ -316,6 +331,7 @@ function subLink(cat, sub) {
                                         :src="imgUrl(post.image)"
                                         alt="News Image"
                                         loading="lazy"
+                                        @error="handleImageError"
                                     />
                                 </Link>
 

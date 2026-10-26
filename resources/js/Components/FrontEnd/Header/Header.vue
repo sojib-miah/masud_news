@@ -314,10 +314,13 @@ ul {
     margin: 0;
     padding: 0;
 }
+ul li a {
+    color: #fff;
+}
 
 .header {
     position: relative;
-    background: linear-gradient(90deg, #8aff90, #00930c);
+    background: linear-gradient(90deg, #00a815, #00930c, #00a815);
     background-size: 200% 200%;
     color: #fff;
     animation: gradientMove 6s ease infinite;

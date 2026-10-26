@@ -9,7 +9,8 @@ createInertiaApp({
         const page = pages[`./Pages/${name}.vue`];
         return page.default;
     },
-    title: (title) => (title ? `${title} - News Portal` : "News Portal"),
+    title: (title) =>
+        title ? `${title} - Bangladesh News Today` : "Bangladesh News Today",
     setup({ el, App, props, plugin }) {
         createApp({ render: () => h(App, props) })
             .use(plugin)
