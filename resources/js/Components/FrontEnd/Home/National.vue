@@ -185,7 +185,8 @@ function listOf(cat, from = 1, to = 5) {
 <style scoped>
 /* ==================== SECTION ==================== */
 .home-cats {
-    background: #f1f5f9;
+    /* background: #f1f5f9; */
+    background: #f8fafc;
 }
 
 /* ==================== CATEGORY CARD ==================== */

@@ -46,19 +46,22 @@ const form = useForm({
                     <!-- Email / Phone -->
                     <div class="mb-3">
                         <TextInput
+                            label="ফোন নম্বর"
                             v-model="form.name"
                             type="text"
-                            placeholder="ইমেইল ঠিকানা বা ফোন"
+                            placeholder="ফোন নম্বর..."
                             :error="form.errors.name"
                         />
+                        <!-- ইমেইল ঠিকানা বা  -->
                     </div>
 
                     <!-- Password -->
                     <div class="mb-4">
                         <TextInput
+                            label="পাসওয়ার্ড"
                             v-model="form.password"
                             type="password"
-                            placeholder="পাসওয়ার্ড"
+                            placeholder="পাসওয়ার্ড..."
                             :error="form.errors.password"
                         />
                     </div>

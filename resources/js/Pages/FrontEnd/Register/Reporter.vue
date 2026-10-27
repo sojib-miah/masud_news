@@ -392,9 +392,10 @@ function toggleReporterType(typeId) {
                             />
                             <TextInput
                                 v-model="form.nid_number"
+                                label="এনআইডি নম্বর"
                                 type="text"
                                 placeholder="এনআইডি নম্বর"
-                                class="w-full focus:shadow-md focus:border focus:border-green-500"
+                                class="w-full mt-1 focus:shadow-md focus:border focus:border-green-500"
                                 :error="form.errors.nid_number"
                             />
                         </div>

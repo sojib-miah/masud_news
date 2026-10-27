@@ -1,76 +1,120 @@
 <script setup>
-import { Link } from "@inertiajs/vue3";
-import { defineProps, ref, onMounted, onUnmounted, computed, watch } from "vue";
+import { computed, ref, watch, onMounted, onUnmounted } from "vue";
+import { Link, usePage } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
 
 const props = defineProps({
-    headers: { type: Array, default: () => [] },
-    siteSetting: { type: Object, default: () => ({}) },
+    headers: {
+        type: Array,
+        default: () => [],
+    },
+    siteSetting: {
+        type: Object,
+        default: () => ({}),
+    },
 });
 
-// Only ads that actually have an image
-const validHeaders = computed(() =>
-    (props.headers || []).filter(
-        (h) => h && typeof h.ad === "string" && h.ad.trim() !== "",
-    ),
-);
+const page = usePage();
+
+const DEFAULT_IMAGE = "/images/default.jpg";
+
+// Convert a stored image path into a usable URL.
+function imgUrl(path) {
+    if (typeof path !== "string" || !path.trim()) {
+        return DEFAULT_IMAGE;
+    }
+
+    const value = path.trim();
+
+    if (/^https?:\/\//i.test(value)) {
+        return value;
+    }
+
+    const cleanPath = value.replace(/^\/+/, "").replace(/^storage\/+/i, "");
+
+    return `/storage/${cleanPath}`;
+}
+
+// Use the fallback only once to avoid an infinite error loop.
+function onImgError(event) {
+    const img = event.currentTarget;
+
+    if (img.dataset.fallbackApplied === "true") {
+        return;
+    }
+
+    img.dataset.fallbackApplied = "true";
+    img.src = DEFAULT_IMAGE;
+}
+
+// Only display advertisements with an image path.
+const validHeaders = computed(() => {
+    return (props.headers || []).filter((item) => {
+        return item && typeof item.ad === "string" && item.ad.trim() !== "";
+    });
+});
 
 const currentIndex = ref(0);
 
-// Safe index — never out of bounds
 const safeIndex = computed(() => {
-    const len = validHeaders.value.length;
-    if (len === 0) return -1;
-    return ((currentIndex.value % len) + len) % len;
+    const length = validHeaders.value.length;
+
+    if (length === 0) return -1;
+
+    return ((currentIndex.value % length) + length) % length;
 });
 
 let intervalId = null;
 
+function stopInterval() {
+    if (intervalId !== null) {
+        clearInterval(intervalId);
+        intervalId = null;
+    }
+}
+
 function preloadNext() {
-    const len = validHeaders.value.length;
-    if (len < 2) return;
-    const next = (safeIndex.value + 1) % len;
-    const nextAd = validHeaders.value[next];
+    const length = validHeaders.value.length;
+
+    if (length < 2) return;
+
+    const nextIndex = (safeIndex.value + 1) % length;
+    const nextAd = validHeaders.value[nextIndex];
+
     if (nextAd?.ad) {
-        const img = new Image();
-        img.src = `/storage/${nextAd.ad}`;
+        const image = new Image();
+        image.src = imgUrl(nextAd.ad);
     }
 }
 
 function nextSlide() {
-    const len = validHeaders.value.length;
-    if (len < 2) return;
+    const length = validHeaders.value.length;
+
+    if (length < 2) return;
+
     preloadNext();
-    currentIndex.value = (currentIndex.value + 1) % len;
+    currentIndex.value = (currentIndex.value + 1) % length;
 }
 
 function startInterval() {
     stopInterval();
+
     if (validHeaders.value.length > 1) {
         intervalId = setInterval(nextSlide, 10000);
-    }
-}
-
-function stopInterval() {
-    if (intervalId) {
-        clearInterval(intervalId);
-        intervalId = null;
     }
 }
 
 onMounted(startInterval);
 onUnmounted(stopInterval);
 
-// Restart whenever Inertia navigates / props change
-watch(validHeaders, () => {
-    currentIndex.value = 0;
-    startInterval();
-});
-
-function onImgError(e) {
-    // Last-resort fallback so a blank never appears
-    e.target.src = "/images/default.jpg";
-}
+watch(
+    () => props.headers,
+    () => {
+        currentIndex.value = 0;
+        startInterval();
+    },
+    { deep: true },
+);
 </script>
 
 <template>
@@ -86,9 +130,9 @@ function onImgError(e) {
                     aria-label="Home"
                 >
                     <img
-                        :src="`/storage/${$page.props.site?.logo}`"
-                        alt="Logo"
                         class="logo-img"
+                        :src="imgUrl(page.props.site?.logo)"
+                        alt="Logo"
                         @error="onImgError"
                     />
                 </Link>
@@ -105,15 +149,18 @@ function onImgError(e) {
                         >
                             <img
                                 class="ad-img"
-                                :src="`/storage/${validHeaders[safeIndex].ad}`"
-                                @error="onImgError"
+                                :src="imgUrl(validHeaders[safeIndex].ad)"
                                 alt="Advertisement"
                                 loading="eager"
+                                @error="onImgError"
                             />
                         </div>
 
-                        <!-- Empty placeholder while loading -->
-                        <div v-else class="ad-card ad-card-empty"></div>
+                        <div
+                            v-else
+                            key="empty-ad"
+                            class="ad-card ad-card-empty"
+                        ></div>
                     </transition>
                 </div>
             </div>

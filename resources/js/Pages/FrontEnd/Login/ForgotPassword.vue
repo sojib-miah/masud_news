@@ -41,7 +41,8 @@ const form = useForm({ email: "" });
                         <TextInput
                             v-model="form.email"
                             type="email"
-                            placeholder="ইমেইল ঠিকানা বা ফোন"
+                            placeholder="ফোন নম্বর..."
+                            label="ফোন নম্বর"
                         />
                     </div>
 

@@ -26,7 +26,8 @@ const form = useForm({
     site_termes: page.props.site?.site_termes || "",
     site_about: page.props.site?.site_about || "",
     currency: page.props.site?.currency || "",
-    news_view: page.props.site?.news_view || "",
+    news_view: page.props.site?.news_view || "0",
+    create_news: page.props.site?.create_news || "0",
     register_status: page.props.site?.register_status || "0",
 });
 
@@ -273,6 +274,24 @@ const currency = [
                                             @input="
                                                 form.errors.register_status =
                                                     null
+                                            "
+                                        />
+                                    </div>
+
+                                    <div class="h-fit">
+                                        <i
+                                            class="fa fa-info-circle"
+                                            title="If value Poisa then write .00"
+                                        ></i>
+                                        <TextInput
+                                            id="create_news"
+                                            label="Create News"
+                                            type="number"
+                                            v-model="form.create_news"
+                                            :error="form.errors.create_news"
+                                            placeholder="Create News"
+                                            @input="
+                                                form.errors.create_news = null
                                             "
                                         />
                                     </div>

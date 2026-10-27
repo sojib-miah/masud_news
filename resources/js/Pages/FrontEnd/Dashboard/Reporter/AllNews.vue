@@ -78,7 +78,7 @@ onUnmounted(() => {
 
 <template>
     <Layout>
-        <Head title="Add News" />
+        <Head title="All News" />
         <Breadcrumb />
         <FlashMessage
             v-if="$page.props.flash?.status"

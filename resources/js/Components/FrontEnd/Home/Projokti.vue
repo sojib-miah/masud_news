@@ -62,11 +62,16 @@ function truncate(text, words = 10) {
 <template>
     <section class="tech-section py-6 sm:py-8">
         <div class="container mx-auto px-3 sm:px-4 lg:px-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
+            <div
+                class="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6 items-stretch"
+            >
                 <!-- =============================================
                      TECHNOLOGY SECTION (2/3 on desktop)
                 ============================================== -->
-                <div v-if="technology" class="lg:col-span-2">
+                <div
+                    v-if="technology"
+                    class="lg:col-span-2 flex flex-col min-w-0"
+                >
                     <!-- Section header -->
                     <header class="section-header">
                         <div class="header-icon">
@@ -248,7 +253,10 @@ function truncate(text, words = 10) {
                 <!-- =============================================
                      ENTERTAINMENT SECTION (1/3 on desktop)
                 ============================================== -->
-                <aside v-if="entertainment" class="lg:col-span-1">
+                <aside
+                    v-if="entertainment"
+                    class="lg:col-span-1 flex flex-col min-w-0"
+                >
                     <header class="section-header entertainment">
                         <div class="header-icon">
                             <i class="fa-solid fa-clapperboard"></i>
@@ -368,9 +376,12 @@ function truncate(text, words = 10) {
 </template>
 
 <style scoped>
+aside {
+    background-color: transparent;
+}
 /* ==================== SECTION ==================== */
 .tech-section {
-    background: #f1f5f9;
+    background: #f8fafc;
 }
 h2 {
     margin-bottom: 0px;
@@ -635,7 +646,7 @@ h2 {
 .carousel-wrap {
     background: #ffffff;
     border-radius: 12px;
-    padding: 28px;
+    padding: 14px;
     box-shadow:
         0 1px 3px rgba(0, 0, 0, 0.05),
         0 8px 24px rgba(0, 0, 0, 0.06);
@@ -1108,6 +1119,48 @@ h2 {
     .ent-img-wrap:hover .ent-img,
     .ent-item:hover .ent-thumb {
         transform: none;
+    }
+}
+/* Equal-height technology and entertainment sections */
+@media (min-width: 1024px) {
+    .tech-section .container > .grid {
+        align-items: stretch;
+    }
+
+    .tech-section .grid > div.lg\:col-span-2,
+    .tech-section .grid > aside.lg\:col-span-1 {
+        min-width: 0;
+        height: 100%;
+    }
+
+    /* Left section */
+    .tech-section .grid > div.lg\:col-span-2 {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tech-section .featured-block {
+        flex-shrink: 0;
+    }
+
+    .tech-section .carousel-wrap {
+        flex: 1;
+        min-height: 0;
+    }
+
+    /* Right section */
+    .tech-section .grid > aside.lg\:col-span-1 {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .tech-section .ent-card {
+        flex: 1;
+        min-height: 0;
+    }
+
+    .tech-section .ent-list {
+        flex: 1;
     }
 }
 </style>

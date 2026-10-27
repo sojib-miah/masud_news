@@ -29,6 +29,8 @@ return new class extends Migration
             $table->string('site_termes')->nullable();
             $table->string('site_about')->nullable();
             $table->integer('register_status')->default('0');
+            $table->integer('news_view')->default('0');
+            $table->decimal('create_news', 10, 2)->default('0');
             $table->enum('currency', ['BDT', 'USD'])->default('BDT');
             $table->timestamps();
         });

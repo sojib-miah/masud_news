@@ -211,6 +211,9 @@ function truncate(text, words = 9) {
 </template>
 
 <style scoped>
+aside {
+    background-color: transparent;
+}
 /* ==================== SECTION ==================== */
 .vns-section {
     background: #f1f5f9;

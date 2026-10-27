@@ -415,9 +415,13 @@ watch(
 </template>
 
 <style scoped>
+aside {
+    background-color: transparent;
+}
 /* ==================== SECTION ==================== */
 .district-section {
-    background: #f1f5f9;
+    /* background: #f1f5f9; */
+    background: #f8fafc;
     font-family: "Hind Siliguri", "Roboto", sans-serif;
 }
 

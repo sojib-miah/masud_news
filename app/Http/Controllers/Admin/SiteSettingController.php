@@ -66,6 +66,7 @@ class SiteSettingController extends Controller
             'site_termes' => 'nullable',
             'site_about' => 'nullable',
             'news_view' => 'nullable',
+            'create_news' => 'nullable|numeric|min:0|max:999999.99',
             'register_status' => 'nullable',
         ]);
 
@@ -101,6 +102,7 @@ class SiteSettingController extends Controller
         $site->site_about = $request->site_about;
         $site->currency = $request->currency;
         $site->news_view = $request->news_view;
+        $site->create_news = $request->create_news;
         $site->register_status = $request->register_status;
 
         $site->save();
