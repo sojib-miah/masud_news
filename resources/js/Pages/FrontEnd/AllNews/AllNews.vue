@@ -1,7 +1,7 @@
 <script setup>
 import Layout from "@/Components/Layout.vue";
 import NewsBread from "./NewsBread.vue";
-import { usePage, Link } from "@inertiajs/vue3";
+import { usePage, Link, Head } from "@inertiajs/vue3";
 import { computed, ref } from "vue";
 import { route } from "ziggy-js";
 
@@ -59,6 +59,7 @@ const gridNews = computed(() => news.value.slice(4, 13));
 
 <template>
     <Layout>
+        <Head :title="category?.name || 'All Latest News'" />
         <NewsBread :category="category" :subcategory="subcategory" />
         <div class="bg-[#f8fafc] py-6 sm:py-8">
             <div class="container mx-auto px-3 sm:px-4 lg:px-6">
