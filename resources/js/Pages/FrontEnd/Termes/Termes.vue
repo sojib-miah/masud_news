@@ -33,7 +33,7 @@ const groupedSubCategories = computed(() => {
 
 <template>
     <Layout>
-        <Head title="Termes & Condition" />
+        <Head title="Termes & Conditions" />
         <FlashMessage
             v-if="$page.props.flash?.status"
             :message="$page.props.flash.status"
@@ -42,12 +42,12 @@ const groupedSubCategories = computed(() => {
         <div class="container">
             <div class="flex gap-2 my-6 font-robo">
                 <div
-                    class="w-2/3 p-5 border border-slate-300 rounded shadow h-fit"
+                    class="w-2/3 p-5 border border-slate-300 rounded shadow-lg h-fit"
                 >
                     <div v-html="term?.termes"></div>
                 </div>
                 <div
-                    class="w-1/3 p-5 border border-slate-300 shadow rounded h-fit font-robo"
+                    class="w-1/3 p-5 border border-slate-300 shadow-lg rounded h-fit font-robo"
                 >
                     <p><b>বিভাগ</b></p>
                     <ul

@@ -69,7 +69,7 @@ const filteredUnions = computed(() => {
         <div class="my-10 flex justify-center items-center px-3">
             <!-- Card -->
             <div
-                class="font-robo border-2 border-green-600 rounded-xl shadow shadow-green-500 w-full sm:w-[400px] md:w-[500px] lg:w-[600px]"
+                class="font-robo border-2 border-green-600 rounded-xl shadow-lg shadow-green-300 w-full sm:w-[400px] md:w-[500px] lg:w-[600px]"
             >
                 <!-- Header -->
                 <h2

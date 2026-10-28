@@ -31,6 +31,3 @@ live server add this database
 
 ///// add live server database 
 
-ALTER TABLE `site_settings`
-ADD COLUMN `create_news` DECIMAL(10, 2) NOT NULL DEFAULT 0
-AFTER `news_view`;

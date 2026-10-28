@@ -177,7 +177,7 @@ function cancelHide() {
                     <li>
                         <Link :href="route('home')" class="active">
                             <i class="fa-regular fa-house"></i>
-                            <span class="ml-2">Home</span>
+                            <span class="ml-2">হোম</span>
                         </Link>
                     </li>
 
@@ -223,7 +223,7 @@ function cancelHide() {
                     <li>
                         <Link :href="route('news.archive')">
                             <i class="fa-solid fa-box-archive"></i>
-                            <span class="ml-2">Archive</span>
+                            <span class="ml-2">আর্কাইভ</span>
                         </Link>
                     </li>
                 </ul>
@@ -255,7 +255,7 @@ function cancelHide() {
                         </button>
 
                         <h3 class="text-lg font-semibold text-gray-800 mb-3">
-                            Search
+                            খুঁজুন
                         </h3>
 
                         <input
@@ -265,7 +265,7 @@ function cancelHide() {
                         />
 
                         <button
-                            class="btn-success w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded transition"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white py-2 rounded transition"
                         >
                             Search
                         </button>

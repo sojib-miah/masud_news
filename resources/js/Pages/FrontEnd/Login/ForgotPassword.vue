@@ -22,7 +22,7 @@ const form = useForm({ email: "" });
         <div class="my-10 flex justify-center items-center px-3">
             <!-- Card -->
             <div
-                class="font-robo border-2 border-green-600 rounded-xl shadow shadow-green-500 w-full sm:w-[400px] md:w-[450px] lg:w-[500px]"
+                class="font-robo border-2 border-green-600 rounded-xl shadow-lg shadow-green-300 w-full sm:w-[400px] md:w-[450px] lg:w-[500px]"
             >
                 <!-- Header -->
                 <h2
@@ -50,7 +50,7 @@ const form = useForm({ email: "" });
                     <div class="flex justify-end mb-4">
                         <Link
                             :href="route('user.login')"
-                            class="text-blue-400 text-sm"
+                            class="text-green-400 text-sm"
                         >
                             প্রবেশ করুন
                         </Link>

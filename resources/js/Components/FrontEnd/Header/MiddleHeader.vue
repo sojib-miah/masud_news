@@ -1,317 +1,227 @@
 <script setup>
-import { computed, ref, watch, onMounted, onUnmounted } from "vue";
-import { Link, usePage } from "@inertiajs/vue3";
+import { Link } from "@inertiajs/vue3";
+import { defineProps, ref, onMounted, onUnmounted } from "vue";
 import { route } from "ziggy-js";
 
 const props = defineProps({
-    headers: {
-        type: Array,
-        default: () => [],
-    },
-    siteSetting: {
-        type: Object,
-        default: () => ({}),
-    },
+    headers: Array,
+    siteSetting: Object,
 });
-
-const page = usePage();
-
-const DEFAULT_IMAGE = "/images/default.jpg";
-
-// Convert a stored image path into a usable URL.
-function imgUrl(path) {
-    if (typeof path !== "string" || !path.trim()) {
-        return DEFAULT_IMAGE;
-    }
-
-    const value = path.trim();
-
-    if (/^https?:\/\//i.test(value)) {
-        return value;
-    }
-
-    const cleanPath = value.replace(/^\/+/, "").replace(/^storage\/+/i, "");
-
-    return `/storage/${cleanPath}`;
-}
-
-// Use the fallback only once to avoid an infinite error loop.
-function onImgError(event) {
-    const img = event.currentTarget;
-
-    if (img.dataset.fallbackApplied === "true") {
-        return;
-    }
-
-    img.dataset.fallbackApplied = "true";
-    img.src = DEFAULT_IMAGE;
-}
-
-// Only display advertisements with an image path.
-const validHeaders = computed(() => {
-    return (props.headers || []).filter((item) => {
-        return item && typeof item.ad === "string" && item.ad.trim() !== "";
-    });
-});
-
 const currentIndex = ref(0);
+let intervalId;
 
-const safeIndex = computed(() => {
-    const length = validHeaders.value.length;
-
-    if (length === 0) return -1;
-
-    return ((currentIndex.value % length) + length) % length;
+onMounted(() => {
+    intervalId = setInterval(() => {
+        currentIndex.value = (currentIndex.value + 1) % props.headers.length;
+    }, 10000);
 });
 
-let intervalId = null;
-
-function stopInterval() {
-    if (intervalId !== null) {
-        clearInterval(intervalId);
-        intervalId = null;
-    }
-}
-
-function preloadNext() {
-    const length = validHeaders.value.length;
-
-    if (length < 2) return;
-
-    const nextIndex = (safeIndex.value + 1) % length;
-    const nextAd = validHeaders.value[nextIndex];
-
-    if (nextAd?.ad) {
-        const image = new Image();
-        image.src = imgUrl(nextAd.ad);
-    }
-}
-
-function nextSlide() {
-    const length = validHeaders.value.length;
-
-    if (length < 2) return;
-
-    preloadNext();
-    currentIndex.value = (currentIndex.value + 1) % length;
-}
-
-function startInterval() {
-    stopInterval();
-
-    if (validHeaders.value.length > 1) {
-        intervalId = setInterval(nextSlide, 10000);
-    }
-}
-
-onMounted(startInterval);
-onUnmounted(stopInterval);
-
-watch(
-    () => props.headers,
-    () => {
-        currentIndex.value = 0;
-        startInterval();
-    },
-    { deep: true },
-);
+onUnmounted(() => {
+    clearInterval(intervalId);
+});
 </script>
 
 <template>
-    <header class="site-header">
-        <div class="container mx-auto px-3 sm:px-4 lg:px-6">
+    <div class="bg-slate-300 py-2">
+        <div class="container">
             <div
-                class="flex flex-col lg:flex-row items-center justify-between gap-3 lg:gap-6 py-3 lg:py-4"
+                class="flex flex-col lg:flex-row items-center justify-between gap-3"
             >
-                <!-- LOGO -->
-                <Link
-                    :href="route('home')"
-                    class="logo-wrap shrink-0 flex items-center justify-center lg:justify-start w-full lg:w-auto"
-                    aria-label="Home"
-                >
-                    <img
-                        class="logo-img"
-                        :src="imgUrl(page.props.site?.logo)"
-                        alt="Logo"
-                        @error="onImgError"
-                    />
-                </Link>
-
-                <!-- AD SLIDER -->
-                <div
-                    class="ad-wrap w-full lg:flex-1 lg:max-w-[65%] flex justify-center lg:justify-end"
-                >
-                    <transition name="fade" mode="out-in">
-                        <div
-                            v-if="safeIndex !== -1"
-                            :key="safeIndex"
-                            class="ad-card"
-                        >
-                            <img
-                                class="ad-img"
-                                :src="imgUrl(validHeaders[safeIndex].ad)"
-                                alt="Advertisement"
-                                loading="eager"
-                                @error="onImgError"
-                            />
-                        </div>
-
-                        <div
-                            v-else
-                            key="empty-ad"
-                            class="ad-card ad-card-empty"
-                        ></div>
-                    </transition>
+                <!-- Logo -->
+                <div class="logo w-full lg:w-auto text-center lg:text-left">
+                    <Link :href="route('home')">
+                        <img
+                            :src="`/storage/${$page.props.site?.logo}`"
+                            alt="logo"
+                            class="mx-auto lg:mx-0"
+                        />
+                    </Link>
                 </div>
+
+                <!-- Ad -->
+                <transition name="fade" mode="out-in">
+                    <div
+                        class="ad w-full lg:w-auto flex justify-center"
+                        :key="currentIndex"
+                    >
+                        <!-- <Link :href="route('home')"> -->
+                        <img
+                            v-if="props.headers?.[currentIndex]"
+                            :src="`/storage/${props.headers[currentIndex].ad}`"
+                            alt="Ad"
+                        />
+                        <!-- </Link> -->
+                    </div>
+                </transition>
             </div>
         </div>
-
-        <div class="header-accent" aria-hidden="true"></div>
-    </header>
+    </div>
 </template>
 
 <style scoped>
-/* ============ HEADER CONTAINER ============ */
-.site-header {
-    position: relative;
-    background: linear-gradient(180deg, #ffffff 0%, #f8faf9 100%);
-    box-shadow:
-        0 1px 3px rgba(0, 0, 0, 0.04),
-        0 4px 14px rgba(0, 0, 0, 0.03);
-    z-index: 20;
+.bg-slate-300 {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    border-bottom: 1px solid #e2e8f0;
+    box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
 }
-
-.header-accent {
-    height: 3px;
-    background: linear-gradient(90deg, #8aff90, #00930c, #8aff90);
-    background-size: 200% 100%;
-    animation: accentMove 8s linear infinite;
-}
-
-@keyframes accentMove {
-    0% {
-        background-position: 0% 50%;
-    }
-    100% {
-        background-position: 200% 50%;
-    }
-}
-
-/* ============ LOGO ============ */
-.logo-wrap {
-    transition: transform 0.25s ease;
-}
-
-.logo-wrap:hover {
-    transform: scale(1.02);
-}
-
-.logo-img {
-    height: 56px; /* mobile */
-    width: auto;
-    max-width: 220px;
-    object-fit: contain;
-    display: block;
-}
-
-@media (min-width: 640px) {
-    .logo-img {
-        height: 68px;
-        max-width: 260px;
-    }
-}
-
-@media (min-width: 1024px) {
-    .logo-img {
-        height: 80px;
-        max-width: 300px;
-    }
-}
-
-/* ============ AD CARD ============ */
-.ad-card {
-    display: block;
-    height: 64px; /* mobile */
-    width: 100%;
-    max-width: 100%;
-    border-radius: 10px;
-    overflow: hidden;
-    background: #f3f4f6;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+.logo {
+    height: 90px;
+    min-width: 160px;
+    max-width: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 18px;
+    background: #ffffff;
+    border: 1px solid #eaeef4;
+    border-radius: 16px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
     transition:
-        box-shadow 0.25s ease,
-        transform 0.25s ease;
+        box-shadow 0.3s ease,
+        border-color 0.3s ease;
 }
 
-.ad-card:hover {
-    box-shadow: 0 6px 20px rgba(0, 147, 12, 0.15);
-    transform: translateY(-1px);
+.logo:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
 }
 
-.ad-img {
+.logo a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+}
+
+.logo img {
+    display: block;
+    max-width: 100%;
+    max-height: 70px;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+.ad {
+    position: relative;
+    width: 100%;
+    max-width: 970px;
+    height: 90px;
+    min-height: 90px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    background: #ffffff;
+    border: 1px solid #eaeef4;
+    border-radius: 16px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.04);
+    transition: box-shadow 0.3s ease;
+}
+
+.ad:hover {
+    box-shadow: 0 6px 20px rgba(15, 23, 42, 0.08);
+}
+
+.ad a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    padding: 5px;
+}
+
+.ad img {
     display: block;
     width: 100%;
     height: 100%;
+    max-width: 100%;
+    max-height: 90px;
     object-fit: contain;
-    object-position: center;
+    border-radius: 10px;
 }
-
-@media (min-width: 640px) {
-    .ad-card {
-        height: 72px;
-    }
-}
-
-@media (min-width: 1024px) {
-    .ad-card {
-        height: 84px;
-    }
-}
-
-/* ============ FADE TRANSITION ============ */
 .fade-enter-active,
 .fade-leave-active {
-    transition:
-        opacity 0.8s ease,
-        transform 0.8s ease;
+    transition: opacity 0.6s ease;
 }
 
-.fade-enter-from {
-    opacity: 0;
-    transform: translateY(-6px);
-}
-
+.fade-enter-from,
 .fade-leave-to {
     opacity: 0;
-    transform: translateY(6px);
+}
+@media (min-width: 640px) and (max-width: 1023px) {
+    .bg-slate-300 > .container {
+        padding: 12px 16px;
+    }
+
+    .logo {
+        height: 80px;
+        min-width: 140px;
+        max-width: 220px;
+        padding: 8px 14px;
+        border-radius: 12px;
+    }
+
+    .logo img {
+        max-height: 64px;
+    }
+
+    .ad {
+        height: 80px;
+        min-height: 80px;
+        border-radius: 12px;
+    }
+
+    .ad img {
+        max-height: 80px;
+    }
+}
+@media (max-width: 639px) {
+    .bg-slate-300 > .container {
+        padding: 10px 12px;
+    }
+
+    .bg-slate-300 .flex {
+        gap: 10px;
+    }
+
+    .logo {
+        height: 65px;
+        min-width: 0;
+        max-width: 220px;
+        padding: 6px 12px;
+        border-radius: 12px;
+    }
+
+    .logo img {
+        max-height: 52px;
+    }
+
+    .ad {
+        height: 65px;
+        min-height: 65px;
+        max-width: 100%;
+        border-radius: 12px;
+    }
+
+    .ad a {
+        padding: 4px;
+    }
+
+    .ad img {
+        max-height: 65px;
+        border-radius: 8px;
+    }
 }
 
-/* ============ REDUCE MOTION ============ */
-@media (prefers-reduced-motion: reduce) {
-    .header-accent {
-        animation: none;
-    }
-    .fade-enter-active,
-    .fade-leave-active {
-        transition: opacity 0.2s;
-    }
-    .logo-wrap:hover,
-    .ad-card:hover {
-        transform: none;
-    }
+/* Fade animation */
+.fade-enter-active,
+.fade-leave-active {
+    transition: opacity 1s ease;
 }
-.ad-card-empty {
-    background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
-    background-size: 200% 100%;
-    animation: shimmer 1.5s linear infinite;
-}
-
-@keyframes shimmer {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
+.fade-enter-from,
+.fade-leave-to {
+    opacity: 0;
 }
 </style>

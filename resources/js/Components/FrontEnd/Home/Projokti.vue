@@ -324,7 +324,7 @@ function truncate(text, words = 10) {
                             <Link
                                 v-for="item in entertainment.news?.slice(
                                     1,
-                                    5,
+                                    4,
                                 ) ?? []"
                                 :key="item.id"
                                 :href="route('news.details', item.slug)"

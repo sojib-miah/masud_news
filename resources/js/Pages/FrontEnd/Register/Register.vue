@@ -12,7 +12,7 @@ import { route } from "ziggy-js";
         <div class="my-10 flex justify-center items-center px-3 font-robo">
             <!-- Card -->
             <div
-                class="text-center border-2 border-green-600 p-5 sm:p-6 md:p-8 rounded-xl shadow shadow-green-500 w-full sm:w-[400px] md:w-[600px] lg:w-[700px]"
+                class="text-center border-2 border-green-600 p-5 sm:p-6 md:p-8 rounded-xl shadow-lg shadow-green-300 w-full sm:w-[400px] md:w-[600px] lg:w-[700px]"
             >
                 <!-- Title -->
                 <h2 class="text-green-600 text-lg sm:text-xl font-bold mb-4">

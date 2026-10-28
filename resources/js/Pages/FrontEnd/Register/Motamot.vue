@@ -22,10 +22,10 @@ const form = useForm({
             type="success"
         />
 
-        <div class="min-h-screen flex justify-center items-start px-3 py-10">
+        <div class="flex justify-center items-start px-3 py-10">
             <!-- Card -->
             <div
-                class="font-robo border-2 border-green-600 rounded-xl shadow shadow-green-500 w-full sm:w-[400px] md:w-[500px] lg:w-[600px]"
+                class="font-robo border-2 border-green-600 rounded-xl shadow-lg shadow-green-300 w-full sm:w-[400px] md:w-[500px] lg:w-[600px]"
             >
                 <h2
                     class="bg-green-600 text-center rounded-t-lg text-white p-3"
