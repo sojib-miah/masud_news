@@ -25,6 +25,9 @@ return new class extends Migration
             $table->string('district')->nullable();
             $table->string('upazila')->nullable();
             $table->string('union')->nullable();
+            $table->string('city_corporation')->nullable();
+            $table->string('village')->nullable();
+            $table->string('ward')->nullable();
             $table->string('reporter_area')->nullable();
             $table->string('nid_number')->nullable();
             $table->string('photo')->nullable();

@@ -253,7 +253,7 @@ watch(
                         <Link
                             v-for="item in displayNews"
                             :key="item.id"
-                            :href="route('news.show', item.slug)"
+                            :href="route('news.details', item.slug)"
                             class="news-card"
                         >
                             <div class="news-img-wrap">

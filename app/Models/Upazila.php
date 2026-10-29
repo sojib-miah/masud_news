@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Upazila extends Model
 {
+    protected $table = 'upazilas';
+
     protected $guarded = [];
 
     public function district()

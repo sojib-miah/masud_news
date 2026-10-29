@@ -37,4 +37,19 @@ class ReporterProfile extends Model
     {
         return $this->belongsTo(Union::class, 'union', 'id');
     }
+
+    public function bloodGroupData()
+    {
+        return $this->belongsTo(BloodGroup::class, 'blood_group', 'id');
+    }
+
+    public function cityCorporationData()
+    {
+        return $this->belongsTo(CityCorporation::class, 'city_corporation', 'id');
+    }
+
+    public function wardData()
+    {
+        return $this->belongsTo(Ward::class, 'ward', 'id');
+    }
 }

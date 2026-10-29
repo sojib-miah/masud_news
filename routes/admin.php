@@ -145,10 +145,10 @@ Route::prefix('admin')->group(function () {
 
 // External route link
 // grapes js editor
-Route::get('/{slug}', [PageController::class, 'show'])->name('pages.show');
+// Route::get('/{slug}', [PageController::class, 'show'])->name('pages.show');
 
 // multi language route
 Route::get('/lang/{locale}', [LanguageController::class, 'switch'])->name('lang.switch');
 
 // cache clear 
-Route::post('/clear-cache', [CacheController::class, 'clear'])->name('clear-cache');
+Route::get('/clear-cache', [CacheController::class, 'clear'])->name('clear-cache');

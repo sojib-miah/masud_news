@@ -6,10 +6,17 @@ use Illuminate\Database\Eloquent\Model;
 
 class Division extends Model
 {
+    protected $table = 'divisions';
+
     protected $guarded = [];
 
     public function districts()
     {
         return $this->hasMany(District::class);
+    }
+
+    public function cityCorporations()
+    {
+        return $this->hasMany(CityCorporation::class);
     }
 }

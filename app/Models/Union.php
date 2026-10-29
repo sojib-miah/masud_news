@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class Union extends Model
 {
+    protected $table = 'unions';
+
     protected $guarded = [];
 
     public function upazila()

@@ -17,15 +17,18 @@ use App\Http\Controllers\ReporterController;
 use App\Http\Controllers\ShopController;
 use App\Http\Controllers\StockMoneyController;
 use App\Http\Controllers\UserController;
-use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Route;
 
+// include route
+require __DIR__.'/admin.php';
+require __DIR__.'/user.php';
 
-
-// all route here 
+// all route here
 Route::get('/', [UserController::class, 'home'])->name('home');
 
+// terms & condition
 Route::get('news/termes&conditions', [TermesController::class, 'newsTermes'])->name('news.termes');
 Route::get('news/privacyPolicy', [TermesController::class, 'newsPrivacy'])->name('news.privacy');
 
@@ -41,8 +44,10 @@ Route::post('/register/motamot', [RegisterController::class, 'storeMotamot'])->n
 Route::get('/districts/{divisionId}', [RegisterController::class, 'getDistricts']);
 Route::get('/upazilas/{districtId}', [RegisterController::class, 'getUpazilas']);
 Route::get('/unions/{upazilaId}', [RegisterController::class, 'getUnions']);
+Route::get('/city-corporations/{divisionId}', [RegisterController::class, 'getCityCorporations']);
+Route::get('/wards/{cityCorporationId}', [RegisterController::class, 'getWards']);
 
-// login 
+// login
 Route::post('/logout', [LoginController::class, 'logout'])->name('user.logout');
 Route::get('/login', [LoginController::class, 'login'])->name('user.login');
 Route::post('/login', [LoginController::class, 'authenticate'])->name('login.store');
@@ -57,7 +62,6 @@ Route::post('/reset-password', [LoginController::class, 'updatePassword'])->name
 Route::get('/news/details/{slug}', [UserController::class, 'newsDetails'])->name('news.details');
 Route::get('/news/archive', [UserController::class, 'newsArchive'])->name('news.archive');
 Route::get('/news/{category}/{subcategory?}', [UserController::class, 'allNews'])->name('all.news');
-
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/pathock', [UserController::class, 'pathockDashboard'])->name('dashboard.pathock');
@@ -89,7 +93,6 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/motamot/update/{id}', [MotamotController::class, 'update'])->name('motamot.update');
     Route::delete('/motamot/delete/{id}', [MotamotController::class, 'destroy'])->name('motamot.destroy');
 
-
     Route::get('/add/news', [UserController::class, 'addNews'])->name('add.news');
     Route::post('/count-news-view', [UserController::class, 'countView'])->name('news.count.view');
 
@@ -112,7 +115,7 @@ Route::middleware(['auth'])->group(function () {
 
     Route::get('/all/reporter', [ReporterController::class, 'allReporter'])->name('all.reporter');
 
-    // catogory subcategory 
+    // catogory subcategory
     Route::get('/admin/categories', [ReporterController::class, 'index'])->name('categories.index');
     Route::post('/admin/categories', [ReporterController::class, 'store'])->name('categories.store');
     Route::put('/admin/categories/{category}', [ReporterController::class, 'update'])->name('categories.update');
@@ -145,7 +148,7 @@ Route::middleware(['auth'])->group(function () {
         // Shop routes
         Route::resource('shops', ShopController::class);
 
-        // products 
+        // products
         Route::resource('products', ProductController::class);
 
         // order routes
@@ -165,20 +168,18 @@ Route::middleware(['auth'])->group(function () {
 });
 Route::post('/subscribe', [TermesController::class, 'subscribe'])->name('subscribe');
 
-// store comment 
+// store comment
 Route::post('/news/{news}/comments', [UserController::class, 'storeComment']);
 
 // product details
 Route::resource('cart', CartController::class);
 Route::get('/productdetails/{product}', [ProductDetailsController::class, 'show'])->name('product.show');
 
-// order 
+// order
 Route::get('/order/create', [OrderController::class, 'create'])->name('order.create');
 Route::post('/order/store', [OrderController::class, 'store'])->name('order.store');
 
-
-
-// extra link 
+// extra link
 Route::get('/saradesh/{division?}', [UserController::class, 'home'])->name('saradesh');
 
 Route::get('/prayer-times', function () {
@@ -193,10 +194,6 @@ Route::get('/prayer-times', function () {
 
 Route::get('/storage-link', function () {
     Artisan::call('storage:link');
-    return 'Storage link created';
+
+    return redirect()->back()->with('status', 'Storage link created successfully!');
 });
-
-
-// include route
-require __DIR__ . '/admin.php';
-require __DIR__ . '/user.php';
