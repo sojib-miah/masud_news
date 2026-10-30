@@ -8,6 +8,16 @@ class PathockProfile extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'user_id' => 'integer',
+        'division_id' => 'integer',
+        'district_id' => 'integer',
+        'upazilla_id' => 'integer',
+        'union_id' => 'integer',
+        'city_corporation_id' => 'integer',
+        'ward_id' => 'integer',
+    ];
+
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id');

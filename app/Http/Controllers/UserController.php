@@ -9,21 +9,21 @@ use App\Models\Education;
 use App\Models\EducationYear;
 use App\Models\Motamot;
 use App\Models\News;
+use App\Models\NewsUserView;
 use App\Models\NewsView;
+use App\Models\PathockProfile;
+use App\Models\Product;
 use App\Models\ReporterArea;
 use App\Models\ReporterProfile;
 use App\Models\ReporterType;
-use App\Models\SubCategory;
-use App\Models\User;
-use App\Models\NewsUserView;
-use App\Models\Product;
 use App\Models\SiteSetting;
 use App\Models\StockMoney;
+use App\Models\SubCategory;
+use App\Models\User;
 use App\Models\Video;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
@@ -68,7 +68,7 @@ class UserController extends Controller
             'category',
             'news' => function ($q) {
                 $q->where('status', 1)->latest()->take(6);
-            }
+            },
         ])->where('slug', 'cakurir-khbr')->first();
 
         $sarades = Category::where('slug', 'sarades')->first();
@@ -79,7 +79,7 @@ class UserController extends Controller
 
         $allNews = News::whereIn('category_id', [
             optional($sarades)->id,
-            optional($bivag)->id
+            optional($bivag)->id,
         ])
             ->where('status', 1)
             ->latest()
@@ -152,7 +152,9 @@ class UserController extends Controller
             'user.reporterProfile.districtData',
             'user.reporterProfile.upazilaData',
             'user.reporterProfile.unionData',
-            'comments'
+            'user.reporterProfile.cityCorporationData',
+            'user.reporterProfile.wardData',
+            'comments',
         ])
             ->where('slug', $slug)
             ->firstOrFail();
@@ -163,32 +165,30 @@ class UserController extends Controller
             ->take(4)
             ->get();
 
-        // Reporter Types
+        // ---------- Reporter Types (safe) ----------
         if ($news->user && $news->user->reporterProfile) {
+            $profile = $news->user->reporterProfile;
 
-            $typeIds = explode(',', $news->user->reporterProfile->reporter_types ?? '');
+            $typeIds = array_filter(
+                explode(',', $profile->reporter_types ?? ''),
+                fn ($id) => is_numeric($id)
+            );
 
-            $types = ReporterType::whereIn('id', $typeIds)->get();
-
-            $news->user->reporterProfile->types = $types;
-        } else {
-
-            $news->user->reporterProfile = null;
+            $profile->types = ! empty($typeIds)
+                ? ReporterType::whereIn('id', $typeIds)->get()
+                : collect();
         }
 
-        // Current Today's Views
-        $currentView = NewsView::where('news_id', $news->id)
+        // ---------- Today's Views ----------
+        $news->current_view = NewsView::where('news_id', $news->id)
             ->whereDate('created_at', today())
             ->count();
-
-        $news->current_view = $currentView;
 
         return Inertia::render('FrontEnd/AllNews/Details', [
             'news' => $news,
             'relatedNews' => $relatedNews,
         ]);
     }
-
 
     public function countView(Request $request)
     {
@@ -213,7 +213,7 @@ class UserController extends Controller
             ->whereDate('created_at', today())
             ->exists();
 
-        if (!$alreadyViewed) {
+        if (! $alreadyViewed) {
 
             // Save View
             NewsView::create([
@@ -233,7 +233,7 @@ class UserController extends Controller
                     ->whereDate('created_at', today())
                     ->exists();
 
-                if (!$alreadyUserViewed) {
+                if (! $alreadyUserViewed) {
 
                     NewsUserView::create([
                         'user_id' => $userId,
@@ -271,14 +271,14 @@ class UserController extends Controller
         ]);
     }
 
-
-    // store comment 
+    // store comment
     public function storeComment(Request $request, News $news)
     {
         $request->validate(['body' => 'required']);
         $news->comments()->create([
             'body' => $request->body,
         ]);
+
         return redirect()->back()->with('status', 'Comment Added successfully');
     }
 
@@ -291,13 +291,13 @@ class UserController extends Controller
 
         foreach ($levels as $percent) {
 
-            if (!$currentUser->referred_by) {
+            if (! $currentUser->referred_by) {
                 break;
             }
 
             $parent = User::find($currentUser->referred_by);
 
-            if (!$parent) {
+            if (! $parent) {
                 break;
             }
 
@@ -354,7 +354,7 @@ class UserController extends Controller
 
             'role' => $user->role,
 
-            'affiliate_link' => url('/register/pathock?ref=' . $user->ref_id),
+            'affiliate_link' => url('/register/pathock?ref='.$user->ref_id),
 
             'products' => Product::latest()->get(),
             'stockMoney' => StockMoney::where('user_id', $user->id)
@@ -368,7 +368,7 @@ class UserController extends Controller
                 'daily_return' => $user->daily_return_wallet,
                 'gift_wallet' => $user->gift_wallet,
                 'marketing_wallet' => $user->marketing_wallet,
-            ]
+            ],
         ]);
     }
 
@@ -392,12 +392,12 @@ class UserController extends Controller
         return Inertia::render('FrontEnd/Dashboard/ReporterDashboard', [
             'role' => $user->role,
             'stats' => [
-                'total_news'      => $totalNews,
-                'pending_news'    => $totalPending,
-                'published_news'  => $totalPublished,
+                'total_news' => $totalNews,
+                'pending_news' => $totalPending,
+                'published_news' => $totalPublished,
                 'reporter_income' => $user->reporter_income ?? 0,
-                'total_withdraw'  => $user->total_withdraw ?? 0,
-                'total_balance'   => ($user->reporter_income ?? 0) - ($user->total_withdraw ?? 0),
+                'total_withdraw' => $user->total_withdraw ?? 0,
+                'total_balance' => ($user->reporter_income ?? 0) - ($user->total_withdraw ?? 0),
             ],
         ]);
     }
@@ -413,11 +413,33 @@ class UserController extends Controller
         ]);
     }
 
-
     public function pathockProfile()
     {
         $user = Auth::user();
-        return Inertia::render('FrontEnd/Dashboard/Pathock/Profile', ['user' => $user]);
+
+        $profile = PathockProfile::with([
+            'division:id,name,bn_name',
+            'district:id,name,bn_name',
+            'upazilla:id,name,bn_name',
+            'union:id,name,bn_name',
+            'cityCorporation:id,name,bn_name',
+            'ward:id,name,bn_name',
+        ])->where('user_id', $user->id)->first();
+
+        return Inertia::render('FrontEnd/Dashboard/Pathock/Profile', [
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'phone' => $user->phone,
+                'image' => $user->image,
+            ],
+            'profile' => $profile,
+            // IMPORTANT: expose BOTH name and bn_name so Vue can pick.
+            'divisions' => Division::select('id', 'name', 'bn_name')
+                ->orderBy('name')
+                ->get(),
+        ]);
     }
 
     public function pathockPayment()
@@ -429,33 +451,111 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'phone' => 'required|unique:users,phone,' . $user->id,
-            'password' => 'nullable|confirmed',
-            'image' => 'nullable|image',
-        ]);
+        // ---------- VALIDATION ----------
+        $rules = [
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
+            'phone' => 'required|string|max:20|unique:users,phone,'.$user->id,
 
-        $data = $request->only(['name', 'email', 'phone']);
+            'division_id' => 'nullable|exists:divisions,id',
+            'district_id' => 'nullable|exists:districts,id',
+            'upazilla_id' => 'nullable|exists:upazilas,id',
+            'union_id' => 'nullable|exists:unions,id',
+            'city_corporation_id' => 'nullable|exists:city_corporations,id',
+            'ward_id' => 'nullable|exists:wards,id',
+
+            'village' => 'nullable|string|max:255',
+            'occupation' => 'nullable|string|max:255',
+
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
+        ];
+
+        // Only require password fields if changing password
+        if ($request->filled('password') || $request->filled('old_password')) {
+            $rules['old_password'] = 'required|string';
+            $rules['password'] = 'required|string|min:6|confirmed';
+        }
+
+        $validated = $request->validate($rules);
+
+        // ---------- OLD PASSWORD CHECK ----------
+        if ($request->filled('password')) {
+            if (! Hash::check($request->old_password, $user->password)) {
+                return back()->withErrors([
+                    'old_password' => 'Old password is incorrect',
+                ])->withInput();
+            }
+        }
+
+        // ---------- LOCATION EXCLUSIVITY ----------
+        // If district is selected, clear city corporation path (and vice versa)
+        $districtId = $validated['district_id'] ?? null;
+        $cityCorporationId = $validated['city_corporation_id'] ?? null;
+
+        if (! empty($districtId)) {
+            $cityCorporationId = null;
+            $wardId = null;
+        } elseif (! empty($cityCorporationId)) {
+            $districtId = null;
+            $upazillaId = null;
+            $unionId = null;
+        } else {
+            $upazillaId = $validated['upazilla_id'] ?? null;
+            $unionId = $validated['union_id'] ?? null;
+            $wardId = $validated['ward_id'] ?? null;
+        }
+
+        // Re-normalize after exclusivity
+        $upazillaId = $districtId ? ($validated['upazilla_id'] ?? null) : null;
+        $unionId = $upazillaId ? ($validated['union_id'] ?? null) : null;
+        $wardId = $cityCorporationId ? ($validated['ward_id'] ?? null) : null;
+
+        // ---------- UPDATE USER ----------
+        $userData = [
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'phone' => $validated['phone'],
+        ];
 
         if ($request->filled('password')) {
-            $data['password'] = bcrypt($request->password);
+            $userData['password'] = Hash::make($validated['password']);
         }
 
+        // Avatar upload — delete old first
         if ($request->hasFile('image')) {
-            $data['image'] = $request->file('image')->store('images/avatars', 'public');
+            if ($user->image && Storage::disk('public')->exists($user->image)) {
+                Storage::disk('public')->delete($user->image);
+            }
+            $userData['image'] = $request->file('image')->store('images/avatars', 'public');
         }
 
-        $user->update($data);
+        $user->update($userData);
 
-        return redirect()->back()->with('status', 'Profile updated successfully');
+        // ---------- UPDATE / CREATE PATHOCK PROFILE ----------
+        PathockProfile::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'division_id' => $validated['division_id'] ?? null,
+                'district_id' => $districtId,
+                'upazilla_id' => $upazillaId,
+                'union_id' => $unionId,
+                'city_corporation_id' => $cityCorporationId,
+                'ward_id' => $wardId,
+                'village' => $validated['village'] ?? null,
+                'occupation' => $validated['occupation'] ?? null,
+            ]
+        );
+
+        return redirect()
+            ->back()
+            ->with('status', 'Profile updated successfully');
     }
 
     // motamot profile
     public function motamotProfile()
     {
         $user = Auth::user();
+
         return Inertia::render('FrontEnd/Dashboard/Motamot/Profile', ['user' => $user]);
     }
 
@@ -465,8 +565,8 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'phone' => 'required|unique:users,phone,' . $user->id,
+            'email' => 'required|email|unique:users,email,'.$user->id,
+            'phone' => 'required|unique:users,phone,'.$user->id,
             'password' => 'nullable|confirmed',
             'image' => 'nullable|image',
         ]);
@@ -488,17 +588,17 @@ class UserController extends Controller
 
     public function editReporter($id)
     {
-        $user = User::with('reporterProfile')->findOrFail($id);
+        $user = User::with(['reporterProfile'])->findOrFail($id);
 
         return Inertia::render('FrontEnd/Dashboard/Reporter/Profile', [
             'user' => $user,
             'profile' => $user->reporterProfile,
-            'bloodGroups' => BloodGroup::all(),
-            'educations' => Education::all(),
-            'educationals' => EducationYear::all(),
-            'divisions' => Division::all(),
-            'reporterAreas' => ReporterArea::all(),
-            'reporterTypes' => ReporterType::all(),
+            'bloodGroups' => BloodGroup::select('id', 'name')->orderBy('name')->get(),
+            'educations' => Education::select('id', 'name')->orderBy('name')->get(),
+            'educationals' => EducationYear::select('id', 'year')->orderBy('year', 'desc')->get(),
+            'divisions' => Division::select('id', 'name', 'bn_name')->orderBy('name')->get(),
+            'reporterAreas' => ReporterArea::select('id', 'name')->orderBy('name')->get(),
+            'reporterTypes' => ReporterType::select('id', 'name')->orderBy('name')->get(),
         ]);
     }
 
@@ -507,68 +607,101 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         $profile = ReporterProfile::where('user_id', $user->id)->firstOrFail();
 
-        $request->validate([
-            'name' => 'required',
-            'email' => 'required|email|unique:users,email,' . $user->id,
-            'phone' => 'required|unique:users,phone,' . $user->id,
-            'photo' => 'nullable|image',
-            'signature' => 'nullable|image',
-            'nid_file' => 'nullable|mimes:pdf,jpg,png',
-            'dob' => 'required|date',
-            'reporter_area' => 'required',
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:255'],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
+            'phone' => ['required', 'string', 'max:20', 'unique:users,phone,'.$user->id],
+            'dob' => ['required', 'date'],
+
+            // blood_group: Vue sends the NAME ("A+"), not the id.
+            'blood_group' => ['required', 'string', 'exists:blood_groups,name'],
+
+            'father_name' => ['required', 'string', 'max:255'],
+            'mother_name' => ['required', 'string', 'max:255'],
+            // 'address' => ['nullable', 'string', 'max:500'],
+
+            'education' => ['required', 'string', 'max:255'],
+            'education_year' => ['required', 'string', 'max:50'],
+
+            'division' => ['nullable', 'integer', 'exists:divisions,id'],
+            'district' => ['nullable', 'integer', 'exists:districts,id'],
+            'upazila' => ['nullable', 'integer', 'exists:upazilas,id'],
+            'union' => ['nullable', 'integer', 'exists:unions,id'],
+            'city_corporation' => ['nullable', 'integer', 'exists:city_corporations,id'],
+            'ward' => ['nullable', 'integer', 'exists:wards,id'],
+
+            'reporter_area' => ['required', 'string', 'max:255'],
+            'nid_number' => ['nullable', 'string', 'max:20'],
+
+            'photo' => ['nullable', 'image', 'max:2048'],
+            'signature' => ['nullable', 'image', 'max:2048'],
+            'nid_file' => ['nullable', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
+
+            'reporter_types' => ['nullable', 'array'],
+            'reporter_types.*' => ['integer', 'exists:reporter_types,id'],
+
+            'password' => ['nullable', 'string', 'min:6', 'confirmed'],
+            'password_confirmation' => ['nullable', 'string'],
         ]);
 
-        // Update user
-        $user->update([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone' => $request->phone,
-        ]);
+        // ============ UPDATE USER ============
+        $user->name = $validated['name'];
+        $user->email = $validated['email'];
+        $user->phone = $validated['phone'];
 
+        if (! empty($validated['password'])) {
+            $user->password = Hash::make($validated['password']);
+        }
+        $user->save();
+
+        // ============ FILE UPLOADS ============
         $photoPath = $profile->photo;
+        $signaturePath = $profile->signature;
+        $nidPath = $profile->nid_file;
+
         if ($request->hasFile('photo')) {
-            if ($profile->photo && Storage::disk('public')->exists($profile->photo)) {
-                Storage::disk('public')->delete($profile->photo);
+            if ($photoPath && Storage::disk('public')->exists($photoPath)) {
+                Storage::disk('public')->delete($photoPath);
             }
             $photoPath = $request->file('photo')->store('images/register', 'public');
         }
 
-        $signaturePath = $profile->signature;
         if ($request->hasFile('signature')) {
-            if ($profile->signature && Storage::disk('public')->exists($profile->signature)) {
-                Storage::disk('public')->delete($profile->signature);
+            if ($signaturePath && Storage::disk('public')->exists($signaturePath)) {
+                Storage::disk('public')->delete($signaturePath);
             }
             $signaturePath = $request->file('signature')->store('images/register', 'public');
         }
 
-        $nidPath = $profile->nid_file;
         if ($request->hasFile('nid_file')) {
-            if ($profile->nid_file && Storage::disk('public')->exists($profile->nid_file)) {
-                Storage::disk('public')->delete($profile->nid_file);
+            if ($nidPath && Storage::disk('public')->exists($nidPath)) {
+                Storage::disk('public')->delete($nidPath);
             }
             $nidPath = $request->file('nid_file')->store('images/register', 'public');
         }
 
-
+        // ============ UPDATE PROFILE ============
         $profile->update([
-            'dob' => $request->dob,
-            'blood_group' => $request->blood_group,
-            'father_name' => $request->father_name,
-            'mother_name' => $request->mother_name,
-            'address' => $request->address,
-            'education' => $request->education,
-            'education_year' => $request->education_year,
-            'division' => $request->division,
-            'district' => $request->district,
-            'upazila' => $request->upazila,
-            'union' => $request->union,
-            'reporter_area' => $request->reporter_area,
-            'nid_number' => $request->nid_number,
+            'dob' => $validated['dob'],
+            'blood_group' => $validated['blood_group'],
+            'father_name' => $validated['father_name'],
+            'mother_name' => $validated['mother_name'],
+            // 'address' => $validated['address'] ?? null,
+            'education' => $validated['education'],
+            'education_year' => $validated['education_year'],
+            'division' => $validated['division'] ?? null,
+            'district' => $validated['district'] ?? null,
+            'upazila' => $validated['upazila'] ?? null,
+            'union' => $validated['union'] ?? null,
+            'city_corporation' => $validated['city_corporation'] ?? null,
+            'ward' => $validated['ward'] ?? null,
+            'reporter_area' => $validated['reporter_area'],
+            'nid_number' => $validated['nid_number'],
             'photo' => $photoPath,
             'signature' => $signaturePath,
             'nid_file' => $nidPath,
-            'reporter_types' => is_array($request->reporter_types)
-                ? implode(',', $request->reporter_types)
+            'reporter_types' => ! empty($validated['reporter_types'])
+                ? implode(',', $validated['reporter_types'])
                 : null,
         ]);
 

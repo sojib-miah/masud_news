@@ -149,7 +149,7 @@ class RegisterController extends Controller
             'phone' => $data['phone'],
             'password' => Hash::make($data['password']),
             'role' => 'pathock',
-            'email' => $data['email'] ?? 'user'.Str::random(5).'@example.com',
+            'email' => $data['email'] ?? 'pathock'.Str::random(5).'@pathock.com',
         ]);
 
         // ---------------- CREATE PROFILE ----------------
@@ -185,15 +185,15 @@ class RegisterController extends Controller
             'name' => 'required',
             'phone' => 'required|unique:users',
             'password' => 'required|confirmed|min:6',
-            'email' => 'nullable',
+            'email' => 'nullable|email|unique:users,email',
         ]);
 
         User::create([
             'name' => $request->name,
             'phone' => $request->phone,
-            'password' => bcrypt($request->password),
+            'password' => Hash::make($request->password),
             'role' => 'motamot',
-            'email' => 'user'.Str::random(5).'@example.com',
+            'email' => $request->email ?? 'motamot'.Str::random(5).'@motamot.com',
         ]);
 
         return redirect()->route('user.login')->with('status', 'Motamot Register Success');
@@ -203,13 +203,13 @@ class RegisterController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => 'nullable|email|unique:users,email',
             'phone' => 'required|string|max:20|unique:users,phone',
             'password' => 'required|min:6|confirmed',
             'blood_group' => 'required|string',
             'father_name' => 'required|string|max:255',
             'mother_name' => 'required|string|max:255',
-            'address' => 'required|string|max:500',
+            // 'address' => 'required|string|max:500',
             'education' => 'required|string',
             'education_year' => 'required|string',
             'dob' => 'required|date',
@@ -247,9 +247,9 @@ class RegisterController extends Controller
         // ---------- CREATE USER ----------
         $user = User::create([
             'name' => $data['name'],
-            'email' => $data['email'],
+            'email' => $data['email'] ?? 'reporter'.Str::random(5).'@reporter.com',
             'phone' => $data['phone'],
-            'password' => bcrypt($data['password']),
+            'password' => Hash::make($data['password']),
             'role' => 'reporter',
         ]);
 
@@ -265,7 +265,7 @@ class RegisterController extends Controller
             'blood_group' => $data['blood_group'],
             'father_name' => $data['father_name'],
             'mother_name' => $data['mother_name'],
-            'address' => $data['address'],
+            // 'address' => $data['address'],
             'education' => $data['education'],
             'education_year' => $data['education_year'],
             'division' => $data['division'] ?? null,

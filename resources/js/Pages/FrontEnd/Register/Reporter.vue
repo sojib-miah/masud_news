@@ -271,7 +271,9 @@ function submit() {
                                         class="block text-sm font-semibold text-slate-700 mb-1"
                                     >
                                         ইমেইল
-                                        <span class="text-red-500">*</span>
+                                        <span class="text-slate-400 text-xs"
+                                            >(ঐচ্ছিক)</span
+                                        >
                                     </label>
                                     <TextInput
                                         v-model="form.email"
@@ -303,11 +305,17 @@ function submit() {
                                         জন্ম তারিখ
                                         <span class="text-red-500">*</span>
                                     </label>
-                                    <TextInput
-                                        v-model="form.dob"
+                                    <input
                                         type="date"
-                                        :error="form.errors.dob"
+                                        v-model="form.dob"
+                                        class="w-full border border-gray-400 shadow-sm rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-gray-500 focus:border-gray-500 transition-all duration-200"
                                     />
+                                    <div
+                                        v-if="form.errors.dob"
+                                        class="text-red-500 text-xs"
+                                    >
+                                        {{ form.errors.dob }}
+                                    </div>
                                 </div>
 
                                 <div>
@@ -360,7 +368,7 @@ function submit() {
                                     />
                                 </div>
 
-                                <div class="sm:col-span-2">
+                                <!-- <div class="sm:col-span-2">
                                     <label
                                         class="block text-sm font-semibold text-slate-700 mb-1"
                                     >
@@ -373,7 +381,7 @@ function submit() {
                                         placeholder="স্থায়ী ঠিকানা"
                                         :error="form.errors.address"
                                     />
-                                </div>
+                                </div> -->
 
                                 <div>
                                     <label

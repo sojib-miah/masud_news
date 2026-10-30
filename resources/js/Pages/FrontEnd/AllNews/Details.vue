@@ -67,8 +67,36 @@ const reporterTypes = computed(() => {
 });
 
 const reporterLocation = computed(() => {
-    const rp = props.news.user?.reporter_profile;
+    const rp = props.news?.user?.reporter_profile;
     if (!rp) return null;
+
+    // -------- City Corporation path --------
+    const hasCityCorp =
+        rp.city_corporation ||
+        rp.city_corporation_data?.name ||
+        rp.ward ||
+        rp.ward_data?.name;
+
+    const hasDistrict =
+        rp.district ||
+        rp.district_data?.name ||
+        rp.upazila ||
+        rp.upazila_data?.name ||
+        rp.union ||
+        rp.union_data?.name;
+
+    // If city corporation is set → use city path
+    if (hasCityCorp && !hasDistrict) {
+        return [
+            rp.division_data?.name,
+            rp.city_corporation_data?.name,
+            rp.ward_data?.name,
+        ]
+            .filter(Boolean)
+            .join(", ");
+    }
+
+    // Otherwise → use district path
     return [
         rp.division_data?.name,
         rp.district_data?.name,

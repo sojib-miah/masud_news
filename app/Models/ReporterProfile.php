@@ -8,6 +8,11 @@ class ReporterProfile extends Model
 {
     protected $guarded = [];
 
+    protected $casts = [
+        'user_id' => 'integer',
+        'is_approved' => 'boolean',
+    ];
+
     public function reporterTypes()
     {
         return $this->belongsToMany(ReporterType::class);
@@ -51,5 +56,14 @@ class ReporterProfile extends Model
     public function wardData()
     {
         return $this->belongsTo(Ward::class, 'ward', 'id');
+    }
+
+    public function getReporterTypesArrayAttribute(): array
+    {
+        if (empty($this->reporter_types)) {
+            return [];
+        }
+
+        return array_filter(array_map('intval', explode(',', $this->reporter_types)));
     }
 }
