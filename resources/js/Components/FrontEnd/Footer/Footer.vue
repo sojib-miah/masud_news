@@ -149,19 +149,18 @@ const web2 = computed(() => props.footer?.web2 || "");
                         <i class="fa-solid fa-envelope-open-text"></i>
                         নিউজলেটার
                     </h3>
-
                     <p class="newsletter-desc">
-                        সর্বশেষ সংবাদ সবার আগে পেতে আপনার ইমেইল দিয়ে
+                        সর্বশেষ সংবাদ সবার আগে পেতে আপনার ফোন নম্বর দিয়ে
                         সাবস্ক্রাইব করুন।
                     </p>
 
                     <form class="newsletter" @submit.prevent="submit">
                         <div class="input-wrap">
-                            <i class="fa-solid fa-envelope input-ico"></i>
+                            <i class="fa-solid fa-phone input-ico"></i>
                             <input
-                                type="email"
+                                type="tel"
                                 v-model="form.email"
-                                placeholder="আপনার ইমেইল লিখুন..."
+                                placeholder="আপনার ফোন নম্বর লিখুন..."
                                 required
                                 class="newsletter-input"
                                 :disabled="form.processing"
@@ -198,6 +197,16 @@ const web2 = computed(() => props.footer?.web2 || "");
                         <Link :href="route('news.privacy')" class="footer-link">
                             Privacy Policy
                         </Link>
+
+                        <div class="flex items-center gap-2 text-xs">
+                            <i class="fa-solid fa-users text-green-600"></i>
+
+                            <span>
+                                মোট ভিজিটর : ({{
+                                    page.props.visitorCount ?? 0
+                                }})
+                            </span>
+                        </div>
                     </div>
                 </div>
             </div>

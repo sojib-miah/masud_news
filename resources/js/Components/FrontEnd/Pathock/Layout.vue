@@ -282,7 +282,7 @@ const navItems = computed(() => [
                                         <a
                                             :href="route('home')"
                                             target="_blank"
-                                            class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-semibold text-slate-600 hover:text-green-700 hover:bg-green-50 transition"
+                                            class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-semibold text-slate-200 hover:text-green-700 hover:bg-green-50 transition"
                                         >
                                             <i
                                                 class="fa-regular fa-eye w-5 text-center"
@@ -291,7 +291,7 @@ const navItems = computed(() => [
                                         </a>
                                         <Link
                                             :href="route('pathock.profile')"
-                                            class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-semibold text-slate-600 hover:text-green-700 hover:bg-green-50 transition"
+                                            class="flex items-center gap-3 px-3 py-3 rounded-lg text-sm font-semibold text-slate-200 hover:text-green-700 hover:bg-green-50 transition"
                                         >
                                             <i
                                                 class="fa-regular fa-user w-5 text-center"

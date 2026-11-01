@@ -4,6 +4,7 @@ namespace App\Http\Middleware;
 
 use App\Models\Cart;
 use App\Models\SiteSetting;
+use App\Models\SiteVisitor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Inertia\Middleware;
@@ -133,6 +134,7 @@ class HandleInertiaRequests extends Middleware
             'cartCount' => function () {
                 return Cart::sum('quantity'); // total items
             },
+            'visitorCount' => fn() => SiteVisitor::count(),
         ]);
     }
 }

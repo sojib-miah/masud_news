@@ -39,14 +39,24 @@ class TermesController extends Controller
     public function newsTermes()
     {
         $term = Termes::first();
-        $categories = Category::withCount('news')->get();
+
+        $categories = Category::with('subCategories')
+            ->withCount('news')
+            ->get();
+
         $subCategories = SubCategory::all();
-        return Inertia::render('FrontEnd/Termes/Termes', ['term' => $term, 'categories' => $categories, 'subCategories' => $subCategories]);
+
+        return Inertia::render('FrontEnd/Termes/Termes', [
+            'term' => $term,
+            'categories' => $categories,
+            'subCategories' => $subCategories,
+        ]);
     }
+
     public function newsPrivacy()
     {
         $privacy = Termes::first();
-        $categories = Category::withCount('news')->get();
+        $categories = Category::with('subCategories')->withCount('news')->get();
         $subCategories = SubCategory::all();
         return Inertia::render('FrontEnd/Termes/Privacy', [
             'privacy' => $privacy,
@@ -58,13 +68,13 @@ class TermesController extends Controller
     public function subscribe(Request $request)
     {
         $request->validate([
-            'email' => 'required|email|unique:newsletter_subscribers,email',
+            'email' => 'required|unique:newsletter_subscribers,email',
         ]);
 
         NewsletterSubscriber::create([
             'email' => $request->email,
         ]);
 
-        return back()->with('status', 'আপনি সফলভাবে সাবস্ক্রাইব করেছেন!');
+        return back()->with('status', 'Subscribed successfully!');
     }
 }

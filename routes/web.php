@@ -22,8 +22,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Route;
 
 // include route
-require __DIR__.'/admin.php';
-require __DIR__.'/user.php';
+require __DIR__ . '/admin.php';
+require __DIR__ . '/user.php';
 
 // all route here
 Route::get('/', [UserController::class, 'home'])->name('home');
