@@ -31,9 +31,3 @@ live server add this database
 
 ///// add live server database 
 
-CREATE TABLE `site_visitors` (
-    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
-    `visitor_id` CHAR(36) NOT NULL UNIQUE,
-    `created_at` TIMESTAMP NULL DEFAULT NULL,
-    `updated_at` TIMESTAMP NULL DEFAULT NULL
-);

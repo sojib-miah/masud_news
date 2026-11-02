@@ -2,7 +2,7 @@
 import Layout from "@/Components/Layout.vue";
 import { Head, Link, router, usePage } from "@inertiajs/vue3";
 import axios from "axios";
-import { computed, onMounted, onUnmounted, reactive, ref } from "vue";
+import { computed, onMounted, onUnmounted, reactive, ref, watch } from "vue";
 import { route } from "ziggy-js";
 
 const props = defineProps({
@@ -12,18 +12,115 @@ const props = defineProps({
 
 const page = usePage();
 
-// ==================== VIEW COUNT ====================
-onMounted(() => {
-    setTimeout(() => {
-        axios
-            .post(route("news.count.view"), { news_id: props.news.id })
-            .then((response) => {
-                props.news.current_view = response.data.current_view;
-                props.news.total_view = response.data.total_view;
-            })
-            .catch((error) => console.log(error));
-    }, 5000);
+// ==================== 20 SECOND VIEW COUNT ====================
+const VIEW_DURATION = 20;
+const viewProgress = ref(0);
+const viewCountdown = ref(VIEW_DURATION);
+const viewStatus = ref("waiting");
+const showLoginPopup = ref(false);
+const currentView = ref(props.news.current_view ?? 0);
+const totalView = ref(props.news.total_view ?? 0);
+let viewTimerInterval = null;
+let viewStartedAt = 0;
+let viewRequestSent = false;
+
+const currentUser = computed(() => page.props.auth?.user ?? null);
+const isPathock = computed(() => {
+    const user = currentUser.value;
+    if (!user) return false;
+
+    const roleNames = Array.isArray(user.roles)
+        ? user.roles.map((role) =>
+              typeof role === "string"
+                  ? role.toLowerCase()
+                  : String(role?.name ?? "").toLowerCase(),
+          )
+        : [];
+
+    return (
+        String(user.role ?? "").toLowerCase() === "pathock" ||
+        roleNames.includes("pathock")
+    );
 });
+
+const stopViewTimer = () => {
+    if (viewTimerInterval) {
+        clearInterval(viewTimerInterval);
+        viewTimerInterval = null;
+    }
+};
+
+const completeViewCount = async () => {
+    if (viewRequestSent) return;
+    viewRequestSent = true;
+    stopViewTimer();
+    viewProgress.value = 100;
+    viewCountdown.value = 0;
+
+    if (!currentUser.value) {
+        viewStatus.value = "login-required";
+        showLoginPopup.value = true;
+        return;
+    }
+
+    if (!isPathock.value) {
+        viewStatus.value = "not-eligible";
+        return;
+    }
+
+    viewStatus.value = "processing";
+
+    try {
+        const response = await axios.post(route("news.count.view"), {
+            news_id: props.news.id,
+        });
+
+        if (response.data.success) {
+            viewStatus.value = "completed";
+            currentView.value = response.data.current_view ?? currentView.value;
+            totalView.value = response.data.total_view ?? totalView.value;
+        } else {
+            viewStatus.value = "failed";
+        }
+    } catch (error) {
+        viewStatus.value = "failed";
+        if (error.response?.status === 401) {
+            viewStatus.value = "login-required";
+            showLoginPopup.value = true;
+        } else if (error.response?.status === 403) {
+            viewStatus.value = "not-eligible";
+        } else {
+            console.error("News view count failed:", error);
+        }
+    }
+};
+
+const startViewTimer = () => {
+    stopViewTimer();
+    viewRequestSent = false;
+    viewProgress.value = 0;
+    viewCountdown.value = VIEW_DURATION;
+    viewStatus.value = "waiting";
+    viewStartedAt = Date.now();
+
+    viewTimerInterval = setInterval(() => {
+        const elapsed = (Date.now() - viewStartedAt) / 1000;
+        viewProgress.value = Math.min((elapsed / VIEW_DURATION) * 100, 100);
+        viewCountdown.value = Math.max(Math.ceil(VIEW_DURATION - elapsed), 0);
+
+        if (elapsed >= VIEW_DURATION) completeViewCount();
+    }, 100);
+};
+
+onMounted(startViewTimer);
+watch(
+    () => props.news.id,
+    () => {
+        currentView.value = props.news.current_view ?? 0;
+        totalView.value = props.news.total_view ?? 0;
+        startViewTimer();
+    },
+);
 
 // ==================== COMMENTS ====================
 const form = reactive({ body: "" });
@@ -142,25 +239,96 @@ const copyLink = async () => {
 };
 
 const printNews = () => {
-    const content = document.getElementById("printArea").innerHTML;
-    const printWindow = window.open("", "", "width=800,height=600");
-    printWindow.document.write(`
-        <html>
-        <head>
-            <title>Print News</title>
-            <style>
-                body { font-family: sans-serif; padding: 20px; line-height: 1.6; }
-                img { max-width: 100%; height: auto; margin-bottom: 20px; border-radius: 8px; }
-                h1 { font-size: 24px; margin-bottom: 20px; }
-            </style>
-        </head>
-        <body>${content}</body>
-        </html>
-    `);
+    // Open synchronously from the button click so popup blockers allow it.
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) {
+        alert("প্রিন্ট পেজ খুলতে browser-এর pop-up permission allow করুন।");
+        return;
+    }
+
+    const description =
+        document.getElementById("news-description")?.innerHTML || "";
+    const imageUrl = props.news.image
+        ? new URL(`/storage/${props.news.image}`, window.location.origin).href
+        : "";
+    const title = String(props.news.title || "সংবাদ");
+    const escapeHtml = (value) =>
+        String(value).replace(
+            /[&<>"']/g,
+            (char) =>
+                ({
+                    "&": "&amp;",
+                    "<": "&lt;",
+                    ">": "&gt;",
+                    '"': "&quot;",
+                    "'": "&#39;",
+                })[char],
+        );
+
+    const author = escapeHtml(reporterName.value);
+    const date = escapeHtml(formattedDate.value);
+    const safeTitle = escapeHtml(title);
+    const pageUrl = escapeHtml(window.location.href);
+    // const logo = "AV News";
+    const logo = page.props.site?.logo
+        ? `/storage/${page.props.site.logo}`
+        : "/images/default-logo.png";
+
+    const logoMarkup = `
+    <img
+        class="site-logo"
+        src="${escapeHtml(logo)}"
+        alt="Website Logo"
+    >
+`;
+
+    const imageMarkup = imageUrl
+        ? '<img class="hero" src="' +
+          escapeHtml(imageUrl) +
+          '" alt="' +
+          safeTitle +
+          '">'
+        : "";
+
+    printWindow.document.open();
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${safeTitle}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;background:#eef2f6;color:#172033;font-family:'Hind Siliguri',sans-serif;line-height:1.85}
+.toolbar{position:sticky;top:0;z-index:5;display:flex;justify-content:center;gap:12px;padding:14px;background:#102b20}
+.toolbar button{border:0;border-radius:8px;padding:10px 22px;font:600 15px 'Hind Siliguri',sans-serif;cursor:pointer}.print-btn{background:#16a34a;color:#fff}.close-btn{background:#fff;color:#172033}
+.sheet{max-width:900px;margin:28px auto;padding:48px 58px;background:#fff;box-shadow:0 8px 35px #0f172a14}
+.masthead{display:flex;align-items:center;justify-content:space-between;gap:20px;border-bottom:3px solid #159447;padding-bottom:16px;margin-bottom:28px}
+.brand{font-size:32px;font-weight:700;color:#07843b;letter-spacing:-1px}.brand small{display:block;font-size:12px;color:#64748b;font-weight:400;letter-spacing:0}
+.edition{text-align:right;font-size:12px;color:#64748b}.rule{height:1px;background:#dbe5df;margin:18px 0}
+h1{font-size:34px;line-height:1.45;margin:0 0 14px;color:#111827;font-weight:700}
+.meta{display:flex;flex-wrap:wrap;gap:8px 22px;color:#64748b;font-size:14px;margin-bottom:22px}.hero{width:100%;max-height:480px;object-fit:contain;display:block;margin:0 auto 24px;border-radius:5px}
+.content{font-size:18px;color:#263445;overflow-wrap:anywhere}.content p{margin:0 0 18px}.content img{max-width:100%;height:auto;display:block;margin:18px auto}.content h2,.content h3{color:#123d29;line-height:1.5}.content blockquote{border-left:4px solid #159447;margin:20px 0;padding:8px 18px;background:#f3faf5}
+.content table{width:100%;border-collapse:collapse}.content td,.content th{border:1px solid #d7e1da;padding:8px}
+a{color:#08783b}.footer{border-top:1px solid #dbe5df;margin-top:36px;padding-top:14px;color:#64748b;font-size:12px;display:flex;justify-content:space-between;gap:12px;overflow-wrap:anywhere}.site-logo{max-width:150px;height:auto;display:block;margin-bottom:4px}
+@page{size:A4;margin:16mm}@media(max-width:700px){.sheet{margin:0;padding:24px 18px}.masthead{align-items:flex-start}.brand{font-size:25px}h1{font-size:26px}.content{font-size:16px}.site-logo{max-width:120px;height:auto}}
+@media print{body{background:#fff}.toolbar{display:none!important}.sheet{max-width:none;margin:0;padding:0;box-shadow:none}.hero{max-height:430px;break-inside:avoid}.content img{break-inside:avoid}.masthead{break-inside:avoid}.footer{break-inside:avoid}a{color:inherit;text-decoration:none}.site-logo{max-width:120px;height:auto}}
+</style>
+</head>
+<body>
+<div class="toolbar"><button class="print-btn" onclick="window.print()">🖨 প্রিন্ট করুন</button><button class="close-btn" onclick="window.close()">বন্ধ করুন</button></div>
+<main class="sheet">
+<header class="masthead"><div class="brand"><span class="logo">${logoMarkup}</span><small>সত্য ও নিরপেক্ষ সংবাদ</small></div><div class="edition">অনলাইন সংবাদপত্র<br>${date}</div></header>
+<article><h1>${safeTitle}</h1><div class="meta"><span>প্রতিবেদক: ${author}</span><span>প্রকাশ: ${date}</span></div>
+${imageMarkup}
+<div class="content">${description}</div></article>
+<footer class="footer"><span>প্রকাশক: Bangladesh News Today</span><span>সূত্র: ${pageUrl}</span></footer>
+</main>
+<script>window.addEventListener('load',()=>{const imgs=[...document.images];Promise.all(imgs.map(i=>i.complete?Promise.resolve():new Promise(r=>{i.onload=r;i.onerror=r}))).then(()=>setTimeout(()=>window.print(),500));});<\/script>
+</body></html>`);
     printWindow.document.close();
-    printWindow.focus();
-    printWindow.print();
-    printWindow.close();
 };
 
 // ==================== TEXT TO SPEECH ====================
@@ -202,6 +370,7 @@ const stopReading = () => {
 
 onUnmounted(() => {
     window.speechSynthesis.cancel();
+    stopViewTimer();
     if (countdownInterval) clearInterval(countdownInterval);
 });
 
@@ -453,6 +622,38 @@ function truncate(text, words = 9) {
     <Layout>
         <Head :title="news.title" />
 
+        <!-- Non-blocking login notification -->
+        <Transition name="visitor-toast">
+            <section
+                v-if="showLoginPopup"
+                class="visitor-login-toast"
+                role="alert"
+                aria-live="polite"
+            >
+                <button
+                    type="button"
+                    class="visitor-toast-close"
+                    aria-label="Close"
+                    @click="showLoginPopup = false"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+                <div class="visitor-toast-icon">
+                    <i class="fa-solid fa-user-lock"></i>
+                </div>
+                <div class="visitor-toast-content">
+                    <strong>আপনি লগইন করেননি!</strong>
+                    <p>নিউজ পড়ে ভিউ থেকে আয় করতে পাঠক অ্যাকাউন্টে লগইন করুন।</p>
+                    <Link
+                        :href="route('user.login')"
+                        class="visitor-login-button"
+                    >
+                        <i class="fa-solid fa-right-to-bracket"></i> লগইন করুন
+                    </Link>
+                </div>
+            </section>
+        </Transition>
+
         <div class="article-page py-6 sm:py-8">
             <div class="container mx-auto px-3 sm:px-4 lg:px-6">
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 lg:gap-6">
@@ -460,307 +661,367 @@ function truncate(text, words = 9) {
                          MAIN ARTICLE (2/3)
                     =================================================== -->
                     <main class="lg:col-span-2">
-                        <article class="article-card">
-                            <!-- ==================== BREADCRUMB ==================== -->
-                            <nav
-                                class="article-breadcrumb"
-                                aria-label="Breadcrumb"
+                        <div
+                            class="view-timer-heading"
+                            v-if="viewStatus === 'waiting'"
+                        >
+                            <span
+                                ><i class="fa-regular fa-clock"></i> সংবাদটি 2০
+                                সেকেন্ড পড়ুন</span
                             >
-                                <Link :href="route('home')" class="crumb-link">
-                                    <i class="fa-solid fa-house"></i>
-                                    মূল পাতা
-                                </Link>
-                                <i
-                                    class="fa-solid fa-angle-right crumb-sep"
-                                ></i>
-                                <Link
-                                    :href="route('all.news', 'jateey')"
-                                    class="crumb-link"
+                            <strong>{{ viewCountdown }} সেকেন্ড</strong>
+                        </div>
+                        <div
+                            v-else-if="viewStatus === 'processing'"
+                            class="view-result processing"
+                        >
+                            আপনার ভিউ গণনা হচ্ছে...
+                        </div>
+                        <div
+                            v-else-if="viewStatus === 'completed'"
+                            class="view-result success"
+                        >
+                            <i class="fa-solid fa-circle-check"></i> ভিউ সফলভাবে
+                            গণনা হয়েছে
+                        </div>
+                        <div
+                            v-else-if="viewStatus === 'not-eligible'"
+                            class="view-result warning"
+                        >
+                            ভিউ থেকে আয় করতে পাঠক অ্যাকাউন্ট প্রয়োজন
+                        </div>
+                        <div
+                            v-else-if="viewStatus === 'login-required'"
+                            class="view-result warning"
+                        >
+                            লগইন করলে এই ভিউ থেকে আয় করতে পারবেন।
+                        </div>
+                        <div
+                            class="view-count-shell"
+                            :style="{ '--view-progress': viewProgress + '%' }"
+                        >
+                            <article class="article-card">
+                                <!-- ==================== BREADCRUMB ==================== -->
+                                <nav
+                                    class="article-breadcrumb"
+                                    aria-label="Breadcrumb"
                                 >
-                                    জাতীয়
-                                </Link>
-                            </nav>
+                                    <Link
+                                        :href="route('home')"
+                                        class="crumb-link"
+                                    >
+                                        <i class="fa-solid fa-house"></i>
+                                        মূল পাতা
+                                    </Link>
+                                    <i
+                                        class="fa-solid fa-angle-right crumb-sep"
+                                    ></i>
+                                    <Link
+                                        :href="route('all.news', 'jateey')"
+                                        class="crumb-link"
+                                    >
+                                        জাতীয়
+                                    </Link>
+                                </nav>
 
-                            <!-- ==================== TITLE ==================== -->
-                            <h1 class="article-title">{{ news.title }}</h1>
+                                <!-- ==================== TITLE ==================== -->
+                                <h1 class="article-title">{{ news.title }}</h1>
 
-                            <!-- ==================== META ==================== -->
-                            <div class="article-meta">
-                                <div class="author-block">
+                                <!-- ==================== META ==================== -->
+                                <div class="article-meta">
+                                    <div class="author-block">
+                                        <img
+                                            class="author-img"
+                                            :src="reporterImage"
+                                            :alt="reporterName"
+                                            @error="
+                                                (e) =>
+                                                    (e.target.src =
+                                                        '/images/default.jpg')
+                                            "
+                                        />
+                                        <div class="author-info">
+                                            <p class="author-name">
+                                                {{ reporterName }}
+                                                <span class="author-types">
+                                                    ({{ reporterTypes }})
+                                                </span>
+                                            </p>
+
+                                            <p
+                                                v-if="reporterLocation"
+                                                class="author-location"
+                                            >
+                                                <i
+                                                    class="fa-solid fa-location-dot"
+                                                ></i>
+                                                {{ reporterLocation }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="meta-right">
+                                        <p class="meta-date">
+                                            <i class="fa-regular fa-clock"></i>
+                                            {{ formattedDate }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <!-- ==================== HERO IMAGE ==================== -->
+                                <div class="article-hero">
                                     <img
-                                        class="author-img"
-                                        :src="reporterImage"
-                                        :alt="reporterName"
+                                        class="article-hero-img"
+                                        :src="
+                                            news.image
+                                                ? `/storage/${news.image}`
+                                                : '/images/default.jpg'
+                                        "
+                                        :alt="news.title"
                                         @error="
                                             (e) =>
                                                 (e.target.src =
                                                     '/images/default.jpg')
                                         "
                                     />
-                                    <div class="author-info">
-                                        <p class="author-name">
-                                            {{ reporterName }}
-                                            <span class="author-types">
-                                                ({{ reporterTypes }})
-                                            </span>
-                                        </p>
+                                </div>
 
-                                        <p
-                                            v-if="reporterLocation"
-                                            class="author-location"
+                                <!-- ==================== ACTIONS ==================== -->
+                                <div class="article-actions">
+                                    <button
+                                        class="action-btn print"
+                                        @click="printNews"
+                                    >
+                                        <i class="fa-solid fa-print"></i>
+                                        <span>প্রিন্ট</span>
+                                    </button>
+                                    <button
+                                        class="action-btn copy"
+                                        @click="copyLink"
+                                    >
+                                        <i class="fa-regular fa-copy"></i>
+                                        <span>লিঙ্ক কপি</span>
+                                    </button>
+                                    <button
+                                        v-if="!isReading"
+                                        class="action-btn listen"
+                                        @click="speakNews"
+                                    >
+                                        <i class="fa-solid fa-volume-high"></i>
+                                        <span>শুনুন</span>
+                                    </button>
+                                    <button
+                                        v-else
+                                        class="action-btn stop"
+                                        @click="stopReading"
+                                    >
+                                        <i class="fa-solid fa-stop"></i>
+                                        <span>বন্ধ</span>
+                                    </button>
+                                </div>
+
+                                <!-- ==================== DESCRIPTION ==================== -->
+                                <div
+                                    id="news-description"
+                                    class="article-content prose"
+                                    v-html="news.description"
+                                ></div>
+
+                                <!-- ==================== APPROVAL ==================== -->
+                                <div class="approval-bar">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    অনুমোদন করেছেন:
+                                    <strong>মাসুদ — ডেক্স রিপোর্ট</strong>
+                                </div>
+
+                                <!-- ==================== TAGS ==================== -->
+                                <div v-if="tags.length" class="article-tags">
+                                    <span class="tags-label">ট্যাগ:</span>
+                                    <span
+                                        v-for="tag in tags"
+                                        :key="tag"
+                                        class="tag-item"
+                                    >
+                                        #{{ tag }}
+                                    </span>
+                                </div>
+
+                                <!-- ==================== SHARE ==================== -->
+                                <div class="share-section">
+                                    <h2 class="share-title">
+                                        সংবাদটি ভালো লাগলে শেয়ার করুন
+                                    </h2>
+                                    <div class="share-buttons">
+                                        <a
+                                            :href="shareLinks.facebook"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="share-btn facebook"
+                                            aria-label="Share on Facebook"
                                         >
                                             <i
-                                                class="fa-solid fa-location-dot"
+                                                class="fa-brands fa-facebook-f"
                                             ></i>
-                                            {{ reporterLocation }}
-                                        </p>
+                                            <span>Facebook</span>
+                                        </a>
+                                        <a
+                                            :href="shareLinks.twitter"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="share-btn twitter"
+                                            aria-label="Share on Twitter"
+                                        >
+                                            <i
+                                                class="fa-brands fa-x-twitter"
+                                            ></i>
+                                            <span>Twitter</span>
+                                        </a>
+                                        <a
+                                            :href="shareLinks.linkedin"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="share-btn linkedin"
+                                            aria-label="Share on LinkedIn"
+                                        >
+                                            <i
+                                                class="fa-brands fa-linkedin-in"
+                                            ></i>
+                                            <span>LinkedIn</span>
+                                        </a>
+                                        <a
+                                            :href="shareLinks.whatsapp"
+                                            target="_blank"
+                                            rel="noopener"
+                                            class="share-btn whatsapp"
+                                            aria-label="Share on WhatsApp"
+                                        >
+                                            <i
+                                                class="fa-brands fa-whatsapp"
+                                            ></i>
+                                            <span>WhatsApp</span>
+                                        </a>
                                     </div>
                                 </div>
 
-                                <div class="meta-right">
-                                    <p class="meta-date">
-                                        <i class="fa-regular fa-clock"></i>
-                                        {{ formattedDate }}
-                                    </p>
-                                </div>
-                            </div>
+                                <!-- ==================== COMMENTS ==================== -->
+                                <div class="comments-section">
+                                    <h2 class="comments-title">
+                                        <i class="fa-regular fa-comments"></i>
+                                        কমেন্ট করুন
+                                    </h2>
 
-                            <!-- ==================== HERO IMAGE ==================== -->
-                            <div class="article-hero">
-                                <img
-                                    class="article-hero-img"
-                                    :src="
-                                        news.image
-                                            ? `/storage/${news.image}`
-                                            : '/images/default.jpg'
-                                    "
-                                    :alt="news.title"
-                                    @error="
-                                        (e) =>
-                                            (e.target.src =
-                                                '/images/default.jpg')
-                                    "
-                                />
-                            </div>
-
-                            <!-- ==================== ACTIONS ==================== -->
-                            <div class="article-actions">
-                                <button
-                                    class="action-btn print"
-                                    @click="printNews"
-                                >
-                                    <i class="fa-solid fa-print"></i>
-                                    <span>প্রিন্ট</span>
-                                </button>
-                                <button
-                                    class="action-btn copy"
-                                    @click="copyLink"
-                                >
-                                    <i class="fa-regular fa-copy"></i>
-                                    <span>লিঙ্ক কপি</span>
-                                </button>
-                                <button
-                                    v-if="!isReading"
-                                    class="action-btn listen"
-                                    @click="speakNews"
-                                >
-                                    <i class="fa-solid fa-volume-high"></i>
-                                    <span>শুনুন</span>
-                                </button>
-                                <button
-                                    v-else
-                                    class="action-btn stop"
-                                    @click="stopReading"
-                                >
-                                    <i class="fa-solid fa-stop"></i>
-                                    <span>বন্ধ</span>
-                                </button>
-                            </div>
-
-                            <!-- ==================== DESCRIPTION ==================== -->
-                            <div
-                                id="news-description"
-                                class="article-content prose"
-                                v-html="news.description"
-                            ></div>
-
-                            <!-- ==================== APPROVAL ==================== -->
-                            <div class="approval-bar">
-                                <i class="fa-solid fa-circle-check"></i>
-                                অনুমোদন করেছেন:
-                                <strong>মাসুদ — ডেক্স রিপোর্ট</strong>
-                            </div>
-
-                            <!-- ==================== TAGS ==================== -->
-                            <div v-if="tags.length" class="article-tags">
-                                <span class="tags-label">ট্যাগ:</span>
-                                <span
-                                    v-for="tag in tags"
-                                    :key="tag"
-                                    class="tag-item"
-                                >
-                                    #{{ tag }}
-                                </span>
-                            </div>
-
-                            <!-- ==================== SHARE ==================== -->
-                            <div class="share-section">
-                                <h2 class="share-title">
-                                    সংবাদটি ভালো লাগলে শেয়ার করুন
-                                </h2>
-                                <div class="share-buttons">
-                                    <a
-                                        :href="shareLinks.facebook"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="share-btn facebook"
-                                        aria-label="Share on Facebook"
+                                    <form
+                                        class="comment-form"
+                                        @submit.prevent="submitComment(news.id)"
                                     >
-                                        <i class="fa-brands fa-facebook-f"></i>
-                                        <span>Facebook</span>
-                                    </a>
-                                    <a
-                                        :href="shareLinks.twitter"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="share-btn twitter"
-                                        aria-label="Share on Twitter"
-                                    >
-                                        <i class="fa-brands fa-x-twitter"></i>
-                                        <span>Twitter</span>
-                                    </a>
-                                    <a
-                                        :href="shareLinks.linkedin"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="share-btn linkedin"
-                                        aria-label="Share on LinkedIn"
-                                    >
-                                        <i class="fa-brands fa-linkedin-in"></i>
-                                        <span>LinkedIn</span>
-                                    </a>
-                                    <a
-                                        :href="shareLinks.whatsapp"
-                                        target="_blank"
-                                        rel="noopener"
-                                        class="share-btn whatsapp"
-                                        aria-label="Share on WhatsApp"
-                                    >
-                                        <i class="fa-brands fa-whatsapp"></i>
-                                        <span>WhatsApp</span>
-                                    </a>
-                                </div>
-                            </div>
+                                        <input
+                                            v-model="form.body"
+                                            type="text"
+                                            placeholder="আপনার মন্তব্য লিখুন..."
+                                            class="comment-input"
+                                            required
+                                        />
+                                        <button
+                                            type="submit"
+                                            class="comment-submit"
+                                        >
+                                            <i
+                                                class="fa-solid fa-paper-plane"
+                                            ></i>
+                                            পাঠান
+                                        </button>
+                                    </form>
 
-                            <!-- ==================== COMMENTS ==================== -->
-                            <div class="comments-section">
-                                <h2 class="comments-title">
-                                    <i class="fa-regular fa-comments"></i>
-                                    কমেন্ট করুন
-                                </h2>
-
-                                <form
-                                    class="comment-form"
-                                    @submit.prevent="submitComment(news.id)"
-                                >
-                                    <input
-                                        v-model="form.body"
-                                        type="text"
-                                        placeholder="আপনার মন্তব্য লিখুন..."
-                                        class="comment-input"
-                                        required
-                                    />
-                                    <button
-                                        type="submit"
-                                        class="comment-submit"
-                                    >
-                                        <i class="fa-solid fa-paper-plane"></i>
-                                        পাঠান
-                                    </button>
-                                </form>
-
-                                <!-- Comment list -->
-                                <div class="comment-list">
-                                    <div
-                                        v-if="!news.comments?.length"
-                                        class="comment-empty"
-                                    >
-                                        <i class="fa-regular fa-comment"></i>
-                                        <p>এখনো কোনো কমেন্ট নেই</p>
-                                    </div>
-
-                                    <div
-                                        v-for="comment in news.comments"
-                                        :key="comment.id"
-                                        class="comment-item"
-                                    >
-                                        <div class="comment-avatar">
-                                            <i class="fa-solid fa-user"></i>
+                                    <!-- Comment list -->
+                                    <div class="comment-list">
+                                        <div
+                                            v-if="!news.comments?.length"
+                                            class="comment-empty"
+                                        >
+                                            <i
+                                                class="fa-regular fa-comment"
+                                            ></i>
+                                            <p>এখনো কোনো কমেন্ট নেই</p>
                                         </div>
-                                        <div class="comment-body">
-                                            <p class="comment-author">
+
+                                        <div
+                                            v-for="comment in news.comments"
+                                            :key="comment.id"
+                                            class="comment-item"
+                                        >
+                                            <div class="comment-avatar">
+                                                <i class="fa-solid fa-user"></i>
+                                            </div>
+                                            <div class="comment-body">
+                                                <p class="comment-author">
+                                                    {{
+                                                        comment.user?.name ||
+                                                        "অতিথি"
+                                                    }}
+                                                </p>
+                                                <p class="comment-text">
+                                                    {{ comment.body }}
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- ==================== RELATED NEWS ==================== -->
+                                <div
+                                    v-if="relatedNews?.length"
+                                    class="related-section"
+                                >
+                                    <h2 class="related-title">
+                                        <i class="fa-solid fa-newspaper"></i>
+                                        এ বিভাগের আরো সংবাদ
+                                    </h2>
+
+                                    <div class="related-grid">
+                                        <Link
+                                            v-for="related in relatedNews.slice(
+                                                0,
+                                                6,
+                                            )"
+                                            :key="related.id"
+                                            :href="
+                                                route(
+                                                    'news.details',
+                                                    related.slug,
+                                                )
+                                            "
+                                            class="related-card"
+                                        >
+                                            <div class="related-img-wrap">
+                                                <img
+                                                    class="related-img"
+                                                    :src="
+                                                        related.image
+                                                            ? `/storage/${related.image}`
+                                                            : '/images/default.jpg'
+                                                    "
+                                                    :alt="related.title"
+                                                    loading="lazy"
+                                                    @error="
+                                                        (e) =>
+                                                            (e.target.src =
+                                                                '/images/default.jpg')
+                                                    "
+                                                />
+                                                <span
+                                                    class="related-overlay"
+                                                ></span>
+                                            </div>
+                                            <p class="related-news-title">
                                                 {{
-                                                    comment.user?.name ||
-                                                    "অতিথি"
+                                                    truncate(related.title, 10)
                                                 }}
                                             </p>
-                                            <p class="comment-text">
-                                                {{ comment.body }}
-                                            </p>
-                                        </div>
+                                        </Link>
                                     </div>
                                 </div>
-                            </div>
-
-                            <!-- ==================== RELATED NEWS ==================== -->
-                            <div
-                                v-if="relatedNews?.length"
-                                class="related-section"
-                            >
-                                <h2 class="related-title">
-                                    <i class="fa-solid fa-newspaper"></i>
-                                    এ বিভাগের আরো সংবাদ
-                                </h2>
-
-                                <div class="related-grid">
-                                    <Link
-                                        v-for="related in relatedNews.slice(
-                                            0,
-                                            6,
-                                        )"
-                                        :key="related.id"
-                                        :href="
-                                            route('news.details', related.slug)
-                                        "
-                                        class="related-card"
-                                    >
-                                        <div class="related-img-wrap">
-                                            <img
-                                                class="related-img"
-                                                :src="
-                                                    related.image
-                                                        ? `/storage/${related.image}`
-                                                        : '/images/default.jpg'
-                                                "
-                                                :alt="related.title"
-                                                loading="lazy"
-                                                @error="
-                                                    (e) =>
-                                                        (e.target.src =
-                                                            '/images/default.jpg')
-                                                "
-                                            />
-                                            <span
-                                                class="related-overlay"
-                                            ></span>
-                                        </div>
-                                        <p class="related-news-title">
-                                            {{ truncate(related.title, 10) }}
-                                        </p>
-                                    </Link>
-                                </div>
-                            </div>
-                        </article>
+                            </article>
+                        </div>
                     </main>
 
                     <!-- ==================================================
@@ -1027,17 +1288,6 @@ function truncate(text, words = 9) {
                     </aside>
                 </div>
             </div>
-
-            <!-- Hidden print area -->
-            <div id="printArea" class="hidden">
-                <h1>{{ news.title }}</h1>
-                <img
-                    v-if="news.image"
-                    :src="`/storage/${news.image}`"
-                    :alt="news.title"
-                />
-                <div v-html="news.description"></div>
-            </div>
         </div>
     </Layout>
 </template>
@@ -1061,6 +1311,139 @@ aside {
     box-shadow:
         0 1px 3px rgba(0, 0, 0, 0.05),
         0 8px 24px rgba(0, 0, 0, 0.06);
+}
+
+/* ==================== 10 SECOND VIEW TIMER ==================== */
+.view-timer-heading,
+.view-result {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 0 0 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+}
+.view-timer-heading {
+    background: #ecfdf3;
+    color: #08783b;
+}
+.view-result {
+    justify-content: flex-start;
+}
+.view-result.success {
+    background: #ecfdf3;
+    color: #08783b;
+}
+.view-result.processing {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+.view-result.warning {
+    background: #fff7ed;
+    color: #c2410c;
+}
+.view-count-shell {
+    padding: 3px;
+    border-radius: 17px;
+    background: conic-gradient(
+        from 315deg,
+        #16a34a var(--view-progress),
+        #dce7df 0
+    );
+    transition: background 0.1s linear;
+}
+.view-count-shell > .article-card {
+    border-radius: 14px;
+}
+
+/* Top-right, non-blocking login popup */
+.visitor-login-toast {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 10050;
+    width: min(390px, calc(100vw - 28px));
+    display: flex;
+    gap: 13px;
+    align-items: flex-start;
+    padding: 20px 18px;
+    background: #fff;
+    border: 1px solid #dcebe1;
+    border-top: 4px solid #16a34a;
+    border-radius: 14px;
+    box-shadow: 0 16px 45px rgba(15, 23, 42, 0.2);
+}
+.visitor-toast-icon {
+    flex: 0 0 42px;
+    width: 42px;
+    height: 42px;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    background: #ecfdf3;
+    color: #15803d;
+    font-size: 19px;
+}
+.visitor-toast-content {
+    padding-right: 12px;
+}
+.visitor-toast-content strong {
+    display: block;
+    color: #172033;
+    font-size: 16px;
+    font-weight: 700;
+}
+.visitor-toast-content p {
+    margin: 4px 0 12px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.65;
+}
+.visitor-login-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 15px;
+    border: 0;
+    border-radius: 8px;
+    background: #15803d;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+}
+.visitor-login-button:hover {
+    background: #166534;
+}
+.visitor-toast-close {
+    position: absolute;
+    top: 9px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border: 0;
+    border-radius: 50%;
+    background: #f1f5f9;
+    color: #64748b;
+    cursor: pointer;
+}
+.visitor-toast-close:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+}
+.visitor-toast-enter-active,
+.visitor-toast-leave-active {
+    transition:
+        opacity 0.22s ease,
+        transform 0.22s ease;
+}
+.visitor-toast-enter-from,
+.visitor-toast-leave-to {
+    opacity: 0;
+    transform: translate3d(20px, -8px, 0);
 }
 
 @media (min-width: 640px) {

@@ -9,15 +9,20 @@ import SearchFilter from "@/Shared/SearchFilter.vue";
 import { onMounted, onUnmounted, ref } from "vue";
 
 const props = defineProps({
-    news: Object,
+    news: { type: Object, required: true },
+    search: { type: String, default: "" },
 });
 
+// ==================== ACTIONS ====================
 const deleteNews = (id) => {
-    if (confirm("Are you sure?")) {
-        router.delete(route("news.destroy", id));
+    if (confirm("আপনি কি নিশ্চিত যে এই সংবাদটি মুছে ফেলতে চান?")) {
+        router.delete(route("news.destroy", id), {
+            preserveScroll: true,
+        });
     }
 };
 
+// ==================== SEARCH ====================
 const search = ref(props.search || "");
 
 function fetchInvoices() {
@@ -35,18 +40,21 @@ function resetSearch() {
 
 // Highlight search keywords
 function highlight(text) {
+    if (!text) return "";
     const keyword = search.value.trim();
     if (!keyword) return text;
 
     const escapedKeyword = keyword.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
     const regex = new RegExp(`(${escapedKeyword})`, "gi");
 
-    return text.replace(regex, '<span class="bg-yellow-300">$1</span>');
+    return text.replace(
+        regex,
+        '<span class="bg-yellow-200 text-slate-900 px-1 rounded">$1</span>',
+    );
 }
 
-// search place holder type
+// ==================== ANIMATED PLACEHOLDER ====================
 const animatedPlaceholder = ref("");
-
 const placeholderText = "Search by News Title...";
 let intervalId;
 
@@ -79,20 +87,55 @@ onUnmounted(() => {
 <template>
     <Layout>
         <Head title="All News" />
-        <Breadcrumb />
-        <FlashMessage
-            v-if="$page.props.flash?.status"
-            :message="$page.props.flash.status"
-            type="success"
-        />
-        <FlashMessage
-            v-if="$page.props.flash?.error"
-            :message="$page.props.flash.error"
-            type="error"
-        />
-        <div>
-            <div class="flex gap-10 items-center">
-                <div class="w-[40%] m-auto my-3">
+
+        <div class="max-w-7xl mx-auto font-robo pb-10">
+            <FlashMessage
+                v-if="$page.props.flash?.status"
+                :message="$page.props.flash.status"
+                type="success"
+            />
+            <FlashMessage
+                v-if="$page.props.flash?.error"
+                :message="$page.props.flash.error"
+                type="error"
+            />
+
+            <!-- ==================== HEADER ==================== -->
+            <div
+                class="flex flex-col md:flex-row justify-between items-start md:items-end gap-4 mb-6"
+            >
+                <div>
+                    <h1
+                        class="text-2xl sm:text-3xl font-bold text-slate-800 flex items-center gap-3"
+                    >
+                        <span
+                            class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-green-100 text-green-600"
+                        >
+                            <i class="fa-regular fa-newspaper"></i>
+                        </span>
+                        সংবাদ তালিকা
+                    </h1>
+                    <p class="text-slate-500 mt-2 text-sm">
+                        আপনার তৈরি সকল সংবাদ এখানে দেখতে এবং পরিচালনা করতে
+                        পারবেন।
+                    </p>
+                </div>
+
+                <div class="flex items-center gap-3 w-full md:w-auto">
+                    <Link
+                        :href="route('news')"
+                        class="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-green-600/30 transition-all"
+                    >
+                        <i class="fa-solid fa-plus"></i> নতুন সংবাদ
+                    </Link>
+                </div>
+            </div>
+
+            <!-- ==================== SEARCH & STATS BAR ==================== -->
+            <div
+                class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 mb-6 flex flex-col sm:flex-row justify-between items-center gap-4"
+            >
+                <div class="w-full sm:w-1/2 lg:w-1/3">
                     <SearchFilter
                         v-model="search"
                         :placeholder="animatedPlaceholder"
@@ -100,111 +143,374 @@ onUnmounted(() => {
                         @reset="resetSearch"
                     />
                 </div>
-                <div class="flex-1 flex justify-end items-center gap-5">
-                    <span class="text-lg"
-                        >Total News: {{ props.news.total }}</span
-                    >
-                    <Link :href="route('news')" class="btn rounded">
-                        <i class="fa-solid fa-plus"></i> Add News
-                    </Link>
+                <div
+                    class="flex items-center gap-2 text-sm font-semibold text-slate-600 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 w-full sm:w-auto justify-center"
+                >
+                    <i class="fa-solid fa-list-ul text-green-600"></i>
+                    মোট সংবাদ:
+                    <span class="text-slate-900">{{ props.news.total }}</span>
                 </div>
             </div>
-            <table class="min-w-full table-auto border border-gray-400">
-                <thead class="bg-gray-100">
-                    <tr>
-                        <th class="px-4 py-2">#</th>
-                        <th class="px-4 py-2">Image</th>
-                        <th class="px-4 py-2">Title</th>
-                        <th class="px-4 py-2">Category</th>
-                        <th class="px-4 py-2">Language</th>
-                        <th class="px-4 py-2">Post Type</th>
-                        <th class="px-4 py-2">Post Status</th>
-                        <th class="px-4 py-2">Total View</th>
-                        <th class="px-4 py-2">Current View</th>
-                        <th class="px-4 py-2">Created At</th>
-                        <th class="px-4 py-2">Actions</th>
-                    </tr>
-                </thead>
 
-                <tbody>
-                    <tr
-                        v-for="(item, index) in props.news.data"
-                        :key="item.id"
-                        class="border-t"
+            <!-- ==================== DESKTOP TABLE (hidden on mobile) ==================== -->
+            <div
+                class="hidden md:block bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+            >
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr
+                            class="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200"
+                        >
+                            <th class="px-4 py-4 font-semibold">সংবাদ</th>
+                            <th class="px-4 py-4 font-semibold text-center">
+                                ক্যাটাগরি
+                            </th>
+                            <th class="px-4 py-4 font-semibold text-center">
+                                ভাষা
+                            </th>
+                            <th class="px-4 py-4 font-semibold text-center">
+                                ধরন
+                            </th>
+                            <th class="px-4 py-4 font-semibold text-center">
+                                স্ট্যাটাস
+                            </th>
+                            <th class="px-4 py-4 font-semibold text-center">
+                                ভিউ
+                            </th>
+                            <th class="px-4 py-4 font-semibold text-center">
+                                তারিখ
+                            </th>
+                            <th class="px-4 py-4 font-semibold text-right">
+                                অ্যাকশন
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100">
+                        <tr
+                            v-for="(item, index) in props.news.data"
+                            :key="item.id"
+                            class="hover:bg-slate-50/50 transition-colors group"
+                        >
+                            <!-- Title & Image -->
+                            <td class="px-4 py-4">
+                                <div class="flex items-center gap-4">
+                                    <div
+                                        class="w-16 h-12 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200"
+                                    >
+                                        <img
+                                            v-if="item.image"
+                                            :src="`/storage/${item.image}`"
+                                            class="w-full h-full object-cover"
+                                        />
+                                        <i
+                                            v-else
+                                            class="fa-regular fa-image text-slate-300 w-full h-full flex items-center justify-center"
+                                        ></i>
+                                    </div>
+                                    <div>
+                                        <p
+                                            class="font-bold text-slate-800 text-sm line-clamp-2 leading-snug"
+                                            v-html="highlight(item.title)"
+                                        ></p>
+                                        <p
+                                            class="text-[10px] text-slate-400 mt-1"
+                                        >
+                                            #{{
+                                                (news.current_page - 1) *
+                                                    news.per_page +
+                                                index +
+                                                1
+                                            }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </td>
+
+                            <!-- Category -->
+                            <td class="px-4 py-4 text-center">
+                                <span
+                                    class="inline-flex px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold"
+                                >
+                                    {{ item.category?.name || "N/A" }}
+                                </span>
+                            </td>
+
+                            <!-- Language -->
+                            <td
+                                class="px-4 py-4 text-center text-sm font-medium text-slate-600"
+                            >
+                                {{ item.language == 1 ? "বাংলা" : "English" }}
+                            </td>
+
+                            <!-- Post Type -->
+                            <td class="px-4 py-4 text-center">
+                                <span
+                                    v-if="item.breaking"
+                                    class="inline-flex px-2 py-0.5 rounded bg-red-100 text-red-700 text-xs font-bold uppercase tracking-wide"
+                                >
+                                    Breaking
+                                </span>
+                                <span
+                                    v-else-if="item.featured"
+                                    class="inline-flex px-2 py-0.5 rounded bg-green-100 text-green-700 text-xs font-bold uppercase tracking-wide"
+                                >
+                                    Featured
+                                </span>
+                                <span
+                                    v-else
+                                    class="text-xs text-slate-400 font-medium"
+                                    >Normal</span
+                                >
+                            </td>
+
+                            <!-- Status -->
+                            <td class="px-4 py-4 text-center">
+                                <span
+                                    :class="
+                                        item.status
+                                            ? 'bg-green-100 text-green-700'
+                                            : 'bg-orange-100 text-orange-700'
+                                    "
+                                    class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold"
+                                >
+                                    <span
+                                        class="w-1.5 h-1.5 rounded-full"
+                                        :class="
+                                            item.status
+                                                ? 'bg-green-500'
+                                                : 'bg-orange-500'
+                                        "
+                                    ></span>
+                                    {{ item.status ? "প্রকাশিত" : "ড্রাফট" }}
+                                </span>
+                            </td>
+
+                            <!-- Views -->
+                            <td class="px-4 py-4 text-center">
+                                <div
+                                    class="flex flex-col items-center justify-center gap-1 text-xs"
+                                >
+                                    <span
+                                        class="font-bold text-slate-700 flex items-center gap-1"
+                                        title="Total Views"
+                                    >
+                                        <i
+                                            class="fa-regular fa-eye text-slate-400"
+                                        ></i>
+                                        {{ item.total_view ?? 0 }}
+                                    </span>
+                                </div>
+                            </td>
+
+                            <!-- Date -->
+                            <td
+                                class="px-4 py-4 text-center text-xs text-slate-500 font-medium whitespace-nowrap"
+                            >
+                                {{
+                                    new Date(
+                                        item.created_at,
+                                    ).toLocaleDateString("en-GB", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                    })
+                                }}
+                            </td>
+
+                            <!-- Actions -->
+                            <td class="px-4 py-4 text-right">
+                                <div
+                                    class="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
+                                >
+                                    <Link
+                                        :href="route('news.edit', item.id)"
+                                        class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white flex items-center justify-center transition-colors"
+                                        title="Edit"
+                                    >
+                                        <i class="fa-solid fa-pen text-xs"></i>
+                                    </Link>
+                                    <button
+                                        @click="deleteNews(item.id)"
+                                        class="w-8 h-8 rounded-lg bg-red-50 text-red-600 hover:bg-red-600 hover:text-white flex items-center justify-center transition-colors"
+                                        title="Delete"
+                                    >
+                                        <i
+                                            class="fa-solid fa-trash text-xs"
+                                        ></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- ==================== MOBILE CARDS (hidden on desktop) ==================== -->
+            <div class="md:hidden space-y-4">
+                <div
+                    v-for="(item, index) in props.news.data"
+                    :key="item.id"
+                    class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden"
+                >
+                    <!-- Mobile Card Header -->
+                    <div
+                        class="p-4 flex gap-3 items-start border-b border-slate-100"
                     >
-                        <td class="px-4 py-2 text-center">
-                            {{ index + 1 }}
-                        </td>
-                        <td class="px-4 py-2">
+                        <div
+                            class="w-20 h-16 rounded-lg bg-slate-100 overflow-hidden flex-shrink-0 border border-slate-200"
+                        >
                             <img
                                 v-if="item.image"
                                 :src="`/storage/${item.image}`"
-                                class="w-16 h-12 object-cover rounded"
+                                class="w-full h-full object-cover"
                             />
-                        </td>
-                        <td
-                            class="px-4 py-2 leading-7"
-                            v-html="highlight(item.title)"
-                        ></td>
-                        <td class="px-4 py-2">
-                            {{ item.category?.name }}
-                        </td>
-                        <td class="px-4 py-2">
-                            {{ item.language == 1 ? "Bangla" : "English" }}
-                        </td>
-                        <td class="px-4 py-2">
+                            <i
+                                v-else
+                                class="fa-regular fa-image text-slate-300 w-full h-full flex items-center justify-center"
+                            ></i>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p
+                                class="font-bold text-slate-800 text-sm leading-snug line-clamp-2"
+                                v-html="highlight(item.title)"
+                            ></p>
+                            <div class="flex flex-wrap items-center gap-2 mt-2">
+                                <span
+                                    v-if="item.breaking"
+                                    class="text-[10px] font-bold text-red-600 bg-red-50 px-1.5 py-0.5 rounded"
+                                    >Breaking</span
+                                >
+                                <span
+                                    v-else-if="item.featured"
+                                    class="text-[10px] font-bold text-green-600 bg-green-50 px-1.5 py-0.5 rounded"
+                                    >Featured</span
+                                >
+                                <span
+                                    class="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded"
+                                    >{{ item.category?.name }}</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Card Body -->
+                    <div
+                        class="p-4 grid grid-cols-2 gap-y-3 text-sm bg-slate-50/50"
+                    >
+                        <div>
                             <span
-                                v-if="item.breaking"
-                                class="text-red-600 font-bold"
+                                class="block text-[11px] font-semibold text-slate-400 mb-0.5"
+                                >স্ট্যাটাস</span
                             >
-                                Breaking
-                            </span>
-                            <span
-                                v-else-if="item.featured"
-                                class="text-green-600 font-bold"
-                            >
-                                Featured
-                            </span>
-                            <span v-else> Normal </span>
-                        </td>
-                        <td class="px-4 py-2">
                             <span
                                 :class="
                                     item.status
                                         ? 'text-green-600'
-                                        : 'text-red-600'
+                                        : 'text-orange-600'
                                 "
+                                class="font-bold flex items-center gap-1"
                             >
-                                {{ item.status ? "Published" : "Draft" }}
+                                <span
+                                    class="w-1.5 h-1.5 rounded-full"
+                                    :class="
+                                        item.status
+                                            ? 'bg-green-600'
+                                            : 'bg-orange-600'
+                                    "
+                                ></span>
+                                {{ item.status ? "প্রকাশিত" : "ড্রাফট" }}
                             </span>
-                        </td>
-                        <td class="px-4 py-2 text-center">
-                            {{ item.total_view ?? 0 }}
-                        </td>
-                        <td class="px-4 py-2 text-center">
-                            {{ item.current_view ?? 0 }}
-                        </td>
-                        <td class="px-4 py-2">
-                            {{ new Date(item.created_at).toLocaleDateString() }}
-                        </td>
-                        <td class="px-4 py-2">
-                            <Link
-                                :href="route('news.edit', item.id)"
-                                class="bg-blue-500 text-white px-3 py-1 rounded"
+                        </div>
+                        <div>
+                            <span
+                                class="block text-[11px] font-semibold text-slate-400 mb-0.5"
+                                >ভাষা</span
                             >
-                                <i class="fa-solid fa-edit"></i>
-                            </Link>
-                            <button
-                                @click="deleteNews(item.id)"
-                                class="bg-red-500 text-white px-3 py-1 rounded"
+                            <span class="font-bold text-slate-700">{{
+                                item.language == 1 ? "বাংলা" : "English"
+                            }}</span>
+                        </div>
+                        <div>
+                            <span
+                                class="block text-[11px] font-semibold text-slate-400 mb-0.5"
+                                >ভিউ</span
                             >
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            <Pagination :links="news.links" />
+                            <span class="font-bold text-slate-700"
+                                ><i
+                                    class="fa-regular fa-eye text-xs text-slate-400 mr-1"
+                                ></i
+                                >{{ item.total_view ?? 0 }}</span
+                            >
+                        </div>
+                        <div>
+                            <span
+                                class="block text-[11px] font-semibold text-slate-400 mb-0.5"
+                                >তারিখ</span
+                            >
+                            <span class="font-bold text-slate-700">{{
+                                new Date(item.created_at).toLocaleDateString(
+                                    "en-GB",
+                                    {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
+                                    },
+                                )
+                            }}</span>
+                        </div>
+                    </div>
+
+                    <!-- Mobile Card Actions -->
+                    <div
+                        class="p-3 border-t border-slate-100 flex justify-end gap-2 bg-white"
+                    >
+                        <Link
+                            :href="route('news.edit', item.id)"
+                            class="flex-1 flex items-center justify-center gap-1.5 bg-blue-50 text-blue-600 font-semibold py-2 rounded-lg text-xs hover:bg-blue-100 transition-colors"
+                        >
+                            <i class="fa-solid fa-pen"></i> এডিট
+                        </Link>
+                        <button
+                            @click="deleteNews(item.id)"
+                            class="flex-1 flex items-center justify-center gap-1.5 bg-red-50 text-red-600 font-semibold py-2 rounded-lg text-xs hover:bg-red-100 transition-colors"
+                        >
+                            <i class="fa-solid fa-trash"></i> ডিলিট
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ==================== EMPTY STATE ==================== -->
+            <div
+                v-if="props.news.data.length === 0"
+                class="bg-white rounded-2xl shadow-sm border border-slate-200 p-12 text-center mt-4"
+            >
+                <div
+                    class="inline-flex items-center justify-center w-20 h-20 rounded-full bg-slate-50 text-slate-300 mb-4"
+                >
+                    <i class="fa-regular fa-newspaper text-4xl"></i>
+                </div>
+                <h3 class="text-lg font-bold text-slate-700 mb-1">
+                    কোনো সংবাদ পাওয়া যায়নি
+                </h3>
+                <p class="text-slate-500 text-sm">
+                    আপনার সার্চের সাথে মিলে এমন কোনো সংবাদ নেই।
+                </p>
+                <button
+                    @click="resetSearch"
+                    class="mt-4 text-green-600 font-bold hover:underline"
+                >
+                    সব সংবাদ দেখুন
+                </button>
+            </div>
+
+            <!-- ==================== PAGINATION ==================== -->
+            <div
+                v-if="props.news.links && props.news.data.length > 0"
+                class="mt-8"
+            >
+                <Pagination :links="news.links" />
+            </div>
         </div>
     </Layout>
 </template>

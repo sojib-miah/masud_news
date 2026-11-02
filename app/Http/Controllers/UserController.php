@@ -162,7 +162,7 @@ class UserController extends Controller
         $relatedNews = News::where('category_id', $news->category_id)
             ->where('id', '!=', $news->id)
             ->latest()
-            ->take(4)
+            ->take(6)
             ->get();
 
         // ---------- Reporter Types (safe) ----------
@@ -171,7 +171,7 @@ class UserController extends Controller
 
             $typeIds = array_filter(
                 explode(',', $profile->reporter_types ?? ''),
-                fn ($id) => is_numeric($id)
+                fn($id) => is_numeric($id)
             );
 
             $profile->types = ! empty($typeIds)
@@ -192,80 +192,95 @@ class UserController extends Controller
 
     public function countView(Request $request)
     {
+        $request->validate([
+            'news_id' => ['required', 'integer', 'exists:news,id'],
+        ]);
+
+        $user = Auth::user();
+
+        // Login is required for earning views.
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'ভিউ থেকে আয় করতে পাঠক অ্যাকাউন্টে লগইন করুন।',
+            ], 401);
+        }
+
+        // Only Pathock (পাঠক) accounts can earn.
+        $isPathock = strtolower((string) $user->role) === 'pathock'
+            || $user->roles()->where('name', 'pathock')->exists();
+
+        if (!$isPathock) {
+            return response()->json([
+                'success' => false,
+                'message' => 'শুধুমাত্র পাঠক অ্যাকাউন্ট থেকে ভিউ করে আয় করা যাবে।',
+            ], 403);
+        }
+
         $news = News::findOrFail($request->news_id);
 
         $ip = $request->ip();
-
-        $userId = Auth::id();
+        $userId = $user->id;
 
         // Check already viewed today
         $alreadyViewed = NewsView::where('news_id', $news->id)
             ->where(function ($query) use ($ip, $userId) {
-
-                if ($userId) {
-
-                    $query->where('user_id', $userId);
-                } else {
-
-                    $query->where('ip_address', $ip);
-                }
+                $query->where('user_id', $userId);
             })
             ->whereDate('created_at', today())
             ->exists();
 
-        if (! $alreadyViewed) {
+        if (!$alreadyViewed) {
 
-            // Save View
             NewsView::create([
                 'news_id' => $news->id,
                 'user_id' => $userId,
                 'ip_address' => $ip,
             ]);
 
-            // Increment Total View
             $news->increment('total_view');
 
             // USER EARNING
-            if ($userId) {
+            $alreadyUserViewed = NewsUserView::where('user_id', $userId)
+                ->where('news_id', $news->id)
+                ->whereDate('created_at', today())
+                ->exists();
 
-                $alreadyUserViewed = NewsUserView::where('user_id', $userId)
-                    ->where('news_id', $news->id)
-                    ->whereDate('created_at', today())
-                    ->exists();
+            if (!$alreadyUserViewed) {
 
-                if (! $alreadyUserViewed) {
+                NewsUserView::create([
+                    'user_id' => $userId,
+                    'news_id' => $news->id,
+                ]);
 
-                    NewsUserView::create([
-                        'user_id' => $userId,
-                        'news_id' => $news->id,
-                    ]);
+                $sitesetting = SiteSetting::first();
 
-                    $sitesetting = SiteSetting::first();
+                $perViewAmount = $sitesetting?->news_view ?? 0;
 
-                    $perViewAmount = $sitesetting->news_view ?? 0;
+                $user->earning_from_views =
+                    ($user->earning_from_views ?? 0) + $perViewAmount;
 
-                    $user = User::find($userId);
+                $user->marketing_wallet =
+                    ($user->marketing_wallet ?? 0) + $perViewAmount;
 
-                    $user->earning_from_views += $perViewAmount;
+                $user->total_earning =
+                    ($user->total_earning ?? 0) + $perViewAmount;
 
-                    $user->marketing_wallet += $perViewAmount;
+                $user->save();
 
-                    $user->total_earning += $perViewAmount;
-
-                    $user->save();
-
-                    $this->processMarketingWallet($user);
-                }
+                $this->processMarketingWallet($user);
             }
         }
 
-        // Today's Current View Count
         $currentView = NewsView::where('news_id', $news->id)
             ->whereDate('created_at', today())
             ->count();
 
         return response()->json([
             'success' => true,
+            'message' => $alreadyViewed
+                ? 'আপনি আজ এই সংবাদটি ইতোমধ্যে দেখেছেন।'
+                : 'অভিনন্দন! আপনার নিউজ ভিউ সফলভাবে গণনা হয়েছে।',
             'current_view' => $currentView,
             'total_view' => $news->fresh()->total_view,
         ]);
@@ -354,7 +369,7 @@ class UserController extends Controller
 
             'role' => $user->role,
 
-            'affiliate_link' => url('/register/pathock?ref='.$user->ref_id),
+            'affiliate_link' => url('/register/pathock?ref=' . $user->ref_id),
 
             'products' => Product::latest()->get(),
             'stockMoney' => StockMoney::where('user_id', $user->id)
@@ -454,8 +469,8 @@ class UserController extends Controller
         // ---------- VALIDATION ----------
         $rules = [
             'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email,'.$user->id,
-            'phone' => 'required|string|max:20|unique:users,phone,'.$user->id,
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'phone' => 'required|string|max:20|unique:users,phone,' . $user->id,
 
             'division_id' => 'nullable|exists:divisions,id',
             'district_id' => 'nullable|exists:districts,id',
@@ -565,8 +580,8 @@ class UserController extends Controller
 
         $request->validate([
             'name' => 'required',
-            'email' => 'required|email|unique:users,email,'.$user->id,
-            'phone' => 'required|unique:users,phone,'.$user->id,
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone' => 'required|unique:users,phone,' . $user->id,
             'password' => 'nullable|confirmed',
             'image' => 'nullable|image',
         ]);
@@ -609,8 +624,8 @@ class UserController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'max:255', 'unique:users,email,'.$user->id],
-            'phone' => ['required', 'string', 'max:20', 'unique:users,phone,'.$user->id],
+            'email' => ['required', 'email', 'max:255', 'unique:users,email,' . $user->id],
+            'phone' => ['required', 'string', 'max:20', 'unique:users,phone,' . $user->id],
             'dob' => ['required', 'date'],
 
             // blood_group: Vue sends the NAME ("A+"), not the id.
