@@ -67,7 +67,7 @@ const form = useForm({
     reporter_area: props.profile?.reporter_area || "",
     nid_number: props.profile?.nid_number || "",
 
-    photo: null,
+    image: null,
     signature: null,
     nid_file: null,
 
@@ -329,7 +329,7 @@ function submit() {
             form.reset(
                 "password",
                 "password_confirmation",
-                "photo",
+                "image",
                 "signature",
                 "nid_file",
             );
@@ -843,22 +843,22 @@ function submit() {
                                     প্রোফাইল ছবি
                                 </label>
                                 <FileInput
-                                    v-model="form.photo"
+                                    v-model="form.image"
                                     accept="image/*"
                                     :multiple="false"
-                                    :error="form.errors.photo"
+                                    :error="form.errors.image"
                                 />
                                 <a
-                                    v-if="props.profile?.photo"
-                                    :href="`/storage/${props.profile.photo}`"
+                                    v-if="props.user?.image"
+                                    :href="`/storage/${props.user.image}`"
                                     target="_blank"
                                     class="inline-block"
                                 >
                                     <img
-                                        v-if="props.profile?.photo"
-                                        :src="`/storage/${props.profile.photo}`"
+                                        v-if="props.user?.image"
+                                        :src="`/storage/${props.user.image}`"
                                         class="w-20 h-20 mt-2 border border-slate-300 rounded"
-                                        alt="Photo"
+                                        alt="Image"
                                     />
                                 </a>
                             </div>

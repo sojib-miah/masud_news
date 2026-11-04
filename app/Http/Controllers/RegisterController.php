@@ -149,7 +149,7 @@ class RegisterController extends Controller
             'phone' => $data['phone'],
             'password' => Hash::make($data['password']),
             'role' => 'pathock',
-            'email' => $data['email'] ?? 'pathock'.Str::random(5).'@pathock.com',
+            'email' => $data['email'] ?? 'pathock' . Str::random(5) . '@pathock.com',
         ]);
 
         // ---------------- CREATE PROFILE ----------------
@@ -193,7 +193,7 @@ class RegisterController extends Controller
             'phone' => $request->phone,
             'password' => Hash::make($request->password),
             'role' => 'motamot',
-            'email' => $request->email ?? 'motamot'.Str::random(5).'@motamot.com',
+            'email' => $request->email ?? 'motamot' . Str::random(5) . '@motamot.com',
         ]);
 
         return redirect()->route('user.login')->with('status', 'Motamot Register Success');
@@ -229,7 +229,7 @@ class RegisterController extends Controller
             'reporter_types' => 'nullable|array',
             'reporter_types.*' => 'exists:reporter_types,id',
 
-            'photo' => 'required|image|max:2048',
+            'image' => 'required|image|max:2048',
             'signature' => 'required|image|max:2048',
             'nid_file' => 'required|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
@@ -244,17 +244,18 @@ class RegisterController extends Controller
             $data['union'] = null;
         }
 
+        $imagePath = $request->file('image')->store('images/avatars', 'public');
         // ---------- CREATE USER ----------
         $user = User::create([
             'name' => $data['name'],
-            'email' => $data['email'] ?? 'reporter'.Str::random(5).'@reporter.com',
+            'email' => $data['email'] ?? 'reporter' . Str::random(5) . '@reporter.com',
             'phone' => $data['phone'],
+            'image' => $imagePath,
             'password' => Hash::make($data['password']),
             'role' => 'reporter',
         ]);
 
         // ---------- UPLOADS ----------
-        $photoPath = $request->file('photo')->store('images/register', 'public');
         $signaturePath = $request->file('signature')->store('images/register', 'public');
         $nidPath = $request->file('nid_file')->store('images/register', 'public');
 
@@ -277,7 +278,6 @@ class RegisterController extends Controller
             'village' => $data['village'] ?? null,
             'reporter_area' => $data['reporter_area'],
             'nid_number' => $data['nid_number'] ?? null,
-            'photo' => $photoPath,
             'signature' => $signaturePath,
             'nid_file' => $nidPath,
             'reporter_types' => ! empty($data['reporter_types'])

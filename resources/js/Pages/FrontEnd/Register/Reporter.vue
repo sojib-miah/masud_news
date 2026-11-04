@@ -42,7 +42,7 @@ const form = useForm({
     village: "",
     reporter_area: "",
     nid_number: "",
-    photo: null,
+    image: null,
     signature: null,
     nid_file: null,
     password: "",
@@ -771,9 +771,9 @@ function submit() {
                                         <span class="text-red-500">*</span>
                                     </label>
                                     <FileInput
-                                        v-model="form.photo"
+                                        v-model="form.image"
                                         accept="image/*"
-                                        :error="form.errors.photo"
+                                        :error="form.errors.image"
                                     />
                                 </div>
 

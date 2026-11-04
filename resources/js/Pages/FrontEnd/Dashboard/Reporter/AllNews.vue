@@ -15,7 +15,7 @@ const props = defineProps({
 
 // ==================== ACTIONS ====================
 const deleteNews = (id) => {
-    if (confirm("আপনি কি নিশ্চিত যে এই সংবাদটি মুছে ফেলতে চান?")) {
+    if (confirm("Are you sure you want to delete this news?")) {
         router.delete(route("news.destroy", id), {
             preserveScroll: true,
         });
@@ -88,7 +88,7 @@ onUnmounted(() => {
     <Layout>
         <Head title="All News" />
 
-        <div class="max-w-7xl mx-auto font-robo pb-10">
+        <div class="font-robo pb-10">
             <FlashMessage
                 v-if="$page.props.flash?.status"
                 :message="$page.props.flash.status"
@@ -113,7 +113,7 @@ onUnmounted(() => {
                         >
                             <i class="fa-regular fa-newspaper"></i>
                         </span>
-                        সংবাদ তালিকা
+                        All News List
                     </h1>
                     <p class="text-slate-500 mt-2 text-sm">
                         আপনার তৈরি সকল সংবাদ এখানে দেখতে এবং পরিচালনা করতে
@@ -126,7 +126,7 @@ onUnmounted(() => {
                         :href="route('news')"
                         class="w-full md:w-auto inline-flex items-center justify-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-green-600/30 transition-all"
                     >
-                        <i class="fa-solid fa-plus"></i> নতুন সংবাদ
+                        <i class="fa-solid fa-plus"></i> Add New News
                     </Link>
                 </div>
             </div>
@@ -147,7 +147,7 @@ onUnmounted(() => {
                     class="flex items-center gap-2 text-sm font-semibold text-slate-600 bg-slate-50 px-4 py-2 rounded-lg border border-slate-200 w-full sm:w-auto justify-center"
                 >
                     <i class="fa-solid fa-list-ul text-green-600"></i>
-                    মোট সংবাদ:
+                    Total News :
                     <span class="text-slate-900">{{ props.news.total }}</span>
                 </div>
             </div>
@@ -161,27 +161,27 @@ onUnmounted(() => {
                         <tr
                             class="bg-slate-50 text-slate-600 text-xs uppercase tracking-wider border-b border-slate-200"
                         >
-                            <th class="px-4 py-4 font-semibold">সংবাদ</th>
+                            <th class="px-4 py-4 font-semibold">News</th>
                             <th class="px-4 py-4 font-semibold text-center">
-                                ক্যাটাগরি
+                                Category
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
-                                ভাষা
+                                Language
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
-                                ধরন
+                                Type
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
-                                স্ট্যাটাস
+                                Status
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
-                                ভিউ
+                                Views
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
-                                তারিখ
+                                Date
                             </th>
                             <th class="px-4 py-4 font-semibold text-right">
-                                অ্যাকশন
+                                Actions
                             </th>
                         </tr>
                     </thead>
@@ -281,7 +281,7 @@ onUnmounted(() => {
                                                 : 'bg-orange-500'
                                         "
                                     ></span>
-                                    {{ item.status ? "প্রকাশিত" : "ড্রাফট" }}
+                                    {{ item.status ? "Published" : "Draft" }}
                                 </span>
                             </td>
 
@@ -400,7 +400,7 @@ onUnmounted(() => {
                         <div>
                             <span
                                 class="block text-[11px] font-semibold text-slate-400 mb-0.5"
-                                >স্ট্যাটাস</span
+                                >Status</span
                             >
                             <span
                                 :class="
@@ -418,13 +418,13 @@ onUnmounted(() => {
                                             : 'bg-orange-600'
                                     "
                                 ></span>
-                                {{ item.status ? "প্রকাশিত" : "ড্রাফট" }}
+                                {{ item.status ? "Published" : "Draft" }}
                             </span>
                         </div>
                         <div>
                             <span
                                 class="block text-[11px] font-semibold text-slate-400 mb-0.5"
-                                >ভাষা</span
+                                >Language</span
                             >
                             <span class="font-bold text-slate-700">{{
                                 item.language == 1 ? "বাংলা" : "English"
@@ -433,7 +433,7 @@ onUnmounted(() => {
                         <div>
                             <span
                                 class="block text-[11px] font-semibold text-slate-400 mb-0.5"
-                                >ভিউ</span
+                                >Views</span
                             >
                             <span class="font-bold text-slate-700"
                                 ><i
@@ -445,7 +445,7 @@ onUnmounted(() => {
                         <div>
                             <span
                                 class="block text-[11px] font-semibold text-slate-400 mb-0.5"
-                                >তারিখ</span
+                                >Date</span
                             >
                             <span class="font-bold text-slate-700">{{
                                 new Date(item.created_at).toLocaleDateString(
@@ -468,13 +468,13 @@ onUnmounted(() => {
                             :href="route('news.edit', item.id)"
                             class="flex-1 flex items-center justify-center gap-1.5 bg-blue-50 text-blue-600 font-semibold py-2 rounded-lg text-xs hover:bg-blue-100 transition-colors"
                         >
-                            <i class="fa-solid fa-pen"></i> এডিট
+                            <i class="fa-solid fa-pen"></i> Edit
                         </Link>
                         <button
                             @click="deleteNews(item.id)"
                             class="flex-1 flex items-center justify-center gap-1.5 bg-red-50 text-red-600 font-semibold py-2 rounded-lg text-xs hover:bg-red-100 transition-colors"
                         >
-                            <i class="fa-solid fa-trash"></i> ডিলিট
+                            <i class="fa-solid fa-trash"></i> Delete
                         </button>
                     </div>
                 </div>
@@ -491,16 +491,16 @@ onUnmounted(() => {
                     <i class="fa-regular fa-newspaper text-4xl"></i>
                 </div>
                 <h3 class="text-lg font-bold text-slate-700 mb-1">
-                    কোনো সংবাদ পাওয়া যায়নি
+                    No news found
                 </h3>
                 <p class="text-slate-500 text-sm">
-                    আপনার সার্চের সাথে মিলে এমন কোনো সংবাদ নেই।
+                    There is no news matching your search criteria.
                 </p>
                 <button
                     @click="resetSearch"
                     class="mt-4 text-green-600 font-bold hover:underline"
                 >
-                    সব সংবাদ দেখুন
+                    View All News
                 </button>
             </div>
 

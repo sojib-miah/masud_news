@@ -23,6 +23,10 @@ class NewsController extends Controller
             'image' => 'required|image',
             'category' => 'required',
             'subcategory' => 'nullable',
+            'tag' => 'nullable|string',
+            'featured' => 'nullable|in:yes,no',
+            'breaking' => 'nullable|in:yes,no',
+            'division_name' => 'required|string',
         ]);
 
         $imagePath = $request->hasFile('image')
@@ -39,7 +43,7 @@ class NewsController extends Controller
             'tag' => json_encode($tags),
             'description' => $request->description,
             'image' => $imagePath,
-            'imagenote' => $request->imageNote,
+            'division_name' => $request->division_name,
             'category_id' => $request->category,
             'subcategory_id' => $request->subcategory,
             'featured' => $request->featured == 'yes' ? 1 : 0,
@@ -126,7 +130,7 @@ class NewsController extends Controller
             'description' => $request->description,
             'image' => $imagePath,
             'audio' => $audio,
-            'imagenote' => $request->imageNote,
+            'division_name' => $request->division_name,
             'category_id' => $request->category,
             'subcategory_id' => $request->subcategory,
             'featured' => $request->featured == 'yes' ? 1 : 0,
@@ -159,6 +163,7 @@ class NewsController extends Controller
             'tag' => 'nullable|string',
             'featured' => 'nullable|in:yes,no',
             'breaking' => 'nullable|in:yes,no',
+            'division_name' => 'required|string',
         ]);
 
         $imagePath = $news->image;
@@ -180,11 +185,11 @@ class NewsController extends Controller
             'tag' => json_encode($tags),
             'description' => $request->description,
             'image' => $imagePath,
-            'imagenote' => $request->imageNote ?? null,
             'category_id' => $request->category,
             'subcategory_id' => $request->subcategory ?? null,
             'featured' => $request->featured === 'yes' ? 1 : 0,
             'breaking' => $request->breaking === 'yes' ? 1 : 0,
+            'division_name' => $request->division_name,
         ]);
 
         return redirect()->route('news.all')->with('status', 'News Updated Successfully');

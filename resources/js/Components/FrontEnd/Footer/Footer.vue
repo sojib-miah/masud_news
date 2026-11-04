@@ -201,10 +201,8 @@ const web2 = computed(() => props.footer?.web2 || "");
                         <div class="flex items-center gap-2 text-xs">
                             <i class="fa-solid fa-users text-green-600"></i>
 
-                            <span>
-                                মোট ভিজিটর : ({{
-                                    page.props.visitorCount ?? 0
-                                }})
+                            <span
+                                >ভিজিটর : ({{ page.props.visitorCount ?? 0 }})
                             </span>
                         </div>
                     </div>

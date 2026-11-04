@@ -320,9 +320,9 @@ watch(
                         >
                             <img
                                 :src="
-                                    page.props.auth?.reporterProfile?.photo
+                                    page.props.auth?.user.image
                                         ? '/storage/' +
-                                          page.props.auth.reporterProfile.photo
+                                          page.props.auth.user.image
                                         : '/storage/images/user.png'
                                 "
                                 alt="user image"

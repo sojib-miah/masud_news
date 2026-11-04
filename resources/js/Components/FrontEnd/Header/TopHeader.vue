@@ -175,7 +175,6 @@ onBeforeUnmount(() => {
                                 ]"
                             ></i>
                         </button>
-
                         <!-- Dropdown -->
                         <transition name="dropdown">
                             <div

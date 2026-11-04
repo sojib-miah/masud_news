@@ -32,6 +32,7 @@ return new class extends Migration
             $table->integer('current_view')->default(0);
             $table->string('audio');
             $table->string('video');
+            $table->string('division_name')->nullable();
             $table->timestamps();
         });
     }

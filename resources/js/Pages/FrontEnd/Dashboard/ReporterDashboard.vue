@@ -24,7 +24,7 @@ const stats = computed(() => page.props.stats || {});
     />
 
     <Layout>
-        <div class="max-w-7xl mx-auto font-robo pb-10">
+        <div class="font-robo pb-10">
             <!-- ==================== WELCOME HEADER ==================== -->
             <div
                 class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8"
@@ -43,7 +43,7 @@ const stats = computed(() => page.props.stats || {});
                     :href="route('news')"
                     class="inline-flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white font-semibold px-5 py-2.5 rounded-xl shadow-lg shadow-green-600/30 transition-all hover:-translate-y-0.5"
                 >
-                    <i class="fa-solid fa-plus"></i> নতুন সংবাদ যুক্ত করুন
+                    <i class="fa-solid fa-plus"></i> Add New News
                 </Link>
             </div>
 
@@ -62,7 +62,7 @@ const stats = computed(() => page.props.stats || {});
                     </div>
                     <div class="relative z-10">
                         <p class="text-sm font-semibold text-slate-500 mb-1">
-                            মোট সংবাদ
+                            Total News
                         </p>
                         <h2 class="text-4xl font-bold text-slate-800 mb-4">
                             {{ stats.total_news || 0 }}
@@ -71,7 +71,7 @@ const stats = computed(() => page.props.stats || {});
                             :href="route('news.all')"
                             class="text-xs font-bold text-teal-600 hover:text-teal-700 flex items-center gap-1"
                         >
-                            সবগুলো দেখুন
+                            View All
                             <i class="fa-solid fa-arrow-right text-[10px]"></i>
                         </Link>
                     </div>
@@ -88,7 +88,7 @@ const stats = computed(() => page.props.stats || {});
                     </div>
                     <div class="relative z-10">
                         <p class="text-sm font-semibold text-slate-500 mb-1">
-                            অপেক্ষমাণ সংবাদ
+                            Pending News
                         </p>
                         <h2 class="text-4xl font-bold text-slate-800 mb-4">
                             {{ stats.pending_news || 0 }}
@@ -97,7 +97,7 @@ const stats = computed(() => page.props.stats || {});
                             :href="route('pending.news')"
                             class="text-xs font-bold text-yellow-600 hover:text-yellow-700 flex items-center gap-1"
                         >
-                            সবগুলো দেখুন
+                            View All
                             <i class="fa-solid fa-arrow-right text-[10px]"></i>
                         </Link>
                     </div>
@@ -114,7 +114,7 @@ const stats = computed(() => page.props.stats || {});
                     </div>
                     <div class="relative z-10">
                         <p class="text-sm font-semibold text-slate-500 mb-1">
-                            প্রকাশিত সংবাদ
+                            Published News
                         </p>
                         <h2 class="text-4xl font-bold text-slate-800 mb-4">
                             {{ stats.published_news || 0 }}
@@ -123,7 +123,7 @@ const stats = computed(() => page.props.stats || {});
                             :href="route('news.all')"
                             class="text-xs font-bold text-orange-600 hover:text-orange-700 flex items-center gap-1"
                         >
-                            সবগুলো দেখুন
+                            View All
                             <i class="fa-solid fa-arrow-right text-[10px]"></i>
                         </Link>
                     </div>
@@ -140,7 +140,7 @@ const stats = computed(() => page.props.stats || {});
                     </div>
                     <div class="relative z-10">
                         <p class="text-sm font-semibold text-slate-500 mb-1">
-                            মোট আয়
+                            Total Income
                         </p>
                         <h2
                             class="text-3xl sm:text-4xl font-bold text-slate-800 mb-4"
@@ -150,7 +150,8 @@ const stats = computed(() => page.props.stats || {});
                         <span
                             class="text-xs font-bold text-blue-600 flex items-center gap-1"
                         >
-                            <i class="fa-solid fa-chart-line"></i> আজীবন আয়
+                            <i class="fa-solid fa-chart-line"></i> Lifetime
+                            Income
                         </span>
                     </div>
                 </div>
@@ -178,15 +179,13 @@ const stats = computed(() => page.props.stats || {});
                                 <span class="p-2 bg-white/20 rounded-lg"
                                     ><i class="fa-solid fa-wallet text-xl"></i
                                 ></span>
-                                <h3 class="text-lg font-bold">
-                                    আপনার ব্যালেন্স
-                                </h3>
+                                <h3 class="text-lg font-bold">Your Balance</h3>
                             </div>
                             <h2 class="text-4xl sm:text-5xl font-bold mt-2">
                                 ৳{{ stats.total_balance || 0 }}
                             </h2>
                             <p class="text-green-100 text-sm mt-2">
-                                অবিলম্বে উত্তোলনযোগ্য পরিমাণ
+                                Amount available for immediate withdrawal
                             </p>
                         </div>
 
@@ -195,7 +194,7 @@ const stats = computed(() => page.props.stats || {});
                         >
                             <div class="flex-1 sm:flex-none">
                                 <p class="text-xs text-green-200 mb-0.5">
-                                    মোট আয়
+                                    Total Income
                                 </p>
                                 <p class="font-bold text-lg">
                                     ৳{{ stats.reporter_income || 0 }}
@@ -206,7 +205,7 @@ const stats = computed(() => page.props.stats || {});
                             ></div>
                             <div class="flex-1 sm:flex-none">
                                 <p class="text-xs text-green-200 mb-0.5">
-                                    মোট উত্তোলন
+                                    Total Withdrawals
                                 </p>
                                 <p class="font-bold text-lg">
                                     ৳{{ stats.total_withdraw || 0 }}
@@ -223,7 +222,7 @@ const stats = computed(() => page.props.stats || {});
                     <h3
                         class="text-lg font-bold text-slate-800 mb-4 pb-3 border-b border-slate-100"
                     >
-                        কুইক অ্যাকশন
+                        Quick Actions
                     </h3>
                     <div class="space-y-2">
                         <Link
@@ -238,7 +237,7 @@ const stats = computed(() => page.props.stats || {});
                                 </span>
                                 <span
                                     class="font-semibold text-slate-700 text-sm"
-                                    >ড্রাফট সংবাদ</span
+                                    >Draft News</span
                                 >
                             </div>
                             <i
@@ -258,7 +257,7 @@ const stats = computed(() => page.props.stats || {});
                                 </span>
                                 <span
                                     class="font-semibold text-slate-700 text-sm"
-                                    >শিডিউল সংবাদ</span
+                                    >Scheduled News</span
                                 >
                             </div>
                             <i
@@ -280,7 +279,7 @@ const stats = computed(() => page.props.stats || {});
                                 </span>
                                 <span
                                     class="font-semibold text-slate-700 text-sm"
-                                    >প্রেস আইডি কার্ড</span
+                                    >Press ID Card</span
                                 >
                             </div>
                             <i

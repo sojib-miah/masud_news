@@ -77,14 +77,20 @@ class UserController extends Controller
             ->with('subcategories')
             ->first();
 
-        $allNews = News::whereIn('category_id', [
-            optional($sarades)->id,
-            optional($bivag)->id,
-        ])
-            ->where('status', 1)
-            ->latest()
-            ->take(100)
-            ->get();
+        // $allNews = News::where('status', 1)
+        //     ->where(function ($query) use ($sarades, $bivag) {
+        //         if ($sarades) {
+        //             $query->orWhere('category_id', $sarades->id);
+        //         }
+
+        //         if ($bivag) {
+        //             $query->orWhere('category_id', $bivag->id);
+        //         }
+        //     })
+        //     ->latest()
+        //     ->take(100)
+        //     ->get();
+        $allNews = News::where('status', 1)->latest()->take(50)->get();
 
         return Inertia::render('Home', [
             'divisions' => $divisions,
@@ -648,7 +654,7 @@ class UserController extends Controller
             'reporter_area' => ['required', 'string', 'max:255'],
             'nid_number' => ['nullable', 'string', 'max:20'],
 
-            'photo' => ['nullable', 'image', 'max:2048'],
+            'image' => ['nullable', 'image', 'max:2048'],
             'signature' => ['nullable', 'image', 'max:2048'],
             'nid_file' => ['nullable', 'mimes:pdf,jpg,jpeg,png', 'max:4096'],
 
@@ -659,10 +665,20 @@ class UserController extends Controller
             'password_confirmation' => ['nullable', 'string'],
         ]);
 
+        $photoPath = $user->image;
+
+        if ($request->hasFile('image')) {
+            if ($photoPath && Storage::disk('public')->exists($photoPath)) {
+                Storage::disk('public')->delete($photoPath);
+            }
+            $photoPath = $request->file('image')->store('images/avatars', 'public');
+        }
+
         // ============ UPDATE USER ============
         $user->name = $validated['name'];
         $user->email = $validated['email'];
         $user->phone = $validated['phone'];
+        $user->image = $photoPath;
 
         if (! empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
@@ -670,16 +686,8 @@ class UserController extends Controller
         $user->save();
 
         // ============ FILE UPLOADS ============
-        $photoPath = $profile->photo;
         $signaturePath = $profile->signature;
         $nidPath = $profile->nid_file;
-
-        if ($request->hasFile('photo')) {
-            if ($photoPath && Storage::disk('public')->exists($photoPath)) {
-                Storage::disk('public')->delete($photoPath);
-            }
-            $photoPath = $request->file('photo')->store('images/register', 'public');
-        }
 
         if ($request->hasFile('signature')) {
             if ($signaturePath && Storage::disk('public')->exists($signaturePath)) {
@@ -712,7 +720,6 @@ class UserController extends Controller
             'ward' => $validated['ward'] ?? null,
             'reporter_area' => $validated['reporter_area'],
             'nid_number' => $validated['nid_number'],
-            'photo' => $photoPath,
             'signature' => $signaturePath,
             'nid_file' => $nidPath,
             'reporter_types' => ! empty($validated['reporter_types'])

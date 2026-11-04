@@ -23,24 +23,36 @@ const tabs = computed(() => [
     })),
 ]);
 
+// ==================== FILTER NEWS ====================
 const filteredNews = computed(() => {
     if (!props.allNews?.length) return [];
 
+    // সারাদেশ: সব নিউজ
     if (activeTab.value === "sarades") {
-        return props.allNews
-            .filter((n) => n.category_id === props.sarades?.id)
-            .slice(0, 10);
+        return props.allNews.slice(0, 10);
     }
 
+    // Selected division
+    const selectedTab = tabs.value.find(
+        (tab) => String(tab.id) === String(activeTab.value),
+    );
+
+    if (!selectedTab) return [];
+
+    // Division name matching
     return props.allNews
-        .filter((n) => n.subcategory_id === Number(activeTab.value))
+        .filter((news) => {
+            return (
+                String(news.division_name || "").trim() ===
+                String(selectedTab.name || "").trim()
+            );
+        })
         .slice(0, 10);
 });
 
-// Display grid (fallback to allNews if filter is empty)
+// ==================== DISPLAY NEWS ====================
 const displayNews = computed(() => {
-    const filtered = filteredNews.value;
-    return (filtered.length ? filtered : props.allNews).slice(0, 6);
+    return filteredNews.value.slice(0, 6);
 });
 
 // ==================== IMAGE HELPER ====================
