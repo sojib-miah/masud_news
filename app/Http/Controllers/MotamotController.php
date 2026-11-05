@@ -27,35 +27,26 @@ class MotamotController extends Controller
         $request->validate([
             'subject' => 'required|string|max:255',
             'description' => 'required|string',
-
             'images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
 
         $images = [];
 
         if ($request->file('images')) {
-
             foreach ($request->file('images') as $image) {
-
-                $path = $image->store(
-                    'images/motamot',
-                    'public'
-                );
-
+                $path = $image->store('images/motamot', 'public');
                 $images[] = $path;
             }
         }
 
         Motamot::create([
+            'user_id' => auth()->id(),
             'subject' => $request->subject,
             'description' => $request->description,
             'images' => $images,
         ]);
 
-        return back()->with(
-            'status',
-            'Motamot Added Successfully'
-        );
+        return back()->with('status', 'Motamot Added Successfully');
     }
 
     public function update(Request $request, $id)
@@ -65,47 +56,28 @@ class MotamotController extends Controller
         $request->validate([
             'subject' => 'required|string|max:255',
             'description' => 'required|string',
-
             'images.*' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ]);
-
         $images = $motamot->images ?? [];
-
         if ($request->file('images')) {
-
             // delete old
             if ($motamot->images) {
-
                 foreach ($motamot->images as $oldImage) {
-
-                    Storage::disk('public')
-                        ->delete($oldImage);
+                    Storage::disk('public')->delete($oldImage);
                 }
             }
-
             $images = [];
-
             foreach ($request->file('images') as $image) {
-
-                $path = $image->store(
-                    'images/motamot',
-                    'public'
-                );
-
+                $path = $image->store('images/motamot', 'public');
                 $images[] = $path;
             }
         }
-
         $motamot->update([
             'subject' => $request->subject,
             'description' => $request->description,
             'images' => $images,
         ]);
-
-        return back()->with(
-            'status',
-            'Motamot Updated Successfully'
-        );
+        return back()->with('status', 'Motamot Updated Successfully');
     }
 
     public function destroy($id)

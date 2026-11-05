@@ -31,5 +31,3 @@ live server add this database
 
 ///// add live server database 
 
-ALTER TABLE `news`
-ADD COLUMN `division_name` VARCHAR(255) NULL AFTER `video`;

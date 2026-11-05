@@ -6,11 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class Motamot extends Model
 {
-    protected $fillable = [
-        'subject',
-        'description',
-        'images',
-    ];
+    protected $guarded = [];
 
     protected $casts = [
         'images' => 'array',
