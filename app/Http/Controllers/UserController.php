@@ -139,11 +139,17 @@ class UserController extends Controller
 
     public function newsArchive(Request $request)
     {
-        $date = $request->date ?? now()->toDateString();
+        $validated = $request->validate([
+            'date' => ['nullable', 'date_format:Y-m-d'],
+        ]);
 
-        $news = News::whereDate('created_at', $date)
-            ->latest()
-            ->paginate(12);
+        $date = $validated['date'] ?? now()->toDateString();
+
+        $news = News::query()
+            ->whereDate('created_at', $date)
+            ->latest('created_at')
+            ->paginate(12)
+            ->withQueryString();
 
         return Inertia::render('FrontEnd/AllNews/Archive', [
             'news' => $news,
@@ -171,7 +177,7 @@ class UserController extends Controller
             ->take(6)
             ->get();
 
-        // ---------- Reporter Types (safe) ----------
+        // Reporter Types
         if ($news->user && $news->user->reporterProfile) {
             $profile = $news->user->reporterProfile;
 
@@ -180,15 +186,19 @@ class UserController extends Controller
                 fn($id) => is_numeric($id)
             );
 
-            $profile->types = ! empty($typeIds)
+            $profile->types = !empty($typeIds)
                 ? ReporterType::whereIn('id', $typeIds)->get()
                 : collect();
         }
 
-        // ---------- Today's Views ----------
+        // Today's earning-eligible views
         $news->current_view = NewsView::where('news_id', $news->id)
             ->whereDate('created_at', today())
             ->count();
+
+        // IMPORTANT:
+        // এখানে total_view increment করবে না।
+        // Vue-এর 20-second timer শেষ হলে countView() call হবে।
 
         return Inertia::render('FrontEnd/AllNews/Details', [
             'news' => $news,
@@ -198,84 +208,81 @@ class UserController extends Controller
 
     public function countView(Request $request)
     {
-        $request->validate([
+        $validated = $request->validate([
             'news_id' => ['required', 'integer', 'exists:news,id'],
         ]);
 
+        $news = News::findOrFail($validated['news_id']);
+
         $user = Auth::user();
 
-        // Login is required for earning views.
+        $news->increment('total_view');
+
         if (!$user) {
             return response()->json([
                 'success' => false,
                 'message' => 'ভিউ থেকে আয় করতে পাঠক অ্যাকাউন্টে লগইন করুন।',
-            ], 401);
+                'earned' => false,
+            ]);
         }
 
-        // Only Pathock (পাঠক) accounts can earn.
-        $isPathock = strtolower((string) $user->role) === 'pathock'
+        $isPathock = strtolower(trim((string) $user->role)) === 'pathock'
             || $user->roles()->where('name', 'pathock')->exists();
 
         if (!$isPathock) {
             return response()->json([
                 'success' => false,
                 'message' => 'শুধুমাত্র পাঠক অ্যাকাউন্ট থেকে ভিউ করে আয় করা যাবে।',
-            ], 403);
+                'earned' => false,
+            ]);
         }
 
-        $news = News::findOrFail($request->news_id);
-
-        $ip = $request->ip();
         $userId = $user->id;
 
-        // Check already viewed today
         $alreadyViewed = NewsView::where('news_id', $news->id)
-            ->where(function ($query) use ($ip, $userId) {
-                $query->where('user_id', $userId);
-            })
+            ->where('user_id', $userId)
             ->whereDate('created_at', today())
             ->exists();
 
         if (!$alreadyViewed) {
-
             NewsView::create([
                 'news_id' => $news->id,
                 'user_id' => $userId,
-                'ip_address' => $ip,
+                'ip_address' => $request->ip(),
+            ]);
+        }
+
+        $alreadyUserViewed = NewsUserView::where('user_id', $userId)
+            ->where('news_id', $news->id)
+            ->whereDate('created_at', today())
+            ->exists();
+
+        $earned = false;
+
+        if (!$alreadyUserViewed) {
+            NewsUserView::create([
+                'user_id' => $userId,
+                'news_id' => $news->id,
             ]);
 
-            $news->increment('total_view');
+            $siteSetting = SiteSetting::first();
 
-            // USER EARNING
-            $alreadyUserViewed = NewsUserView::where('user_id', $userId)
-                ->where('news_id', $news->id)
-                ->whereDate('created_at', today())
-                ->exists();
+            $perViewAmount = $siteSetting?->news_view ?? 0;
 
-            if (!$alreadyUserViewed) {
+            $user->earning_from_views =
+                ($user->earning_from_views ?? 0) + $perViewAmount;
 
-                NewsUserView::create([
-                    'user_id' => $userId,
-                    'news_id' => $news->id,
-                ]);
+            $user->marketing_wallet =
+                ($user->marketing_wallet ?? 0) + $perViewAmount;
 
-                $sitesetting = SiteSetting::first();
+            $user->total_earning =
+                ($user->total_earning ?? 0) + $perViewAmount;
 
-                $perViewAmount = $sitesetting?->news_view ?? 0;
+            $user->save();
 
-                $user->earning_from_views =
-                    ($user->earning_from_views ?? 0) + $perViewAmount;
+            $this->processMarketingWallet($user);
 
-                $user->marketing_wallet =
-                    ($user->marketing_wallet ?? 0) + $perViewAmount;
-
-                $user->total_earning =
-                    ($user->total_earning ?? 0) + $perViewAmount;
-
-                $user->save();
-
-                $this->processMarketingWallet($user);
-            }
+            $earned = true;
         }
 
         $currentView = NewsView::where('news_id', $news->id)
@@ -284,11 +291,12 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $alreadyViewed
-                ? 'আপনি আজ এই সংবাদটি ইতোমধ্যে দেখেছেন।'
-                : 'অভিনন্দন! আপনার নিউজ ভিউ সফলভাবে গণনা হয়েছে।',
+            'message' => $earned
+                ? 'অভিনন্দন! আপনার নিউজ ভিউ সফলভাবে গণনা হয়েছে।'
+                : 'ভিউ গণনা হয়েছে। আজকের আয় ইতোমধ্যে গণনা করা হয়েছে।',
             'current_view' => $currentView,
             'total_view' => $news->fresh()->total_view,
+            'earned' => $earned,
         ]);
     }
 

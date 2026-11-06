@@ -84,18 +84,21 @@ class ReporterController extends Controller
         $subcategories = SubCategory::with('category')->get();
         return Inertia::render('FrontEnd/Dashboard/Reporter/Category', ['categories' => $categories, 'subcategories' => $subcategories,]);
     }
+
     public function store(Request $request)
     {
         $request->validate(['name' => 'required|string|max:255|unique:categories,name',]);
         Category::create(['name' => $request->name, 'slug' => Str::slug($request->name),]);
         return back()->with('status', 'Category created successfully');
     }
+
     public function update(Request $request, Category $category)
     {
         $request->validate(['name' => 'required|string|max:255|unique:categories,name,' . $category->id,]);
         $category->update(['name' => $request->name, 'slug' => Str::slug($request->name),]);
         return back()->with('status', 'Category updated successfully');
     }
+
     public function destroy(Category $category)
     {
         $category->subcategories()->delete();
@@ -104,18 +107,21 @@ class ReporterController extends Controller
         return back()->with('status', 'Category deleted successfully');
     }
 
+    // subcategory management
     public function substore(Request $request)
     {
         $request->validate(['category_id' => 'required|exists:categories,id', 'name' => 'required|string|max:255|unique:sub_categories,name',]);
         SubCategory::create(['category_id' => $request->category_id, 'name' => $request->name, 'slug' => Str::slug($request->name),]);
         return back()->with('status', 'Subcategory created successfully');
     }
+
     public function subupdate(Request $request, SubCategory $subcategory)
     {
         $request->validate(['category_id' => 'required|exists:categories,id', 'name' => 'required|string|max:255|unique:sub_categories,name,' . $subcategory->id,]);
         $subcategory->update(['category_id' => $request->category_id, 'name' => $request->name, 'slug' => Str::slug($request->name),]);
         return back()->with('status', 'Subcategory updated successfully');
     }
+
     public function subdestroy(SubCategory $subcategory)
     {
         $subcategory->delete();

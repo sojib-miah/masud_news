@@ -94,7 +94,7 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/motamot/delete/{id}', [MotamotController::class, 'destroy'])->name('motamot.destroy');
 
     Route::get('/add/news', [UserController::class, 'addNews'])->name('add.news');
-    Route::post('/count-news-view', [UserController::class, 'countView'])->name('news.count.view');
+    // Route::post('/count-news-view', [UserController::class, 'countView'])->name('news.count.view');
 
     Route::get('/idcard', [ReporterController::class, 'idCard'])->name('id.card');
     Route::get('/draftnews', [ReporterController::class, 'news'])->name('news');
@@ -166,6 +166,10 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/stock-money/update-status/{id}', [StockMoneyController::class, 'updateStatus'])->name('stock-money.updateStatus');
     });
 });
+
+// count view 
+Route::post('/count-news-view', [UserController::class, 'countView'])->name('news.count.view');
+
 Route::post('/subscribe', [TermesController::class, 'subscribe'])->name('subscribe');
 
 // store comment

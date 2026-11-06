@@ -12,13 +12,81 @@ use Illuminate\Support\Str;
 
 class AdminNewsController extends Controller
 {
-
-    public function index()
+    public function index(Request $request)
     {
-        $news = News::latest()->paginate(10);
+        // Validate allowed filter and sorting values
+        $validated = $request->validate([
+            'search' => ['nullable', 'string', 'max:255'],
+            'status' => ['nullable', 'in:published,draft,breaking'],
+            'sort' => ['nullable', 'in:newest,oldest,views,title'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ]);
+
+        $search = trim($validated['search'] ?? '');
+        $status = $validated['status'] ?? '';
+        $sort = $validated['sort'] ?? 'newest';
+
+        $query = News::query();
+
+        // Search by title
+        if ($search !== '') {
+            $query->where('title', 'like', '%' . $search . '%');
+        }
+
+        // Filter by status
+        switch ($status) {
+            case 'published':
+                $query->where('status', 1);
+                break;
+
+            case 'draft':
+                $query->where('status', 0);
+                break;
+
+            case 'breaking':
+                $query->where('breaking', 1);
+                break;
+        }
+
+        // Server-side sorting
+        switch ($sort) {
+            case 'oldest':
+                $query->orderBy('created_at', 'asc')
+                    ->orderBy('id', 'asc');
+                break;
+
+            case 'views':
+                $query->orderBy('total_view', 'desc')
+                    ->orderBy('id', 'desc');
+                break;
+
+            case 'title':
+                $query->orderBy('title', 'asc')
+                    ->orderBy('id', 'desc');
+                break;
+
+            case 'newest':
+            default:
+                $query->latest('created_at')
+                    ->orderBy('id', 'desc');
+                break;
+        }
+
+        $news = $query->paginate(20)->withQueryString();
 
         return Inertia::render('FrontEnd/AdminNews/News', [
-            'news' => $news
+            'news' => $news,
+
+            'filters' => [
+                'search' => $search,
+                'status' => $status,
+                'sort' => $sort,
+            ],
+
+            // Overall counts, not filtered counts
+            'publishedCount' => News::where('status', 1)->count(),
+            'draftCount' => News::where('status', 0)->count(),
+            'breakingCount' => News::where('breaking', 1)->count(),
         ]);
     }
 

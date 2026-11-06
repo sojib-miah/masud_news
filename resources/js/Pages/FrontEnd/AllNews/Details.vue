@@ -52,45 +52,61 @@ const stopViewTimer = () => {
 
 const completeViewCount = async () => {
     if (viewRequestSent) return;
+
     viewRequestSent = true;
     stopViewTimer();
+
     viewProgress.value = 100;
     viewCountdown.value = 0;
-
-    if (!currentUser.value) {
-        viewStatus.value = "login-required";
-        showLoginPopup.value = true;
-        return;
-    }
-
-    if (!isPathock.value) {
-        viewStatus.value = "not-eligible";
-        return;
-    }
-
     viewStatus.value = "processing";
 
     try {
+        // Call the API for every visitor, including Guests.
         const response = await axios.post(route("news.count.view"), {
             news_id: props.news.id,
         });
 
-        if (response.data.success) {
+        const data = response.data;
+
+        // Update counters even when success is false.
+        if (data.total_view !== undefined) {
+            totalView.value = data.total_view;
+        }
+
+        if (data.current_view !== undefined) {
+            currentView.value = data.current_view;
+        }
+
+        // Guest visitor: show the login toast.
+        if (!currentUser.value) {
+            viewStatus.value = "login-required";
+            showLoginPopup.value = true;
+            return;
+        }
+
+        // Logged-in user who is not a Pathock.
+        if (!isPathock.value) {
+            viewStatus.value = "not-eligible";
+            return;
+        }
+
+        // Only a successful Pathock response counts as success.
+        if (data.success === true) {
             viewStatus.value = "completed";
-            currentView.value = response.data.current_view ?? currentView.value;
-            totalView.value = response.data.total_view ?? totalView.value;
         } else {
             viewStatus.value = "failed";
+            console.warn("View was not counted:", data.message);
         }
     } catch (error) {
-        viewStatus.value = "failed";
+        console.error("News view count failed:", error);
+
         if (error.response?.status === 401) {
             viewStatus.value = "login-required";
             showLoginPopup.value = true;
         } else if (error.response?.status === 403) {
             viewStatus.value = "not-eligible";
         } else {
-            console.error("News view count failed:", error);
+            viewStatus.value = "failed";
         }
     }
 };

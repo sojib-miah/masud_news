@@ -217,8 +217,8 @@ const web2 = computed(() => props.footer?.web2 || "");
                         | {{ footer.copy }}
                     </template>
                 </p>
-                <p class="designer">
-                    ডিজাইন ও ডেভেলপমেন্ট
+                <p class="designer flex items-center gap-2">
+                    <span>ডিজাইন ও ডেভেলপমেন্ট :</span>
                     <a
                         href="https://www.sojib.comitsbd.com"
                         target="_blank"
