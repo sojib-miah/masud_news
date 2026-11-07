@@ -172,7 +172,7 @@ function resetForm() {
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <!-- ==================== TABLE (LIST) ==================== -->
             <div
-                class="lg:col-span-2 order-2 lg:order-1 rounded-2xl bg-white shadow-md ring-1 ring-slate-100 overflow-hidden"
+                class="lg:col-span-2 order-2 lg:order-1 rounded-2xl bg-white shadow-md ring-1 ring-slate-100 overflow-hidden h-fit"
             >
                 <div
                     class="flex items-center gap-2 border-b border-slate-100 px-5 py-4"

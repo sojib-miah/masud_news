@@ -131,7 +131,7 @@ Route::middleware(['auth'])->group(function () {
         Route::post('/news/store', [AdminNewsController::class, 'store'])->name('admin.news.store');
 
         Route::get('/news/edit/{id}', [AdminNewsController::class, 'edit'])->name('admin.news.edit');
-        Route::post('/news/update/{id}', [AdminNewsController::class, 'update'])->name('admin.news.update');
+        Route::put('/news/update/{id}', [AdminNewsController::class, 'update'])->name('admin.news.update');
 
         Route::delete('/news/delete/{id}', [AdminNewsController::class, 'delete'])->name('admin.news.delete');
 
@@ -139,7 +139,10 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/pathock', [AdminController::class, 'pathock'])->name('admin.pathock');
         Route::get('/reporter', [AdminController::class, 'reporter'])->name('admin.reporter');
         Route::delete('/pathock/{id}', [AdminController::class, 'pathockDestroy'])->name('pathock.destroy');
+        Route::post('/pathock/{id}/restore',  [AdminController::class, 'restore'])->name('pathock.restore');
+        Route::delete('/pathock/{id}/force',  [AdminController::class, 'forceDelete'])->name('pathock.forceDelete');
         Route::put('/reporter/status/{id}', [ReporterController::class, 'updateStatus'])->name('reporters.updateStatus');
+        Route::get('/trash', [AdminController::class, 'trashList'])->name('trash.index');
 
         // motamot routes
         Route::get('motamot/list', [MotamotController::class, 'motamotList'])->name('motamot.list');

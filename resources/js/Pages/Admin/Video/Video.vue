@@ -180,7 +180,7 @@ function globalIndex(i) {
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- ==================== LIST ==================== -->
                 <div
-                    class="lg:col-span-2 order-2 lg:order-1 rounded-2xl bg-white shadow-md ring-1 ring-slate-100 overflow-hidden"
+                    class="lg:col-span-2 order-2 lg:order-1 rounded-2xl bg-white shadow-md ring-1 ring-slate-100 overflow-hidden h-fit"
                 >
                     <!-- Header with search -->
                     <div

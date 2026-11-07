@@ -83,32 +83,34 @@ class MotamotController extends Controller
     public function destroy($id)
     {
         $motamot = Motamot::findOrFail($id);
-
         if ($motamot->images) {
-
             foreach ($motamot->images as $image) {
-
                 Storage::disk('public')->delete($image);
             }
         }
 
         $motamot->delete();
 
-        return back()->with(
-            'status',
-            'Motamot Deleted Successfully'
-        );
+        return back()->with('status', 'Motamot Deleted Successfully');
     }
 
     // admin route 
-    public function motamotList()
+    public function motamotList(Request $request)
     {
-        $motamots = User::where('role', 'motamot')
-            ->latest()
-            ->paginate(10);
+        $query = User::where('role', 'motamot');
+
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
 
         return Inertia::render('Admin/Motamot/List', [
-            'motamots' => $motamots
+            'motamots' => $query->latest()->paginate(20)->withQueryString(),
+            'search'   => $request->search,
         ]);
     }
 

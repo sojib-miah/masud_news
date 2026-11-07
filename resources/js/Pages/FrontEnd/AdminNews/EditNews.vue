@@ -2,12 +2,12 @@
 import { Head, useForm } from "@inertiajs/vue3";
 import Layout from "@/Shared/Layout.vue";
 import Breadcrumb from "@/Shared/Breadcrumb.vue";
-import SelectInput from "@/Shared/SelectInput.vue";
 import TextInput from "@/Shared/TextInput.vue";
 import RichTextEditor from "@/Shared/RichTextEditor.vue";
 import FileInput from "@/Shared/FileInput.vue";
 import FlashMessage from "@/Shared/FlashMessage.vue";
 import { computed, ref, watch, onMounted } from "vue";
+import { route } from "ziggy-js";
 
 const props = defineProps({
     news: Object,
@@ -16,12 +16,22 @@ const props = defineProps({
 });
 
 const languages = [
-    { label: "Bangla", id: "1" },
+    { label: "বাংলা", id: "1" },
     { label: "English", id: "2" },
 ];
 
-const tags = ref([]);
+const divisions = [
+    { name: "ঢাকা" },
+    { name: "চট্টগ্রাম" },
+    { name: "রাজশাহী" },
+    { name: "খুলনা" },
+    { name: "বরিশাল" },
+    { name: "সিলেট" },
+    { name: "রংপুর" },
+    { name: "ময়মনসিংহ" },
+];
 
+// ==================== FORM ====================
 const form = useForm({
     language: props.news.language,
     title: props.news.title,
@@ -29,59 +39,106 @@ const form = useForm({
     tag: props.news.tag,
     description: props.news.description,
     image: null,
-    imagenote: props.news.imagenote,
+    division_name: props.news.division_name,
     category_id: props.news.category_id,
     subcategory_id: props.news.subcategory_id,
-    featured: props.news.featured,
-    breaking: props.news.breaking,
-    schedule: props.news.schedule,
-    expire: props.news.expire,
-    status: props.news.status,
-    audio: props.news.audio,
-    video: props.news.video,
+    featured: Number(props.news.featured),
+    breaking: Number(props.news.breaking),
+    status: Number(props.news.status),
 });
+
+// ==================== TAGS ====================
+const tags = ref([]);
+const newTag = ref("");
 
 onMounted(() => {
     if (props.news.tag) {
-        tags.value = JSON.parse(props.news.tag);
+        try {
+            tags.value = JSON.parse(props.news.tag);
+        } catch {
+            tags.value = [];
+        }
     }
 });
-
-const filteredSubcategories = computed(() => {
-    if (!form.category_id) return [];
-
-    return props.subcategories.filter(
-        (sub) => Number(sub.category_id) === Number(form.category_id),
-    );
-});
-
-watch(
-    () => form.category_id,
-    () => {
-        form.subcategory_id = "";
-    },
-);
-
-const newTag = ref("");
 
 const addTag = () => {
-    if (newTag.value.trim()) {
-        tags.value.push(newTag.value.trim());
-        newTag.value = "";
+    const v = newTag.value.trim();
+    if (v && !tags.value.includes(v)) {
+        tags.value.push(v);
     }
+    newTag.value = "";
 };
 
 const removeTag = (index) => {
     tags.value.splice(index, 1);
 };
 
+// ==================== SUBCATEGORY FILTER ====================
+const filteredSubcategories = computed(() => {
+    if (!form.category_id) return [];
+    return (props.subcategories ?? []).filter(
+        (sub) => Number(sub.category_id) === Number(form.category_id),
+    );
+});
+
+// Reset subcategory only when the user changes the category (not on mount)
+let categoryMounted = false;
+onMounted(() => {
+    // mark mounted after a tick so initial watch doesn't clear subcategory_id
+    setTimeout(() => (categoryMounted = true), 0);
+});
+watch(
+    () => form.category_id,
+    () => {
+        if (categoryMounted) form.subcategory_id = "";
+    },
+);
+
+// ==================== IMAGE PREVIEW ====================
+// If user selects a new image → show its local preview
+// Otherwise → show the existing image
+const imagePreview = ref(null);
+
+watch(
+    () => form.image,
+    (file) => {
+        if (file && file instanceof File) {
+            imagePreview.value = URL.createObjectURL(file);
+        } else {
+            if (imagePreview.value && imagePreview.value.startsWith("blob:")) {
+                URL.revokeObjectURL(imagePreview.value);
+            }
+            imagePreview.value = null;
+        }
+    },
+);
+
+const currentImageSrc = computed(() => {
+    if (imagePreview.value) return imagePreview.value;
+    if (props.news.image) return `/storage/${props.news.image}`;
+    return null;
+});
+
+const hasNewImage = computed(() => form.image instanceof File);
+
+// ==================== SUBMIT ====================
 const submit = () => {
     form.tag = tags.value.join(",");
 
-    form.post(route("admin.news.update", props.news.id), {
+    // Use POST + _method=PUT with forceFormData (works with file uploads in Inertia)
+    form.transform((data) => ({
+        ...data,
+        _method: "put",
+    })).post(route("admin.news.update", props.news.id), {
         forceFormData: true,
+        preserveScroll: true,
     });
 };
+
+// Toggle helper
+function setField(field, value) {
+    form[field] = Number(value);
+}
 </script>
 
 <template>
@@ -89,132 +146,631 @@ const submit = () => {
         <Head title="Edit News" />
         <Breadcrumb />
 
+        <FlashMessage
+            v-if="$page.props.flash?.status"
+            :message="$page.props.flash.status"
+            type="success"
+        />
+
+        <!-- ==================== PAGE HEADER ==================== -->
+        <div
+            class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-5 py-6 sm:px-8 shadow-xl mb-6"
+        >
+            <div
+                class="absolute -top-16 -right-16 h-48 w-48 rounded-full bg-blue-500/20 blur-3xl"
+            ></div>
+            <div
+                class="absolute -bottom-16 -left-16 h-48 w-48 rounded-full bg-indigo-500/20 blur-3xl"
+            ></div>
+            <div
+                class="relative flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3"
+            >
+                <div>
+                    <p
+                        class="text-blue-400 text-xs font-semibold uppercase tracking-wider mb-1"
+                    >
+                        <i class="fa-solid fa-pen-to-square mr-1"></i> Content
+                    </p>
+                    <h1
+                        class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight"
+                    >
+                        Edit News
+                    </h1>
+                    <p class="text-slate-300 text-sm mt-1">
+                        Update the article content, media, and settings.
+                    </p>
+                </div>
+                <div
+                    class="inline-flex items-center gap-2 rounded-full bg-white/10 px-4 py-2 text-white backdrop-blur ring-1 ring-white/20 text-xs font-semibold w-fit"
+                >
+                    <i class="fa-solid fa-hashtag text-blue-300"></i>
+                    ID: {{ props.news?.id }}
+                </div>
+            </div>
+        </div>
+
         <form @submit.prevent="submit">
-            <div class="flex gap-5">
-                <div class="w-3/5 border p-4 shadow-lg rounded bg-white">
-                    <div class="mb-4">
-                        <select
-                            v-model="form.language"
-                            class="p-2 border border-slate-400 rounded w-full"
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                <!-- ============================================= -->
+                <!-- ================= LEFT COLUMN =============== -->
+                <!-- ============================================= -->
+                <div class="lg:col-span-2 order-2 lg:order-1 space-y-5">
+                    <!-- CONTENT CARD -->
+                    <div
+                        class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
+                    >
+                        <div
+                            class="flex items-center gap-2 border-b border-slate-100 px-5 py-4"
                         >
-                            <option value="">ভাষা নির্বাচন করুন</option>
-                            <option
-                                v-for="lang in languages"
-                                :key="lang.id"
-                                :value="lang.id"
-                            >
-                                {{ lang.label }}
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="mb-4">
-                        <TextInput v-model="form.title" label="Title" />
-                    </div>
-                    <div class="mb-4">
-                        <input
-                            v-model="newTag"
-                            placeholder="Add Tag"
-                            @keydown.enter.prevent="addTag"
-                            class="form-input"
-                        />
-
-                        <div class="mt-2">
                             <span
-                                v-for="(tag, index) in tags"
-                                :key="index"
-                                class="bg-gray-200 px-2 py-1 rounded mr-2"
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow"
                             >
-                                {{ tag }}
-                                <button type="button" @click="removeTag(index)">
-                                    ×
-                                </button>
+                                <i class="fa-solid fa-file-lines text-sm"></i>
                             </span>
+                            <div>
+                                <h2
+                                    class="text-base sm:text-lg font-bold text-slate-800"
+                                >
+                                    Content
+                                </h2>
+                                <p class="text-xs text-slate-500">
+                                    Title, language, tags & body
+                                </p>
+                            </div>
                         </div>
-                    </div>
-                    <div class="mb-4">
-                        <RichTextEditor v-model="form.description" />
+
+                        <div class="p-5 space-y-4">
+                            <!-- Language -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-language text-blue-600 mr-1"
+                                    ></i>
+                                    Language <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    v-model="form.language"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200 bg-white"
+                                >
+                                    <option value="">Select Language</option>
+                                    <option
+                                        v-for="lang in languages"
+                                        :key="lang.id"
+                                        :value="lang.id"
+                                    >
+                                        {{ lang.label }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.language"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.language }}
+                                </p>
+                            </div>
+
+                            <!-- Title -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-heading text-blue-600 mr-1"
+                                    ></i>
+                                    Title <span class="text-red-500">*</span>
+                                </label>
+                                <TextInput
+                                    v-model="form.title"
+                                    type="text"
+                                    placeholder="News Title..."
+                                    :error="form.errors.title"
+                                    @update:modelValue="
+                                        form.clearErrors('title')
+                                    "
+                                />
+                            </div>
+
+                            <!-- Tags -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-tags text-violet-600 mr-1"
+                                    ></i>
+                                    Tag
+                                    <span
+                                        class="text-slate-400 text-[10px] font-normal normal-case"
+                                        >(Enter চাপুন যোগ করতে)</span
+                                    >
+                                </label>
+
+                                <div class="relative">
+                                    <i
+                                        class="fa-solid fa-hashtag absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"
+                                    ></i>
+                                    <input
+                                        v-model="newTag"
+                                        type="text"
+                                        placeholder="Enter Tag..."
+                                        class="w-full rounded-lg border border-slate-300 pl-9 pr-20 py-2.5 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-200"
+                                        @keydown.enter.prevent="addTag"
+                                    />
+                                    <button
+                                        type="button"
+                                        @click="addTag"
+                                        class="absolute right-1.5 top-1/2 -translate-y-1/2 inline-flex items-center gap-1 rounded-md bg-violet-600 hover:bg-violet-700 text-white text-xs font-bold px-3 py-1.5 transition"
+                                    >
+                                        <i
+                                            class="fa-solid fa-plus text-[10px]"
+                                        ></i>
+                                        Add
+                                    </button>
+                                </div>
+
+                                <div
+                                    v-if="tags.length"
+                                    class="flex flex-wrap gap-2 mt-3"
+                                >
+                                    <span
+                                        v-for="(tag, index) in tags"
+                                        :key="index"
+                                        class="inline-flex items-center gap-1.5 rounded-full bg-violet-50 px-3 py-1 text-xs font-semibold text-violet-700 ring-1 ring-violet-200"
+                                    >
+                                        <i
+                                            class="fa-solid fa-hashtag text-[10px] opacity-70"
+                                        ></i>
+                                        {{ tag }}
+                                        <button
+                                            type="button"
+                                            class="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-200 text-violet-700 hover:bg-red-500 hover:text-white transition"
+                                            @click="removeTag(index)"
+                                            title="Remove tag"
+                                        >
+                                            <i
+                                                class="fa-solid fa-xmark text-[8px]"
+                                            ></i>
+                                        </button>
+                                    </span>
+                                </div>
+                                <p
+                                    v-else
+                                    class="mt-2 text-xs text-slate-400 italic"
+                                >
+                                    No tags added yet
+                                </p>
+                            </div>
+
+                            <!-- Description -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-align-left text-blue-600 mr-1"
+                                    ></i>
+                                    Description
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                <RichTextEditor
+                                    v-model="form.description"
+                                    placeholder="News Description..."
+                                    :error="form.errors.description"
+                                />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="w-2/5 border p-4 shadow-lg rounded bg-white">
-                    <img
-                        v-if="props.news.image"
-                        :src="'/storage/' + props.news.image"
-                        class="w-full mb-3 rounded"
-                    />
-                    <div class="mb-4">
-                        <FileInput v-model="form.image" label="Change Image" />
-                    </div>
-                    <div class="mb-4">
-                        <TextInput
-                            v-model="form.imagenote"
-                            label="Image Note"
-                        />
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label">Category</label>
-                        <select
-                            v-model="form.category_id"
-                            class="p-2 border border-slate-400 rounded w-full"
+                <!-- ============================================= -->
+                <!-- ================= RIGHT COLUMN ============== -->
+                <!-- ============================================= -->
+                <div class="lg:col-span-1 order-1 lg:order-2 space-y-5">
+                    <!-- MEDIA CARD -->
+                    <div
+                        class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
+                    >
+                        <div
+                            class="flex items-center gap-2 border-b border-slate-100 px-5 py-4"
                         >
-                            <option value="">Select Category</option>
-                            <option
-                                v-for="cat in props.categories"
-                                :key="cat.id"
-                                :value="cat.id"
+                            <span
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-pink-500 to-rose-600 text-white shadow"
                             >
-                                {{ cat.name }}
-                            </option>
-                        </select>
+                                <i class="fa-solid fa-image text-sm"></i>
+                            </span>
+                            <div>
+                                <h2
+                                    class="text-base sm:text-lg font-bold text-slate-800"
+                                >
+                                    Media
+                                </h2>
+                                <p class="text-xs text-slate-500">
+                                    Featured image
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="p-5 space-y-3">
+                            <!-- Preview -->
+                            <div
+                                v-if="currentImageSrc"
+                                class="relative rounded-xl overflow-hidden ring-1 ring-slate-200 bg-slate-50"
+                            >
+                                <img
+                                    :src="currentImageSrc"
+                                    alt="News image"
+                                    class="w-full h-48 object-cover"
+                                />
+                                <span
+                                    class="absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-full bg-white/90 backdrop-blur px-2.5 py-1 text-[10px] font-bold ring-1 shadow-sm"
+                                    :class="
+                                        hasNewImage
+                                            ? 'text-emerald-700 ring-emerald-200'
+                                            : 'text-slate-700 ring-slate-200'
+                                    "
+                                >
+                                    <i
+                                        :class="
+                                            hasNewImage
+                                                ? 'fa-solid fa-circle-check'
+                                                : 'fa-solid fa-image'
+                                        "
+                                    ></i>
+                                    {{
+                                        hasNewImage
+                                            ? "New Image"
+                                            : "Current Image"
+                                    }}
+                                </span>
+                            </div>
+                            <div
+                                v-else
+                                class="rounded-xl bg-slate-50 ring-1 ring-slate-200 h-48 flex flex-col items-center justify-center"
+                            >
+                                <i
+                                    class="fa-regular fa-image text-4xl text-slate-300 mb-2"
+                                ></i>
+                                <p class="text-xs text-slate-500">
+                                    No image uploaded
+                                </p>
+                            </div>
+
+                            <!-- File input -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    {{
+                                        hasNewImage
+                                            ? "Change Selected Image"
+                                            : "Upload New Image"
+                                    }}
+                                </label>
+                                <FileInput
+                                    v-model="form.image"
+                                    label="Select image"
+                                    accept="image/*"
+                                    :multiple="false"
+                                    :error="form.errors.image"
+                                />
+                                <p
+                                    class="text-[11px] text-slate-500 mt-2 flex items-start gap-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-info-circle text-blue-500 mt-0.5"
+                                    ></i>
+                                    <span>
+                                        Leave empty to keep the current image.
+                                        Uploading a new one will replace it.
+                                    </span>
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label class="form-label">SubCategory</label>
-                        <select
-                            v-model="form.subcategory_id"
-                            class="p-2 border border-slate-400 rounded w-full"
+                    <!-- TAXONOMY CARD -->
+                    <div
+                        class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
+                    >
+                        <div
+                            class="flex items-center gap-2 border-b border-slate-100 px-5 py-4"
                         >
-                            <option value="">Select SubCategory</option>
-                            <option
-                                v-for="sub in filteredSubcategories"
-                                :key="sub.id"
-                                :value="sub.id"
+                            <span
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow"
                             >
-                                {{ sub.name }}
-                            </option>
-                        </select>
+                                <i class="fa-solid fa-sitemap text-sm"></i>
+                            </span>
+                            <div>
+                                <h2
+                                    class="text-base sm:text-lg font-bold text-slate-800"
+                                >
+                                    Categorize
+                                </h2>
+                                <p class="text-xs text-slate-500">
+                                    Category & location
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="p-5 space-y-4">
+                            <!-- Category -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    Category <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    v-model="form.category_id"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white"
+                                >
+                                    <option value="">Select Category</option>
+                                    <option
+                                        v-for="cat in props.categories"
+                                        :key="cat.id"
+                                        :value="cat.id"
+                                    >
+                                        {{ cat.name }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.category_id"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.category_id }}
+                                </p>
+                            </div>
+
+                            <!-- Subcategory -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    Subcategory
+                                </label>
+                                <select
+                                    v-model="form.subcategory_id"
+                                    :disabled="!form.category_id"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
+                                >
+                                    <option value="">
+                                        {{
+                                            form.category_id
+                                                ? "Select Subcategory"
+                                                : "Select Category first"
+                                        }}
+                                    </option>
+                                    <option
+                                        v-for="sub in filteredSubcategories"
+                                        :key="sub.id"
+                                        :value="sub.id"
+                                    >
+                                        {{ sub.name }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.subcategory_id"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.subcategory_id }}
+                                </p>
+                            </div>
+
+                            <!-- Division -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-location-dot text-rose-600 mr-1"
+                                    ></i>
+                                    Division <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    v-model="form.division_name"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white"
+                                >
+                                    <option value="">Select Division</option>
+                                    <option
+                                        v-for="division in divisions"
+                                        :key="division.name"
+                                        :value="division.name"
+                                    >
+                                        {{ division.name }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.division_name"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.division_name }}
+                                </p>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="mb-4">
-                        <label>Featured : </label>
+                    <!-- FLAGS CARD -->
+                    <div
+                        class="rounded-2xl mb-8 bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
+                    >
+                        <div
+                            class="flex items-center gap-2 border-b border-slate-100 px-5 py-4"
+                        >
+                            <span
+                                class="flex h-9 w-9 items-center justify-center rounded-lg bg-gradient-to-br from-amber-500 to-orange-600 text-white shadow"
+                            >
+                                <i class="fa-solid fa-star text-sm"></i>
+                            </span>
+                            <div>
+                                <h2
+                                    class="text-base sm:text-lg font-bold text-slate-800"
+                                >
+                                    Highlights
+                                </h2>
+                                <p class="text-xs text-slate-500">
+                                    Featured & breaking
+                                </p>
+                            </div>
+                        </div>
 
-                        <input type="radio" value="1" v-model="form.featured" />
-                        Yes
-                        <input type="radio" value="0" v-model="form.featured" />
-                        No
+                        <div class="p-5 space-y-4">
+                            <!-- Featured -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-star text-amber-500 mr-1"
+                                    ></i>
+                                    Featured
+                                </label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        @click="setField('featured', 1)"
+                                        class="rounded-lg py-2 text-xs font-bold transition"
+                                        :class="
+                                            Number(form.featured) === 1
+                                                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
+                                        "
+                                    >
+                                        <i class="fa-solid fa-check mr-1"></i>
+                                        Yes
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="setField('featured', 0)"
+                                        class="rounded-lg py-2 text-xs font-bold transition"
+                                        :class="
+                                            Number(form.featured) === 0
+                                                ? 'bg-slate-800 text-white shadow-md'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
+                                        "
+                                    >
+                                        <i class="fa-solid fa-xmark mr-1"></i>
+                                        No
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Breaking -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-bolt text-red-500 mr-1"
+                                    ></i>
+                                    Breaking News
+                                </label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        @click="setField('breaking', 1)"
+                                        class="rounded-lg py-2 text-xs font-bold transition"
+                                        :class="
+                                            Number(form.breaking) === 1
+                                                ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-md'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
+                                        "
+                                    >
+                                        <i class="fa-solid fa-check mr-1"></i>
+                                        Yes
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="setField('breaking', 0)"
+                                        class="rounded-lg py-2 text-xs font-bold transition"
+                                        :class="
+                                            Number(form.breaking) === 0
+                                                ? 'bg-slate-800 text-white shadow-md'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
+                                        "
+                                    >
+                                        <i class="fa-solid fa-xmark mr-1"></i>
+                                        No
+                                    </button>
+                                </div>
+                            </div>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    Status <span class="text-red-500">*</span>
+                                </label>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button
+                                        type="button"
+                                        @click="setField('status', 1)"
+                                        class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition"
+                                        :class="
+                                            Number(form.status) === 1
+                                                ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-white shadow-md'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
+                                        "
+                                    >
+                                        <i class="fa-solid fa-circle-check"></i>
+                                        Published
+                                    </button>
+                                    <button
+                                        type="button"
+                                        @click="setField('status', 0)"
+                                        class="flex items-center justify-center gap-2 rounded-lg py-2.5 text-xs font-bold transition"
+                                        :class="
+                                            Number(form.status) === 0
+                                                ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
+                                                : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
+                                        "
+                                    >
+                                        <i
+                                            class="fa-solid fa-pen-to-square"
+                                        ></i>
+                                        Draft
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="mb-4">
-                        <label>Breaking : </label>
 
-                        <input type="radio" value="1" v-model="form.breaking" />
-                        Yes
-                        <input type="radio" value="0" v-model="form.breaking" />
-                        No
+                    <!-- SUBMIT -->
+                    <div
+                        class="rounded-2xl bg-gradient-to-br from-slate-900 to-slate-800 p-4 shadow-lg sticky bottom-4"
+                    >
+                        <button
+                            type="submit"
+                            :disabled="form.processing"
+                            class="w-full flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold py-3 shadow-lg hover:shadow-xl transition-all disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98]"
+                        >
+                            <i
+                                v-if="form.processing"
+                                class="fa-solid fa-spinner fa-spin"
+                            ></i>
+                            <i v-else class="fa-solid fa-check"></i>
+                            {{
+                                form.processing ? "Updating..." : "Update News"
+                            }}
+                        </button>
+                        <p
+                            class="text-center text-[10px] text-slate-400 mt-2 uppercase tracking-wider font-semibold"
+                        >
+                            <i class="fa-solid fa-lock mr-1"></i>
+                            All data saved securely
+                        </p>
                     </div>
-
-                    <div class="mb-4">
-                        <label>Status : </label>
-
-                        <input type="radio" value="1" v-model="form.status" />
-                        Publish
-                        <input type="radio" value="0" v-model="form.status" />
-                        Draft
-                    </div>
-
-                    <button class="btn mt-5 w-full">Update News</button>
                 </div>
             </div>
         </form>
     </Layout>
 </template>
+
+<style scoped>
+@media (prefers-reduced-motion: reduce) {
+    * {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+</style>

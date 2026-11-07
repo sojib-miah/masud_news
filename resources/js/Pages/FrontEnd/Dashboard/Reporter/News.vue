@@ -92,7 +92,7 @@ const submit = () => {
 
 <template>
     <Layout>
-        <Head title="Add News" />
+        <Head title="Create News Page" />
 
         <FlashMessage
             v-if="$page.props.flash?.status"

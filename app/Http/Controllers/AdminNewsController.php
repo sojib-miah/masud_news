@@ -4,9 +4,13 @@ namespace App\Http\Controllers;
 
 use App\Models\News;
 use App\Models\Category;
+use App\Models\Comment;
+use App\Models\NewsUserView;
+use App\Models\NewsView;
 use App\Models\SubCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 use Illuminate\Support\Str;
 
@@ -108,6 +112,13 @@ class AdminNewsController extends Controller
             'title' => 'required',
             'description' => 'required',
             'category_id' => 'required',
+            'subcategory_id' => 'nullable',
+            'tag' => 'nullable|string',
+            'featured' => 'required|boolean',
+            'breaking' => 'required|boolean',
+            'status' => 'required|boolean',
+            'image' => 'required|image|max:2048',
+            'division_name' => 'required|string|max:255',
         ]);
 
         $imagePath = null;
@@ -122,20 +133,16 @@ class AdminNewsController extends Controller
             'language' => $request->language,
             'title' => $request->title,
             'slug' => Str::slug($request->title) . '-' . time(),
-            'metatag' => $request->metatag,
+            'metatag' => $request->title,
             'tag' => json_encode($tags),
             'description' => $request->description,
             'image' => $imagePath,
-            'imagenote' => $request->imagenote,
             'category_id' => $request->category_id,
             'subcategory_id' => $request->subcategory_id,
             'featured' => $request->featured,
             'breaking' => $request->breaking,
-            'schedule' => $request->schedule,
-            'expire' => $request->expire,
             'status' => $request->status,
-            'audio' => $request->audio,
-            'video' => $request->video,
+            'division_name' => $request->division_name,
             'created_by' => Auth::id(),
         ]);
 
@@ -148,50 +155,75 @@ class AdminNewsController extends Controller
         $news = News::findOrFail($id);
 
         return Inertia::render('FrontEnd/AdminNews/EditNews', [
-            'news' => $news,
-            'categories' => Category::all(),
-            'subcategories' => SubCategory::all()
+            'news'          => $news,
+            'categories'    => Category::all(),
+            'subcategories' => SubCategory::all(),
         ]);
     }
 
     public function update(Request $request, $id)
     {
+        $request->validate([
+            'language'       => 'required',
+            'title'          => 'required',
+            'description'    => 'required',
+            'category_id'    => 'required',
+            'subcategory_id' => 'nullable',
+            'tag'            => 'nullable|string',
+            'featured'       => 'required|boolean',
+            'breaking'       => 'required|boolean',
+            'status'         => 'required|boolean',
+            'image'          => 'nullable|image|max:2048',
+            'division_name'  => 'required|string|max:255',
+        ]);
 
         $news = News::findOrFail($id);
 
+        // Start with the current image path (do NOT wipe it)
+        $imagePath = $news->image;
+
         if ($request->hasFile('image')) {
+            // Delete the old image from disk before storing the new one
+            if ($news->image && Storage::disk('public')->exists($news->image)) {
+                Storage::disk('public')->delete($news->image);
+            }
             $imagePath = $request->file('image')->store('images/news', 'public');
-            $news->image = $imagePath;
         }
 
         $tags = explode(',', $request->tag ?? '');
 
         $news->update([
-            'language' => $request->language,
-            'title' => $request->title,
-            'metatag' => $request->metatag,
-            'tag' => json_encode($tags),
-            'description' => $request->description,
-            'imagenote' => $request->imagenote,
-            'category_id' => $request->category_id,
+            'language'       => $request->language,
+            'title'          => $request->title,
+            'slug'           => Str::slug($request->title) . '-' . $news->id,
+            'metatag'        => $request->title,
+            'tag'            => json_encode($tags),
+            'description'    => $request->description,
+            'image'          => $imagePath,
+            'category_id'    => $request->category_id,
             'subcategory_id' => $request->subcategory_id,
-            'featured' => $request->featured,
-            'breaking' => $request->breaking,
-            'schedule' => $request->schedule,
-            'expire' => $request->expire,
-            'status' => $request->status,
-            'audio' => $request->audio,
-            'video' => $request->video,
+            'featured'       => $request->featured,
+            'breaking'       => $request->breaking,
+            'status'         => $request->status,
+            'division_name'  => $request->division_name
         ]);
 
-        return redirect()->route('admin.news')
-            ->with('status', 'News Updated Successfully');
+        return redirect()->route('admin.news')->with('status', 'News Updated Successfully');
     }
 
     public function delete($id)
     {
-        News::findOrFail($id)->delete();
+        $news = News::findOrFail($id);
+        Comment::where('news_id', $news->id)->delete();
+        NewsUserView::where('news_id', $news->id)->delete();
+        NewsView::where('news_id', $news->id)->delete();
 
-        return redirect()->back();
+        if ($news->image && Storage::disk('public')->exists($news->image)) {
+            Storage::disk('public')->delete($news->image);
+        }
+
+        $news->delete();
+
+        return redirect()->back()->with('status', 'News deleted successfully');
     }
 }

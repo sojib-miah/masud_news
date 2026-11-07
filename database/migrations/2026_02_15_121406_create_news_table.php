@@ -33,6 +33,7 @@ return new class extends Migration
             $table->string('audio');
             $table->string('video');
             $table->string('division_name')->nullable();
+            $table->foreignId('created_by')->nullable()->constrained()->nullOnDelete();
             $table->timestamps();
         });
     }

@@ -13,25 +13,28 @@ class ProductController extends Controller
     public function index()
     {
         return Inertia::render('Admin/Product/Products', [
-            'products' => Product::latest()->paginate(10),
+            'products' => Product::latest()->paginate(20),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'discount_price' => 'required|numeric|min:0',
-            'quantity' => 'required|integer|min:0',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'croy' => 'required|numeric|min:0',
-            'dipo' => 'required|numeric|min:0',
-            'dillar' => 'nullable|string|max:255',
-            'sub_dillar' => 'nullable|string|max:255',
-            'percentage' => 'nullable|integer|min:0|max:100',
+            'name'            => 'required|string|max:255',
+            'description'     => 'nullable|string',
+            'price'           => 'required|numeric|min:0',
+            'discount_price'  => 'required|numeric|min:0',
+            'quantity'        => 'required|integer|min:0',
+            'image'           => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'croy'            => 'required|numeric|min:0',
+            'dipo'            => 'required|numeric|min:0',
+            'dillar'          => 'nullable|string|max:255',
+            'sub_dillar'      => 'nullable|string|max:255',
+            'percentage'      => 'nullable|integer|min:0|max:100',
         ]);
+
+        // Remove image from $data before mass-assigning (we set it manually)
+        unset($data['image']);
 
         if ($request->hasFile('image')) {
             $data['image'] = $request->file('image')->store('images/products', 'public');
@@ -45,23 +48,24 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string',
-            'price' => 'required|numeric|min:0',
-            'discount_price' => 'required|numeric|min:0',
-            'quantity' => 'required|integer|min:0',
-            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'croy' => 'required|numeric|min:0',
-            'dipo' => 'required|numeric|min:0',
-            'dillar' => 'nullable|string|max:255',
-            'sub_dillar' => 'nullable|string|max:255',
-            'percentage' => 'nullable|integer|min:0|max:100',
+            'name'            => 'required|string|max:255',
+            'description'     => 'nullable|string',
+            'price'           => 'required|numeric|min:0',
+            'discount_price'  => 'required|numeric|min:0',
+            'quantity'        => 'required|integer|min:0',
+            'image'           => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'croy'            => 'required|numeric|min:0',
+            'dipo'            => 'required|numeric|min:0',
+            'dillar'          => 'nullable|string|max:255',
+            'sub_dillar'      => 'nullable|string|max:255',
+            'percentage'      => 'nullable|integer|min:0|max:100',
         ]);
 
-        // If new image uploaded
-        if ($request->hasFile('image')) {
+        // CRITICAL FIX: never let an empty "image" key overwrite the column
+        unset($data['image']);
 
-            // Delete old image (if exists)
+        if ($request->hasFile('image')) {
+            // Delete old image from disk
             if ($product->image && Storage::disk('public')->exists($product->image)) {
                 Storage::disk('public')->delete($product->image);
             }
@@ -81,6 +85,7 @@ class ProductController extends Controller
             Storage::disk('public')->delete($product->image);
         }
         $product->delete();
+
         return back()->with('status', 'Deleted');
     }
 }

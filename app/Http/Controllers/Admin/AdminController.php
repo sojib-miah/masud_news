@@ -114,63 +114,145 @@ class AdminController extends Controller
     // pathock reporter 
     public function pathock(Request $request)
     {
-        $query = User::where('role', 'pathock');
+        $query = User::with([
+            'pathockProfile.division',
+            'pathockProfile.district',
+            'pathockProfile.upazilla',
+            'pathockProfile.union',
+            'pathockProfile.cityCorporation',
+            'pathockProfile.ward',
+        ])->where('role', 'pathock');
 
         if ($request->search) {
-            $query->where('name', 'like', '%' . $request->search . '%')
-                ->orWhere('email', 'like', '%' . $request->search . '%');
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
         }
 
         return Inertia::render('Admin/Pathock/Pathock', [
-            'pathocks' => $query->latest()->paginate(10)->withQueryString(),
-            'search' => $request->search
+            'pathocks' => $query->latest()->paginate(20)->withQueryString(),
+            'search'   => $request->search,
         ]);
     }
 
     public function reporter(Request $request)
     {
-        $reporters = User::where('role', 'reporter')
+        $query = User::where('role', 'reporter')
             ->with([
                 'reporterProfile.divisionData',
                 'reporterProfile.districtData',
                 'reporterProfile.upazilaData',
-                'reporterProfile.unionData'
-            ])
-            ->latest()
-            ->paginate(10);
+                'reporterProfile.unionData',
+                'reporterProfile.cityCorporationData',
+                'reporterProfile.wardData',
+            ]);
 
-        $types = ReporterType::pluck('name', 'id'); // [id => name]
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
 
-        // map types
+        $reporters = $query->latest()->paginate(20)->withQueryString();
+
+        $types = ReporterType::pluck('name', 'id');
+
         $reporters->getCollection()->transform(function ($user) use ($types) {
             if ($user->reporterProfile && $user->reporterProfile->reporter_types) {
-
-                $ids = explode(',', $user->reporterProfile->reporter_types);
-
-                $names = collect($ids)
+                $ids = array_filter(explode(',', $user->reporterProfile->reporter_types));
+                $user->reporter_type_names = collect($ids)
                     ->map(fn($id) => $types[$id] ?? null)
                     ->filter()
-                    ->values();
-
-                $user->reporter_type_names = $names;
+                    ->values()
+                    ->all();
             } else {
                 $user->reporter_type_names = [];
             }
-
             return $user;
         });
 
         return Inertia::render('Admin/Reporter/Reporter', [
-            'reporters' => $reporters
+            'reporters' => $reporters,
+            'search'    => $request->search,
         ]);
     }
 
+    /**
+     * Soft delete — moves user to "trashed" state.
+     * Related rows are untouched (recoverable).
+     */
     public function pathockDestroy($id)
     {
         $user = User::findOrFail($id);
+        $user->delete(); // soft delete (sets deleted_at)
 
-        $user->delete();
+        return back()->with('status', 'User moved to trash. You can restore it anytime.');
+    }
 
-        return back()->with('status', 'User deleted successfully!');
+    /**
+     * Restore a soft-deleted user.
+     * Use `withTrashed()` because default query scopes exclude trashed rows.
+     */
+    public function restore($id)
+    {
+        $user = User::withTrashed()->findOrFail($id);
+
+        if ($user->trashed()) {
+            $user->restore();
+        }
+
+        return back()->with('status', 'User restored successfully!');
+    }
+
+    /**
+     * Permanently delete — wipes user + all related rows + files.
+     * Model event (`forceDeleting`) does the heavy lifting.
+     */
+    public function forceDelete($id)
+    {
+        $user = User::withTrashed()->findOrFail($id);
+        $user->forceDelete(); // triggers the forceDeleting event
+
+        return back()->with('status', 'User permanently deleted with all related data.');
+    }
+
+    // trash user list 
+    public function trashList(Request $request)
+    {
+        $query = User::onlyTrashed()
+            ->with([
+                'reporterProfile.divisionData',
+                'reporterProfile.districtData',
+                'reporterProfile.upazilaData',
+                'reporterProfile.unionData',
+                'reporterProfile.cityCorporationData',
+                'reporterProfile.wardData',
+                'pathockProfile.division',
+                'pathockProfile.district',
+                'pathockProfile.upazilla',
+                'pathockProfile.union',
+                'pathockProfile.cityCorporation',
+                'pathockProfile.ward',
+            ]);
+
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        return Inertia::render('Admin/Trash/TrashList', [
+            'trashedUsers' => $query->latest()->paginate(20)->withQueryString(),
+            'search' => $request->search,
+        ]);
     }
 }
