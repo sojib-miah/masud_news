@@ -252,15 +252,27 @@ class OrderController extends Controller
     }
 
     // admin 
-    public function index()
+    public function index(Request $request)
     {
-        $orders = Order::with([
-            'shop',
-            'items.product'
-        ])->latest()->paginate(10);
+        $query = Order::with(['shop', 'items.product', 'user']);
+
+        if ($request->search) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                    ->orWhere('email', 'like', "%{$search}%")
+                    ->orWhere('phone', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
 
         return Inertia::render('Admin/Order/List', [
-            'orders' => $orders
+            'orders' => $query->latest()->paginate(20)->withQueryString(),
+            'search' => $request->search,
+            'status' => $request->status,
         ]);
     }
 

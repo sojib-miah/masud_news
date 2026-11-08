@@ -471,7 +471,7 @@ const web2 = computed(() => props.footer?.web2 || "");
     left: 14px;
     top: 50%;
     transform: translateY(-50%);
-    color: #64748b;
+    color: #fff;
     font-size: 0.85rem;
     pointer-events: none;
 }

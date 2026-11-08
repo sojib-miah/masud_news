@@ -31,6 +31,3 @@ live server add this database
 
 ///// add live server database 
 
-ALTER TABLE users
-ADD COLUMN deleted_at TIMESTAMP NULL DEFAULT NULL,
-ADD INDEX users_deleted_at_index (deleted_at);

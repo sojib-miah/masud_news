@@ -333,6 +333,11 @@ function visitPage(url) {
                                             :src="`/storage/${p.image}`"
                                             class="h-12 w-12 object-cover rounded-lg ring-1 ring-slate-200 shadow-sm"
                                             :alt="p.name"
+                                            @error="
+                                                (e) =>
+                                                    (e.target.src =
+                                                        '/images/default.jpg')
+                                            "
                                         />
                                         <div
                                             v-else

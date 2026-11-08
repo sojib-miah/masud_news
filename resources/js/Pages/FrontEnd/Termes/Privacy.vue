@@ -140,7 +140,7 @@ const sidebarOpen = ref(false);
                         class="w-full lg:w-1/3 order-1 lg:order-2 min-w-0"
                         :class="sidebarOpen ? 'block' : 'hidden lg:block'"
                     >
-                        <div class="lg:sticky lg:top-6 flex flex-col gap-6">
+                        <div class="lg:sticky lg:top-12 flex flex-col gap-6">
                             <!-- Categories Card -->
                             <div
                                 class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden w-full"

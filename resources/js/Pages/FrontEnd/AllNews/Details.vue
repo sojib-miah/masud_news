@@ -741,7 +741,9 @@ function truncate(text, words = 9) {
                                 </nav>
 
                                 <!-- ==================== TITLE ==================== -->
-                                <h1 class="article-title">{{ news.title }}</h1>
+                                <h1 class="article-title text-justify">
+                                    {{ news.title }}
+                                </h1>
 
                                 <!-- ==================== META ==================== -->
                                 <div class="article-meta">
@@ -1323,7 +1325,7 @@ aside {
 .article-card {
     background: #ffffff;
     border-radius: 14px;
-    padding: 18px;
+    padding: 15px;
     box-shadow:
         0 1px 3px rgba(0, 0, 0, 0.05),
         0 8px 24px rgba(0, 0, 0, 0.06);
@@ -1464,13 +1466,13 @@ aside {
 
 @media (min-width: 640px) {
     .article-card {
-        padding: 24px;
+        padding: 20px;
     }
 }
 
 @media (min-width: 1024px) {
     .article-card {
-        padding: 28px;
+        padding: 25px;
     }
 }
 
@@ -1511,7 +1513,7 @@ aside {
 
 /* ==================== TITLE ==================== */
 .article-title {
-    font-size: 1.3rem;
+    font-size: 1rem;
     font-weight: 800;
     line-height: 1.35;
     color: #0f172a;
@@ -1521,13 +1523,13 @@ aside {
 
 @media (min-width: 640px) {
     .article-title {
-        font-size: 1.6rem;
+        font-size: 1.3rem;
     }
 }
 
 @media (min-width: 1024px) {
     .article-title {
-        font-size: 1.85rem;
+        font-size: 1.55rem;
     }
 }
 
@@ -1558,8 +1560,8 @@ aside {
 }
 
 .author-img {
-    width: 46px;
-    height: 46px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     object-fit: cover;
     border: 2px solid #e2e8f0;
@@ -1568,8 +1570,8 @@ aside {
 
 @media (min-width: 640px) {
     .author-img {
-        width: 54px;
-        height: 54px;
+        width: 46px;
+        height: 46px;
     }
 }
 
@@ -1580,7 +1582,7 @@ aside {
 .author-name {
     margin: 0;
     color: #0f172a;
-    font-size: 0.88rem;
+    font-size: 0.75rem;
     font-weight: 700;
     line-height: 1.4;
 }
@@ -1588,13 +1590,13 @@ aside {
 .author-types {
     color: #00930c;
     font-weight: 600;
-    font-size: 0.78rem;
+    font-size: 0.7rem;
 }
 
 .author-location {
     margin: 3px 0 0;
     color: #64748b;
-    font-size: 0.76rem;
+    font-size: 0.66rem;
     display: flex;
     align-items: center;
     gap: 4px;
@@ -1612,7 +1614,7 @@ aside {
 .meta-date {
     margin: 0;
     color: #64748b;
-    font-size: 0.78rem;
+    font-size: 0.7rem;
     display: flex;
     align-items: center;
     gap: 6px;
@@ -1649,7 +1651,8 @@ aside {
 
 .action-btn {
     display: flex;
-    flex-direction: column;
+    /* flex-direction: column; */
+    flex-wrap: wrap;
     align-items: center;
     justify-content: center;
     gap: 4px;
@@ -2750,7 +2753,7 @@ aside {
 /* ==================== LARGE DESKTOP ==================== */
 @media (min-width: 1280px) {
     .article-title {
-        font-size: 2rem;
+        font-size: 1.7rem;
     }
     .article-content {
         font-size: 1.05rem;
