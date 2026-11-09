@@ -251,7 +251,10 @@ onBeforeUnmount(() => {
                     </div>
 
                     <!-- Language selector -->
-                    <select class="lang-select" aria-label="Select language">
+                    <select
+                        class="lang-select hidden"
+                        aria-label="Select language"
+                    >
                         <option value="bn">বাংলা</option>
                         <option value="en">English</option>
                     </select>

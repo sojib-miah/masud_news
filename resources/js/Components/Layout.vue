@@ -70,7 +70,7 @@ onUnmounted(() => {
 
                 <div class="alert-content">
                     <h4>খবর পড়ুন</h4>
-                    <p>মাসে ২০ হাজারের অধিক আয় করুন</p>
+                    <p class="pt-1">মাসে ২০ হাজারের অধিক আয় করুন</p>
                 </div>
 
                 <button
@@ -121,40 +121,30 @@ onUnmounted(() => {
     position: fixed;
     bottom: 25px;
     right: 25px;
-
     width: 48px;
     height: 48px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     background: linear-gradient(135deg, #16a34a, #15803d);
     color: #fff;
-
     border: none;
     outline: none;
     border-radius: 50%;
-
     font-size: 20px;
     cursor: pointer;
-
     box-shadow: 0 5px 18px rgba(22, 163, 74, 0.35);
-
     transition: all 0.3s ease;
     z-index: 9999;
 }
-
 .back-to-top:hover {
     background: #166534;
     transform: translateY(-5px);
     box-shadow: 0 8px 22px rgba(22, 163, 74, 0.45);
 }
-
 .back-to-top:active {
     transform: scale(0.9);
 }
-
 /* =========================
    BOTTOM LEFT NEWS ALERT
 ========================= */
@@ -162,89 +152,68 @@ onUnmounted(() => {
     position: fixed;
     bottom: 22px;
     left: 22px;
-
     display: flex;
     align-items: center;
     gap: 12px;
-
     max-width: calc(100vw - 100px);
-    padding: 12px 16px;
-
+    padding: 16px;
     background: #ffffff;
     border: 1px solid #dcfce7;
     border-left: 4px solid #16a34a;
-
     border-radius: 14px;
-
     box-shadow: 0 5px 25px rgba(0, 0, 0, 0.12);
-
     z-index: 9998;
-
     animation: alertFloat 3s ease-in-out infinite;
 }
-
 /* Alert Icon */
 .alert-icon {
     width: 42px;
     height: 42px;
     min-width: 42px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     background: #dcfce7;
     color: #15803d;
-
     border-radius: 50%;
     font-size: 19px;
 }
-
 /* Alert Text */
 .alert-content {
     flex: 1;
 }
-
 .alert-content h4 {
     margin: 0 0 4px;
     color: #166534;
-    font-size: 15px;
+    font-size: 18px;
     font-weight: 800;
 }
-
 .alert-content p {
     margin: 0;
     color: #475569;
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 600;
     line-height: 1.5;
 }
-
 /* Close Button */
 .alert-close {
     width: 25px;
     height: 25px;
     min-width: 25px;
-
     display: flex;
     align-items: center;
     justify-content: center;
-
     border: none;
     border-radius: 50%;
-
     background: #f1f5f9;
     color: #64748b;
-
     cursor: pointer;
     transition: all 0.2s ease;
 }
-
 .alert-close:hover {
     background: #fee2e2;
     color: #dc2626;
 }
-
 /* =========================
    ALERT FLOAT ANIMATION
 ========================= */
@@ -253,12 +222,10 @@ onUnmounted(() => {
     100% {
         transform: translateY(0);
     }
-
     50% {
         transform: translateY(-4px);
     }
 }
-
 /* =========================
    TRANSITIONS
 ========================= */
@@ -266,24 +233,20 @@ onUnmounted(() => {
 .alert-slide-leave-active {
     transition: all 0.4s ease;
 }
-
 .alert-slide-enter-from,
 .alert-slide-leave-to {
     opacity: 0;
     transform: translateX(-40px);
 }
-
 .top-button-enter-active,
 .top-button-leave-active {
     transition: all 0.3s ease;
 }
-
 .top-button-enter-from,
 .top-button-leave-to {
     opacity: 0;
     transform: translateY(15px);
 }
-
 /* =========================
    MOBILE RESPONSIVE
 ========================= */
@@ -296,22 +259,18 @@ onUnmounted(() => {
         border-radius: 11px;
         max-width: calc(100vw - 75px);
     }
-
     .alert-icon {
         width: 34px;
         height: 34px;
         min-width: 34px;
         font-size: 15px;
     }
-
     .alert-content h4 {
-        font-size: 13px;
+        font-size: 16px;
     }
-
     .alert-content p {
-        font-size: 10px;
+        font-size: 12px;
     }
-
     .back-to-top {
         width: 42px;
         height: 42px;
@@ -319,7 +278,6 @@ onUnmounted(() => {
         bottom: 14px;
         font-size: 17px;
     }
-
     .alert-close {
         width: 21px;
         height: 21px;

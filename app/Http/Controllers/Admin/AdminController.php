@@ -93,22 +93,25 @@ class AdminController extends Controller
     {
         $query = NewsletterSubscriber::query();
 
-        if ($request->search) {
+        if ($request->filled('search')) {
             $query->where('email', 'like', '%' . $request->search . '%');
         }
 
-        $subscriptions = $query->paginate(10)->withQueryString();
+        $subscriptions = $query->latest()
+            ->paginate(20)
+            ->withQueryString();
 
         return Inertia::render('Admin/Subscriptions/Subscriptions', [
             'subscriptions' => $subscriptions,
-            'search' => $request->search,
+            'search'        => $request->search ?? '',
         ]);
     }
 
     public function destroy($id)
     {
         NewsletterSubscriber::findOrFail($id)->delete();
-        return redirect()->route('subscriptions')->with('status', 'Subscription deleted successfully!');
+
+        return back()->with('status', 'Subscription deleted successfully!');
     }
 
     // pathock reporter 

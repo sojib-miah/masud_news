@@ -176,7 +176,7 @@ function newTab(e) {
                     </a>
 
                     <div class="flex items-center gap-1 sm:gap-2">
-                        <Language class="hidden md:inline-flex" />
+                        <Language class="hidden" />
                         <DarkModeToggle />
                         <Header />
                         <Notification />
@@ -350,7 +350,6 @@ function newTab(e) {
                     <div
                         class="p-3 border-t border-slate-100 space-y-2 shrink-0"
                     >
-                        <Language class="ms-3 lan" />
                         <a
                             target="_blank"
                             :href="route('home')"
@@ -407,9 +406,3 @@ function newTab(e) {
         <FontSizeBar />
     </div>
 </template>
-
-<style>
-.lan ul li {
-    color: black;
-}
-</style>

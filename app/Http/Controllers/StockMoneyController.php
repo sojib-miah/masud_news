@@ -60,18 +60,21 @@ class StockMoneyController extends Controller
     public function stockMoney()
     {
         return Inertia::render('Admin/Pathock/StockMoney', [
-            'stocks' => StockMoney::with('user')->latest()->paginate(10),
+            'stocks' => StockMoney::with('user')
+                ->latest()
+                ->paginate(20)
+                ->withQueryString(),
         ]);
     }
 
     public function updateStatus(Request $request, $id)
     {
-        $request->validate([
-            'status' => 'required|in:pending,approved,rejected',
+        $validated = $request->validate([
+            'status' => ['required', 'in:pending,approved,rejected'],
         ]);
 
         $stock = StockMoney::findOrFail($id);
-        $stock->status = $request->status;
+        $stock->status = $validated['status'];
         $stock->save();
 
         return back()->with('status', 'Status updated successfully');

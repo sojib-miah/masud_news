@@ -14,24 +14,28 @@ class TermesController extends Controller
 {
     public function termesCondition()
     {
-        $term = Termes::first();
-        return Inertia::render('FrontEnd/Termes/AdminTermes', ['term' => $term,]);
+        return Inertia::render('FrontEnd/Termes/AdminTermes', [
+            'term' => Termes::first(),
+        ]);
     }
 
     public function storeOrUpdate(Request $request)
     {
-        $data = $request->validate([
-            'termes' => 'nullable|string',
-            'privacy' => 'nullable|string',
+        $validated = $request->validate([
+            'termes'  => ['nullable', 'string'],
+            'privacy' => ['nullable', 'string'],
         ]);
+
         $term = Termes::first();
+
         if ($term) {
-            $term->update($data);
-            $message = 'Terms updated successfully!';
+            $term->update($validated);
+            $message = 'Terms & Privacy updated successfully!';
         } else {
-            Termes::create($data);
-            $message = 'Terms created successfully!';
+            Termes::create($validated);
+            $message = 'Terms & Privacy created successfully!';
         }
+
         return redirect()->back()->with('status', $message);
     }
 

@@ -472,6 +472,10 @@ function visitPage(url) {
                                 :src="`/storage/${p.image}`"
                                 class="h-24 w-24 shrink-0 object-cover rounded-xl ring-1 ring-slate-200"
                                 :alt="p.name"
+                                @error="
+                                    (e) =>
+                                        (e.target.src = '/images/default.jpg')
+                                "
                             />
                             <div
                                 v-else
@@ -713,6 +717,11 @@ function visitPage(url) {
                                     :src="preview"
                                     class="h-full w-full object-cover"
                                     alt="Preview"
+                                    @error="
+                                        (e) =>
+                                            (e.target.src =
+                                                '/images/default.jpg')
+                                    "
                                 />
                                 <i
                                     v-else
@@ -1055,6 +1064,10 @@ function visitPage(url) {
                                 :src="`/storage/${viewProduct.image}`"
                                 class="w-full max-h-72 object-contain"
                                 :alt="viewProduct.name"
+                                @error="
+                                    (e) =>
+                                        (e.target.src = '/images/default.jpg')
+                                "
                             />
                             <div
                                 v-else
