@@ -286,7 +286,7 @@ function visitPage(url) {
                 <!-- ============================================ -->
                 <div class="lg:col-span-1 order-1 lg:order-2">
                     <div
-                        class="sticky top-4 rounded-2xl bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
+                        class="sticky top-14 rounded-2xl bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
                     >
                         <!-- Tabs -->
                         <div class="grid grid-cols-2">

@@ -71,7 +71,9 @@ Route::middleware(['auth', 'role:admin,sales,sup_admin,sub_admin'])->group(funct
 
         // users 
         Route::get('/users', [UserController::class, 'index'])->name('admin.users.index');
-        Route::match(['post', 'put'], 'users/{user?}', [UserController::class, 'store'])->name('admin.users.store');
+        // Route::match(['post', 'put'], 'users/{user?}', [UserController::class, 'store'])->name('admin.users.store');
+        Route::any('/admin/users', [UserController::class, 'store'])->name('admin.users.store');
+        Route::put('/admin/users/{user}', [UserController::class, 'update'])->name('admin.users.update');
         Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.users.destroy');
 
         // profile 

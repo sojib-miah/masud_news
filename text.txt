@@ -31,3 +31,20 @@ live server add this database
 
 ///// add live server database 
 
+ALTER TABLE `pathock_profiles`
+ADD COLUMN `pourashava_id` INT UNSIGNED NULL
+AFTER `ward_id`,
+ADD COLUMN `pourashava_ward_id` BIGINT UNSIGNED NULL
+AFTER `pourashava_id`,
+ADD CONSTRAINT `pathock_profiles_pourashava_id_foreign`
+    FOREIGN KEY (`pourashava_id`)
+    REFERENCES `pourashavas` (`id`)
+    ON DELETE SET NULL,
+ADD CONSTRAINT `pathock_profiles_pourashava_ward_id_foreign`
+    FOREIGN KEY (`pourashava_ward_id`)
+    REFERENCES `pourashava_wards` (`id`)
+    ON DELETE SET NULL;
+
+    ALTER TABLE `reporter_profiles`
+ADD COLUMN `pourashava` VARCHAR(255) NULL AFTER `ward`,
+ADD COLUMN `pourashava_ward` VARCHAR(255) NULL AFTER `pourashava`;

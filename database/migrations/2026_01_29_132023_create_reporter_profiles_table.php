@@ -28,6 +28,8 @@ return new class extends Migration
             $table->string('city_corporation')->nullable();
             $table->string('village')->nullable();
             $table->string('ward')->nullable();
+            $table->string('pourashava')->nullable();
+            $table->string('pourashava_ward')->nullable();
             $table->string('reporter_area')->nullable();
             $table->string('nid_number')->nullable();
             $table->string('photo')->nullable();

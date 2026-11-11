@@ -55,49 +55,74 @@ class UserController extends Controller
         ]);
     }
 
-    public function store(Request $request, User $user)
+    // Store new user
+    public function store(Request $request)
     {
         $this->authorize('user.create');
 
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . ($user?->id ?? 'null'),
-            'password' => $user ? 'nullable|min:6' : 'required|min:6',
+            'email' => 'required|email|unique:users,email',
+            'password' => 'required|min:6',
             'roles' => 'array',
             'permissions' => 'array',
             'menus' => 'array',
         ]);
 
-        if ($request->id) {
-            $user = User::findOrFail($request->id);
-            $user->update([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-            ]);
-            if ($validated['password']) {
-                $user->update(['password' => bcrypt($validated['password'])]);
-            }
-        } else {
-            $user = User::create([
-                'name' => $validated['name'],
-                'email' => $validated['email'],
-                'password' => bcrypt($validated['password']),
-            ]);
-        }
+        $user = User::create([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+            'password' => bcrypt($validated['password']),
+        ]);
 
-        $user->syncRoles($validated['roles']);
+        $user->syncRoles($validated['roles'] ?? []);
 
         if (collect($validated['roles'])->contains(fn($r) => in_array($r, ['admin', 'sup_admin']))) {
             $user->syncPermissions(Permission::pluck('name')->toArray());
             $user->menus()->sync(Menu::pluck('id')->toArray());
         } else {
-            $user->syncPermissions($validated['permissions']);
-            $user->menus()->sync($validated['menus']);
+            $user->syncPermissions($validated['permissions'] ?? []);
+            $user->menus()->sync($validated['menus'] ?? []);
         }
 
-        return redirect()->route('admin.users.index')->with('status', 'User saved successfully.');
+        return redirect()->route('admin.users.index')->with('status', 'User created successfully.');
     }
 
+    // Update existing user
+    public function update(Request $request, User $user)
+    {
+        $this->authorize('user.update');
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'password' => 'nullable|min:6',
+            'roles' => 'array',
+            'permissions' => 'array',
+            'menus' => 'array',
+        ]);
+
+        $user->update([
+            'name' => $validated['name'],
+            'email' => $validated['email'],
+        ]);
+
+        if (!empty($validated['password'])) {
+            $user->update(['password' => bcrypt($validated['password'])]);
+        }
+
+        $user->syncRoles($validated['roles'] ?? []);
+
+        if (collect($validated['roles'])->contains(fn($r) => in_array($r, ['admin', 'sup_admin']))) {
+            $user->syncPermissions(Permission::pluck('name')->toArray());
+            $user->menus()->sync(Menu::pluck('id')->toArray());
+        } else {
+            $user->syncPermissions($validated['permissions'] ?? []);
+            $user->menus()->sync($validated['menus'] ?? []);
+        }
+
+        return redirect()->route('admin.users.index')->with('status', 'User updated successfully.');
+    }
 
     public function destroy(User $user)
     {

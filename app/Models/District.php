@@ -19,4 +19,14 @@ class District extends Model
     {
         return $this->hasMany(Upazila::class);
     }
+
+    public function cityCorporations()
+    {
+        return $this->hasMany(CityCorporation::class);
+    }
+
+    public function pourashavas()
+    {
+        return $this->hasMany(Pourashava::class);
+    }
 }

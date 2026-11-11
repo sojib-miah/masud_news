@@ -44,8 +44,10 @@ Route::post('/register/motamot', [RegisterController::class, 'storeMotamot'])->n
 Route::get('/districts/{divisionId}', [RegisterController::class, 'getDistricts']);
 Route::get('/upazilas/{districtId}', [RegisterController::class, 'getUpazilas']);
 Route::get('/unions/{upazilaId}', [RegisterController::class, 'getUnions']);
-Route::get('/city-corporations/{divisionId}', [RegisterController::class, 'getCityCorporations']);
+Route::get('/city-corporations/{districtId}', [RegisterController::class, 'getCityCorporations']);
 Route::get('/wards/{cityCorporationId}', [RegisterController::class, 'getWards']);
+Route::get('/pourashava/{districtId}', [RegisterController::class, 'getPourashava']);
+Route::get('/pourashava-wards/{pourashavaId}', [RegisterController::class, 'getPourashavaWards']);
 
 // login
 Route::post('/logout', [LoginController::class, 'logout'])->name('user.logout');

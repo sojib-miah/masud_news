@@ -25,6 +25,8 @@ const form = useForm({
     union_id: "",
     city_corporation_id: "",
     ward_id: "",
+    pourashava_id: "",
+    pourashava_ward_id: "",
     village: "",
     occupation: "",
     password: "",
@@ -38,93 +40,110 @@ const upazilas = ref([]);
 const unions = ref([]);
 const cityCorporations = ref([]);
 const wards = ref([]);
+const pourashavas = ref([]);
+const pourashavaWards = ref([]);
 
 const loadingDistricts = ref(false);
 const loadingUpazilas = ref(false);
 const loadingUnions = ref(false);
 const loadingCityCorps = ref(false);
 const loadingWards = ref(false);
+const loadingPouroshavas = ref(false);
+const loadingPouroshavaWards = ref(false);
 
-// Which "mode" the user is in
+// ==================== LOCATION MODE ====================
+// ""                  → no sub-path picked yet (all three sub-paths shown as options)
+// "district"          → district path locked (upazila/union shown)
+// "city_corporation"  → city corp path locked (ward shown)
+// "pourashava"        → pourashava path locked (pourashava ward shown)
 const locationMode = computed(() => {
     if (form.city_corporation_id) return "city_corporation";
-    if (form.district_id) return "district";
+    if (form.pourashava_id) return "pourashava";
+    if (form.upazilla_id || form.union_id) return "district";
     return "";
 });
 
-// ==================== CASCADE WATCHERS ====================
+// ==================== WATCHERS ====================
 
-// Division changes → clear children → load districts + city corps in parallel
+// Division → load districts only (city corps & pourashavas come from district)
 watch(
     () => form.division_id,
     async (id) => {
-        // Clear all descendants
         form.district_id = "";
         form.upazilla_id = "";
         form.union_id = "";
         form.city_corporation_id = "";
         form.ward_id = "";
+        form.pourashava_id = "";
+        form.pourashava_ward_id = "";
 
         districts.value = [];
         upazilas.value = [];
         unions.value = [];
         cityCorporations.value = [];
         wards.value = [];
+        pourashavas.value = [];
+        pourashavaWards.value = [];
 
         if (!id) return;
 
-        // Load districts AND city corporations in parallel
         loadingDistricts.value = true;
-        loadingCityCorps.value = true;
-
         try {
-            const [d, c] = await Promise.all([
-                axios.get(`/districts/${id}`),
-                axios.get(`/city-corporations/${id}`),
-            ]);
-            districts.value = d.data;
-            cityCorporations.value = c.data;
+            const r = await axios.get(`/districts/${id}`);
+            districts.value = r.data;
         } catch (e) {
-            console.error("Failed to load districts/city corps", e);
+            console.error("Failed to load districts", e);
         } finally {
             loadingDistricts.value = false;
-            loadingCityCorps.value = false;
         }
     },
 );
 
-// District changes → clear upazila + union + city corp → load upazilas
+// District → load upazilas + city corps + pourashavas in parallel (all filtered by district)
 watch(
     () => form.district_id,
     async (id) => {
+        // Clear everything below district
         form.upazilla_id = "";
         form.union_id = "";
+        form.city_corporation_id = "";
+        form.ward_id = "";
+        form.pourashava_id = "";
+        form.pourashava_ward_id = "";
 
         upazilas.value = [];
         unions.value = [];
-
-        // If a district is selected, clear city corporation path
-        if (id) {
-            form.city_corporation_id = "";
-            form.ward_id = "";
-            wards.value = [];
-        }
+        cityCorporations.value = [];
+        wards.value = [];
+        pourashavas.value = [];
+        pourashavaWards.value = [];
 
         if (!id) return;
 
         loadingUpazilas.value = true;
+        loadingCityCorps.value = true;
+        loadingPouroshavas.value = true;
+
         try {
-            const r = await axios.get(`/upazilas/${id}`);
-            upazilas.value = r.data;
+            const [u, c, p] = await Promise.all([
+                axios.get(`/upazilas/${id}`),
+                axios.get(`/city-corporations/${id}`),
+                axios.get(`/pourashava/${id}`),
+            ]);
+            upazilas.value = u.data;
+            cityCorporations.value = c.data;
+            pourashavas.value = p.data;
         } catch (e) {
-            console.error("Failed to load upazilas", e);
+            console.error("Failed to load district children", e);
         } finally {
             loadingUpazilas.value = false;
+            loadingCityCorps.value = false;
+            loadingPouroshavas.value = false;
         }
     },
 );
 
-// Upazila changes → clear union → load unions
+// Upazila → load unions
 watch(
     () => form.upazilla_id,
     async (id) => {
@@ -145,20 +164,12 @@ watch(
     },
 );
 
-// City corporation changes → clear district path → load wards
+// City corporation → load wards
 watch(
     () => form.city_corporation_id,
     async (id) => {
         form.ward_id = "";
         wards.value = [];
-
-        if (id) {
-            form.district_id = "";
-            form.upazilla_id = "";
-            form.union_id = "";
-            upazilas.value = [];
-            unions.value = [];
-        }
 
         if (!id) return;
 
@@ -171,6 +182,76 @@ watch(
         } finally {
             loadingWards.value = false;
         }
+    },
+);
+
+// Pourashava → load pourashava wards
+watch(
+    () => form.pourashava_id,
+    async (id) => {
+        form.pourashava_ward_id = "";
+        pourashavaWards.value = [];
+
+        if (!id) return;
+
+        loadingPouroshavaWards.value = true;
+        try {
+            const r = await axios.get(`/pourashava-wards/${id}`);
+            pourashavaWards.value = r.data;
+        } catch (e) {
+            console.error("Failed to load pourashava wards", e);
+        } finally {
+            loadingPouroshavaWards.value = false;
+        }
+    },
+);
+
+// ==================== MUTUAL EXCLUSIVITY ====================
+// The moment a user picks a city corp / pourashava / upazila, clear the other branches
+watch(
+    () => form.city_corporation_id,
+    (id) => {
+        if (!id) return;
+        // City corp chosen → clear district-only and pourashava branches
+        form.upazilla_id = "";
+        form.union_id = "";
+        upazilas.value = [];
+        unions.value = [];
+
+        form.pourashava_id = "";
+        form.pourashava_ward_id = "";
+        pourashavaWards.value = [];
+    },
+);
+
+watch(
+    () => form.pourashava_id,
+    (id) => {
+        if (!id) return;
+        // Pourashava chosen → clear district-only and city corp branches
+        form.upazilla_id = "";
+        form.union_id = "";
+        upazilas.value = [];
+        unions.value = [];
+
+        form.city_corporation_id = "";
+        form.ward_id = "";
+        wards.value = [];
+    },
+);
+
+watch(
+    () => form.upazilla_id,
+    (id) => {
+        if (!id) return;
+        // Upazila chosen → clear city corp and pourashava branches
+        form.city_corporation_id = "";
+        form.ward_id = "";
+        wards.value = [];
+
+        form.pourashava_id = "";
+        form.pourashava_ward_id = "";
+        pourashavaWards.value = [];
     },
 );
 
@@ -295,7 +376,7 @@ function submit() {
                                         — বিভাগ নির্বাচন করুন —
                                     </option>
                                     <option
-                                        v-for="d in divisions"
+                                        v-for="d in props.divisions"
                                         :key="d.id"
                                         :value="d.id"
                                     >
@@ -310,22 +391,61 @@ function submit() {
                                 </p>
                             </div>
 
-                            <div v-if="form.division_id" class="flex items-end">
-                                <p class="text-xs text-slate-500 italic pb-2.5">
-                                    <i
-                                        class="fa-solid fa-info-circle text-green-600"
-                                    ></i>
-                                    জেলা <strong>অথবা</strong> সিটি কর্পোরেশন —
-                                    যেকোনো একটি বেছে নিন
+                            <!-- District (always after division) -->
+                            <div v-if="form.division_id">
+                                <label
+                                    class="block text-sm font-semibold text-slate-700 mb-1"
+                                >
+                                    জেলা <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    v-model="form.district_id"
+                                    :disabled="loadingDistricts"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm bg-white shadow-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 disabled:opacity-60"
+                                >
+                                    <option value="">
+                                        {{
+                                            loadingDistricts
+                                                ? "লোড হচ্ছে..."
+                                                : "— জেলা নির্বাচন করুন —"
+                                        }}
+                                    </option>
+                                    <option
+                                        v-for="d in districts"
+                                        :key="d.id"
+                                        :value="d.id"
+                                    >
+                                        {{ d.bn_name }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.district_id"
+                                    class="text-red-500 text-xs mt-1"
+                                >
+                                    {{ form.errors.district_id }}
                                 </p>
                             </div>
+                        </div>
+
+                        <div
+                            v-if="form.district_id && !locationMode"
+                            class="mt-3"
+                        >
+                            <p class="text-xs text-slate-500 italic">
+                                <i
+                                    class="fa-solid fa-info-circle text-green-600"
+                                ></i>
+                                উপজেলা, পৌরসভা <strong>অথবা</strong> সিটি
+                                কর্পোরেশন — যেকোনো একটি বেছে নিন
+                            </p>
                         </div>
 
                         <!-- ==================== DISTRICT PATH ==================== -->
                         <div
                             v-if="
-                                form.division_id &&
-                                locationMode !== 'city_corporation'
+                                form.district_id &&
+                                locationMode !== 'city_corporation' &&
+                                locationMode !== 'pourashava'
                             "
                             class="mt-4 p-4 bg-green-50 rounded-lg border border-green-200"
                         >
@@ -338,41 +458,7 @@ function submit() {
                                 জেলা ভিত্তিক ঠিকানা
                             </p>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <!-- District -->
-                                <div>
-                                    <label
-                                        class="block text-xs font-semibold text-slate-600 mb-1"
-                                        >জেলা</label
-                                    >
-                                    <select
-                                        v-model="form.district_id"
-                                        :disabled="loadingDistricts"
-                                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 disabled:opacity-60"
-                                    >
-                                        <option value="">
-                                            {{
-                                                loadingDistricts
-                                                    ? "লোড হচ্ছে..."
-                                                    : "— জেলা —"
-                                            }}
-                                        </option>
-                                        <option
-                                            v-for="d in districts"
-                                            :key="d.id"
-                                            :value="d.id"
-                                        >
-                                            {{ d.bn_name }}
-                                        </option>
-                                    </select>
-                                    <p
-                                        v-if="form.errors.district_id"
-                                        class="text-red-500 text-xs mt-1"
-                                    >
-                                        {{ form.errors.district_id }}
-                                    </p>
-                                </div>
-
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                 <!-- Upazila -->
                                 <div>
                                     <label
@@ -381,10 +467,8 @@ function submit() {
                                     >
                                     <select
                                         v-model="form.upazilla_id"
-                                        :disabled="
-                                            !form.district_id || loadingUpazilas
-                                        "
-                                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 disabled:opacity-60 disabled:cursor-not-allowed"
+                                        :disabled="loadingUpazilas"
+                                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 disabled:opacity-60"
                                     >
                                         <option value="">
                                             {{
@@ -450,7 +534,9 @@ function submit() {
                         <!-- ==================== CITY CORPORATION PATH ==================== -->
                         <div
                             v-if="
-                                form.division_id && locationMode !== 'district'
+                                form.district_id &&
+                                locationMode !== 'district' &&
+                                locationMode !== 'pourashava'
                             "
                             class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200"
                         >
@@ -460,7 +546,6 @@ function submit() {
                             </p>
 
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <!-- City Corp -->
                                 <div>
                                     <label
                                         class="block text-xs font-semibold text-slate-600 mb-1"
@@ -483,7 +568,7 @@ function submit() {
                                             :key="c.id"
                                             :value="c.id"
                                         >
-                                            {{ c.name }}
+                                            {{ c.bn_name }}
                                         </option>
                                     </select>
                                     <p
@@ -494,7 +579,6 @@ function submit() {
                                     </p>
                                 </div>
 
-                                <!-- Ward -->
                                 <div>
                                     <label
                                         class="block text-xs font-semibold text-slate-600 mb-1"
@@ -520,7 +604,7 @@ function submit() {
                                             :key="w.id"
                                             :value="w.id"
                                         >
-                                            {{ w.name }}
+                                            {{ w.bn_name || w.name }}
                                         </option>
                                     </select>
                                     <p
@@ -533,17 +617,108 @@ function submit() {
                             </div>
                         </div>
 
+                        <!-- ==================== POURASHAVA PATH ==================== -->
+                        <div
+                            v-if="
+                                form.district_id &&
+                                locationMode !== 'district' &&
+                                locationMode !== 'city_corporation'
+                            "
+                            class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200"
+                        >
+                            <p
+                                class="text-xs font-semibold text-amber-700 mb-3"
+                            >
+                                <i
+                                    class="fa-solid fa-building-columns mr-1"
+                                ></i>
+                                পৌরসভা ভিত্তিক ঠিকানা
+                            </p>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div>
+                                    <label
+                                        class="block text-xs font-semibold text-slate-600 mb-1"
+                                        >পৌরসভা</label
+                                    >
+                                    <select
+                                        v-model="form.pourashava_id"
+                                        :disabled="loadingPouroshavas"
+                                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:opacity-60"
+                                    >
+                                        <option value="">
+                                            {{
+                                                loadingPouroshavas
+                                                    ? "লোড হচ্ছে..."
+                                                    : "— পৌরসভা —"
+                                            }}
+                                        </option>
+                                        <option
+                                            v-for="p in pourashavas"
+                                            :key="p.id"
+                                            :value="p.id"
+                                        >
+                                            {{ p.bn_name || p.name }}
+                                        </option>
+                                    </select>
+                                    <p
+                                        v-if="form.errors.pourashava_id"
+                                        class="text-red-500 text-xs mt-1"
+                                    >
+                                        {{ form.errors.pourashava_id }}
+                                    </p>
+                                </div>
+
+                                <div>
+                                    <label
+                                        class="block text-xs font-semibold text-slate-600 mb-1"
+                                        >ওয়ার্ড</label
+                                    >
+                                    <select
+                                        v-model="form.pourashava_ward_id"
+                                        :disabled="
+                                            !form.pourashava_id ||
+                                            loadingPouroshavaWards
+                                        "
+                                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white shadow-sm outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 disabled:opacity-60 disabled:cursor-not-allowed"
+                                    >
+                                        <option value="">
+                                            {{
+                                                loadingPouroshavaWards
+                                                    ? "লোড হচ্ছে..."
+                                                    : "— ওয়ার্ড —"
+                                            }}
+                                        </option>
+                                        <option
+                                            v-for="w in pourashavaWards"
+                                            :key="w.id"
+                                            :value="w.id"
+                                        >
+                                            {{ w.bn_name || w.name }}
+                                        </option>
+                                    </select>
+                                    <p
+                                        v-if="form.errors.pourashava_ward_id"
+                                        class="text-red-500 text-xs mt-1"
+                                    >
+                                        {{ form.errors.pourashava_ward_id }}
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Other location info -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                             <div>
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
-                                    >গ্রাম / এলাকা</label
                                 >
+                                    গ্রাম / এলাকা / মহল্লা
+                                </label>
                                 <TextInput
                                     v-model="form.village"
                                     type="text"
-                                    placeholder="গ্রাম"
+                                    placeholder="গ্রাম / এলাকা / মহল্লা"
                                     :error="form.errors.village"
                                 />
                             </div>

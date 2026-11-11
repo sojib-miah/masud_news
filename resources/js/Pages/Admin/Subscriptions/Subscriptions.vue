@@ -136,8 +136,8 @@ const initials = (email) => {
         <Layout>
             <Breadcrumb />
 
-            <div class="min-h-screen bg-slate-50 p-3 sm:p-5 lg:p-8">
-                <div class="max-w-6xl mx-auto">
+            <div class="min-h-screen bg-slate-50">
+                <div>
                     <!-- ==================== HEADER ==================== -->
                     <div
                         class="bg-gradient-to-r from-green-600 to-green-700 rounded-2xl shadow-lg px-5 sm:px-8 py-5 sm:py-6 mb-5 sm:mb-6"

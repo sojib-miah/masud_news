@@ -10,9 +10,9 @@ class CityCorporation extends Model
 
     protected $guarded = [];
 
-    public function division()
+    public function district()
     {
-        return $this->belongsTo(Division::class);
+        return $this->belongsTo(District::class);
     }
 
     public function wards()

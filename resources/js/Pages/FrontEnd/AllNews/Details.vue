@@ -718,7 +718,7 @@ function truncate(text, words = 9) {
                         >
                             <article class="article-card">
                                 <!-- ==================== BREADCRUMB ==================== -->
-                                <nav
+                                <!-- <nav
                                     class="article-breadcrumb"
                                     aria-label="Breadcrumb"
                                 >
@@ -738,7 +738,7 @@ function truncate(text, words = 9) {
                                     >
                                         জাতীয়
                                     </Link>
-                                </nav>
+                                </nav> -->
 
                                 <!-- ==================== TITLE ==================== -->
                                 <h1 class="article-title text-justify">

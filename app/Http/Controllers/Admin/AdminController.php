@@ -124,6 +124,8 @@ class AdminController extends Controller
             'pathockProfile.union',
             'pathockProfile.cityCorporation',
             'pathockProfile.ward',
+            'pathockProfile.pourashava',
+            'pathockProfile.pourashavaWard',
         ])->where('role', 'pathock');
 
         if ($request->search) {
@@ -151,6 +153,8 @@ class AdminController extends Controller
                 'reporterProfile.unionData',
                 'reporterProfile.cityCorporationData',
                 'reporterProfile.wardData',
+                'reporterProfile.pourashavaData',
+                'reporterProfile.pourashavaWardData',
             ]);
 
         if ($request->search) {

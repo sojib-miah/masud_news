@@ -52,4 +52,14 @@ class PathockProfile extends Model
     {
         return $this->belongsTo(Ward::class, 'ward_id', 'id');
     }
+
+    public function pourashava()
+    {
+        return $this->belongsTo(Pourashava::class, 'pourashava_id', 'id');
+    }
+
+    public function pourashavaWard()
+    {
+        return $this->belongsTo(PourashavaWard::class, 'pourashava_ward_id', 'id');
+    }
 }

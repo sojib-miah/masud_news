@@ -52,7 +52,6 @@ const form = useForm({
     blood_group: props.profile?.blood_group || "",
     father_name: props.profile?.father_name || "",
     mother_name: props.profile?.mother_name || "",
-    address: props.profile?.address || "",
 
     education: props.profile?.education || "",
     education_year: props.profile?.education_year || "",
@@ -63,6 +62,9 @@ const form = useForm({
     union: toNum(props.profile?.union),
     city_corporation: toNum(props.profile?.city_corporation),
     ward: toNum(props.profile?.ward),
+    pourashava: toNum(props.profile?.pourashava),
+    pourashava_ward: toNum(props.profile?.pourashava_ward),
+    village: props.profile?.village || "",
 
     reporter_area: props.profile?.reporter_area || "",
     nid_number: props.profile?.nid_number || "",
@@ -83,17 +85,22 @@ const upazilas = ref([]);
 const unions = ref([]);
 const cityCorporations = ref([]);
 const wards = ref([]);
+const pourashavas = ref([]);
+const pourashavaWards = ref([]);
 
 const loadingDistricts = ref(false);
 const loadingUpazilas = ref(false);
 const loadingUnions = ref(false);
 const loadingCityCorps = ref(false);
 const loadingWards = ref(false);
+const loadingPourashavas = ref(false);
+const loadingPourashavaWards = ref(false);
 
-// Location mode: city corporation vs district path
-const locationMode = computed(() => {
-    if (form.city_corporation) return "city_corporation";
-    if (form.district) return "district";
+// Determine which branch is active to hide the others
+const branch = computed(() => {
+    if (form.city_corporation) return "city_corp";
+    if (form.pourashava) return "pourashava";
+    if (form.upazila) return "upazila";
     return "";
 });
 
@@ -104,11 +111,19 @@ let cityCorpAbort = null;
 let upazilaAbort = null;
 let unionAbort = null;
 let wardAbort = null;
+let pourashavaAbort = null;
+let pourashavaWardAbort = null;
 
 function abortAll() {
-    [districtAbort, cityCorpAbort, upazilaAbort, unionAbort, wardAbort].forEach(
-        (c) => c && c.abort(),
-    );
+    [
+        districtAbort,
+        cityCorpAbort,
+        upazilaAbort,
+        unionAbort,
+        wardAbort,
+        pourashavaAbort,
+        pourashavaWardAbort,
+    ].forEach((c) => c && c.abort());
 }
 onBeforeUnmount(abortAll);
 
@@ -193,16 +208,52 @@ async function fetchWards(id) {
     }
 }
 
+async function fetchPourashavas(id) {
+    if (pourashavaAbort) pourashavaAbort.abort();
+    pourashavaAbort = new AbortController();
+    loadingPourashavas.value = true;
+    try {
+        const { data } = await axios.get(`/pourashava/${id}`, {
+            signal: pourashavaAbort.signal,
+        });
+        pourashavas.value = data;
+    } catch (e) {
+        if (!axios.isCancel(e)) console.error("pourashava", e);
+    } finally {
+        loadingPourashavas.value = false;
+    }
+}
+
+async function fetchPourashavaWards(id) {
+    if (pourashavaWardAbort) pourashavaWardAbort.abort();
+    pourashavaWardAbort = new AbortController();
+    loadingPourashavaWards.value = true;
+    try {
+        const { data } = await axios.get(`/pourashava-wards/${id}`, {
+            signal: pourashavaWardAbort.signal,
+        });
+        pourashavaWards.value = data;
+    } catch (e) {
+        if (!axios.isCancel(e)) console.error("pourashava-wards", e);
+    } finally {
+        loadingPourashavaWards.value = false;
+    }
+}
+
 // ==================== INITIAL PREFILL ====================
 onMounted(async () => {
     const tasks = [];
     if (form.division) {
         tasks.push(fetchDistricts(form.division));
-        tasks.push(fetchCityCorporations(form.division));
     }
-    if (form.district) tasks.push(fetchUpazilas(form.district));
+    if (form.district) {
+        tasks.push(fetchUpazilas(form.district));
+        tasks.push(fetchCityCorporations(form.district)); // Note: your backend might use division or district here. Assuming district based on standard.
+        tasks.push(fetchPourashavas(form.district));
+    }
     if (form.upazila) tasks.push(fetchUnions(form.upazila));
     if (form.city_corporation) tasks.push(fetchWards(form.city_corporation));
+    if (form.pourashava) tasks.push(fetchPourashavaWards(form.pourashava));
 
     await Promise.all(tasks);
     initializing.value = false;
@@ -219,15 +270,19 @@ watch(
         form.union = null;
         form.city_corporation = null;
         form.ward = null;
+        form.pourashava = null;
+        form.pourashava_ward = null;
 
         districts.value = [];
         upazilas.value = [];
         unions.value = [];
         cityCorporations.value = [];
         wards.value = [];
+        pourashavas.value = [];
+        pourashavaWards.value = [];
 
         if (!id) return;
-        await Promise.all([fetchDistricts(id), fetchCityCorporations(id)]);
+        await fetchDistricts(id);
     },
 );
 
@@ -238,16 +293,24 @@ watch(
 
         form.upazila = null;
         form.union = null;
+        form.city_corporation = null;
+        form.ward = null;
+        form.pourashava = null;
+        form.pourashava_ward = null;
+
         upazilas.value = [];
         unions.value = [];
+        cityCorporations.value = [];
+        wards.value = [];
+        pourashavas.value = [];
+        pourashavaWards.value = [];
 
-        if (id) {
-            form.city_corporation = null;
-            form.ward = null;
-            wards.value = [];
-        }
         if (!id) return;
-        await fetchUpazilas(id);
+        await Promise.all([
+            fetchUpazilas(id),
+            fetchCityCorporations(id),
+            fetchPourashavas(id),
+        ]);
     },
 );
 
@@ -255,10 +318,8 @@ watch(
     () => form.upazila,
     async (id) => {
         if (initializing.value) return;
-
         form.union = null;
         unions.value = [];
-
         if (!id) return;
         await fetchUnions(id);
     },
@@ -268,19 +329,21 @@ watch(
     () => form.city_corporation,
     async (id) => {
         if (initializing.value) return;
-
         form.ward = null;
         wards.value = [];
-
-        if (id) {
-            form.district = null;
-            form.upazila = null;
-            form.union = null;
-            upazilas.value = [];
-            unions.value = [];
-        }
         if (!id) return;
         await fetchWards(id);
+    },
+);
+
+watch(
+    () => form.pourashava,
+    async (id) => {
+        if (initializing.value) return;
+        form.pourashava_ward = null;
+        pourashavaWards.value = [];
+        if (!id) return;
+        await fetchPourashavaWards(id);
     },
 );
 
@@ -302,6 +365,15 @@ const cityCorporationOptions = computed(() =>
 );
 const wardOptions = computed(() =>
     wards.value.map((w) => ({ label: label(w), value: w.id })),
+);
+const pourashavaOptions = computed(() =>
+    pourashavas.value.map((p) => ({ label: p.name || p.bn_name, value: p.id })),
+);
+const pourashavaWardOptions = computed(() =>
+    pourashavaWards.value.map((w) => ({
+        label: w.name || w.bn_name,
+        value: w.id,
+    })),
 );
 
 // ==================== REPORTER TYPE (SINGLE-SELECT) ====================
@@ -348,7 +420,9 @@ function submit() {
             type="success"
         />
 
-        <div class="py-10 px-3 flex justify-center items-start">
+        <div
+            class="py-10 px-3 flex justify-center items-start bg-slate-50 min-h-screen"
+        >
             <div
                 class="w-full max-w-[820px] bg-white border border-green-600 rounded-2xl shadow-xl overflow-hidden"
             >
@@ -493,20 +567,6 @@ function submit() {
                                 />
                             </div>
 
-                            <!-- <div class="sm:col-span-2">
-                                <label
-                                    class="block text-sm font-semibold text-slate-700 mb-1"
-                                >
-                                    ঠিকানা
-                                </label>
-                                <TextInput
-                                    v-model="form.address"
-                                    type="text"
-                                    placeholder="স্থায়ী ঠিকানা"
-                                    :error="form.errors.address"
-                                />
-                            </div> -->
-
                             <div>
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
@@ -558,6 +618,7 @@ function submit() {
                             (বিস্তারিত)
                         </h3>
 
+                        <!-- STEP 1 & 2: DIVISION & DISTRICT (Side by Side) -->
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label
@@ -568,142 +629,212 @@ function submit() {
                                 <SelectInput
                                     v-model="form.division"
                                     :options="divisionOptions"
-                                    placeholder="বিভাগ"
+                                    placeholder="— বিভাগ —"
                                     :error="form.errors.division"
                                 />
                             </div>
 
-                            <div v-if="form.division" class="flex items-end">
-                                <p class="text-xs text-slate-500 italic pb-2.5">
-                                    <i
-                                        class="fa-solid fa-info-circle text-green-600"
-                                    ></i>
-                                    জেলা <strong>অথবা</strong> সিটি কর্পোরেশন —
-                                    যেকোনো একটি বেছে নিন
-                                </p>
+                            <div v-if="form.division">
+                                <label
+                                    class="block text-sm font-semibold text-slate-700 mb-1"
+                                >
+                                    জেলা <span class="text-red-500">*</span>
+                                </label>
+                                <SelectInput
+                                    v-model="form.district"
+                                    :options="districtOptions"
+                                    :placeholder="
+                                        loadingDistricts
+                                            ? 'লোড হচ্ছে...'
+                                            : '— জেলা —'
+                                    "
+                                    :error="form.errors.district"
+                                />
                             </div>
                         </div>
 
-                        <!-- DISTRICT PATH -->
-                        <div
-                            v-if="
-                                form.division &&
-                                locationMode !== 'city_corporation'
-                            "
-                            class="mt-4 p-4 bg-green-50 rounded-lg border border-green-200"
-                        >
+                        <!-- INFO MESSAGE -->
+                        <div v-if="form.district" class="mt-3 mb-4">
                             <p
-                                class="text-xs font-semibold text-green-700 mb-3"
+                                class="text-xs text-green-700 font-semibold flex items-center gap-1.5"
                             >
                                 <i
-                                    class="fa-solid fa-map-location-dot mr-1"
+                                    class="fa-solid fa-circle-info text-green-600"
                                 ></i>
-                                জেলা ভিত্তিক ঠিকানা
+                                উপজেলা, পৌরসভা অথবা সিটি কর্পোরেশন — যেকোনো একটি
+                                বেছে নিন
                             </p>
+                        </div>
 
-                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                                <div>
-                                    <label
-                                        class="block text-xs font-semibold text-slate-600 mb-1"
-                                        >জেলা</label
-                                    >
-                                    <SelectInput
-                                        v-model="form.district"
-                                        :options="districtOptions"
-                                        :placeholder="
-                                            loadingDistricts
-                                                ? 'লোড হচ্ছে...'
-                                                : 'জেলা'
-                                        "
-                                        :error="form.errors.district"
-                                    />
+                        <!-- STEP 3: 3 ROWS (Green, Blue, Orange) -->
+                        <div v-if="form.district" class="space-y-4">
+                            <!-- 1. UPAZILA (GREEN ROW) -->
+                            <div
+                                v-show="branch === '' || branch === 'upazila'"
+                                class="p-4 bg-emerald-50/50 rounded-lg border border-emerald-100"
+                            >
+                                <p
+                                    class="text-sm font-bold text-emerald-700 mb-3 flex items-center gap-1.5"
+                                >
+                                    <i class="fa-solid fa-map-location-dot"></i>
+                                    জেলা ভিত্তিক ঠিকানা
+                                </p>
+                                <div
+                                    class="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                                >
+                                    <div>
+                                        <label
+                                            class="block text-xs font-semibold text-slate-700 mb-1"
+                                            >উপজেলা</label
+                                        >
+                                        <SelectInput
+                                            v-model="form.upazila"
+                                            :options="upazilaOptions"
+                                            :placeholder="
+                                                loadingUpazilas
+                                                    ? 'লোড হচ্ছে...'
+                                                    : '— উপজেলা —'
+                                            "
+                                            :error="form.errors.upazila"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-semibold text-slate-700 mb-1"
+                                            >ইউনিয়ন</label
+                                        >
+                                        <SelectInput
+                                            v-model="form.union"
+                                            :options="unionOptions"
+                                            :placeholder="
+                                                loadingUnions
+                                                    ? 'লোড হচ্ছে...'
+                                                    : '— ইউনিয়ন —'
+                                            "
+                                            :error="form.errors.union"
+                                        />
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label
-                                        class="block text-xs font-semibold text-slate-600 mb-1"
-                                        >উপজেলা</label
-                                    >
-                                    <SelectInput
-                                        v-model="form.upazila"
-                                        :options="upazilaOptions"
-                                        :placeholder="
-                                            loadingUpazilas
-                                                ? 'লোড হচ্ছে...'
-                                                : 'উপজেলা'
-                                        "
-                                        :error="form.errors.upazila"
-                                    />
+                            <!-- 2. CITY CORPORATION (BLUE ROW) -->
+                            <div
+                                v-show="branch === '' || branch === 'city_corp'"
+                                class="p-4 bg-blue-50/50 rounded-lg border border-blue-100"
+                            >
+                                <p
+                                    class="text-sm font-bold text-blue-700 mb-3 flex items-center gap-1.5"
+                                >
+                                    <i class="fa-solid fa-city"></i> সিটি
+                                    কর্পোরেশন ভিত্তিক ঠিকানা
+                                </p>
+                                <div
+                                    class="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                                >
+                                    <div>
+                                        <label
+                                            class="block text-xs font-semibold text-slate-700 mb-1"
+                                            >সিটি কর্পোরেশন</label
+                                        >
+                                        <SelectInput
+                                            v-model="form.city_corporation"
+                                            :options="cityCorporationOptions"
+                                            :placeholder="
+                                                loadingCityCorps
+                                                    ? 'লোড হচ্ছে...'
+                                                    : '— সিটি কর্পোরেশন —'
+                                            "
+                                            :error="
+                                                form.errors.city_corporation
+                                            "
+                                        />
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-semibold text-slate-700 mb-1"
+                                            >ওয়ার্ড</label
+                                        >
+                                        <SelectInput
+                                            v-model="form.ward"
+                                            :options="wardOptions"
+                                            :placeholder="
+                                                loadingWards
+                                                    ? 'লোড হচ্ছে...'
+                                                    : '— ওয়ার্ড —'
+                                            "
+                                            :error="form.errors.ward"
+                                        />
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div>
-                                    <label
-                                        class="block text-xs font-semibold text-slate-600 mb-1"
-                                        >ইউনিয়ন</label
-                                    >
-                                    <SelectInput
-                                        v-model="form.union"
-                                        :options="unionOptions"
-                                        :placeholder="
-                                            loadingUnions
-                                                ? 'লোড হচ্ছে...'
-                                                : 'ইউনিয়ন'
-                                        "
-                                        :error="form.errors.union"
-                                    />
+                            <!-- 3. POURASHAVA (ORANGE ROW) -->
+                            <div
+                                v-show="
+                                    branch === '' || branch === 'pourashava'
+                                "
+                                class="p-4 bg-amber-50/50 rounded-lg border border-amber-100"
+                            >
+                                <p
+                                    class="text-sm font-bold text-amber-700 mb-3 flex items-center gap-1.5"
+                                >
+                                    <i class="fa-solid fa-building"></i> পৌরসভা
+                                    ভিত্তিক ঠিকানা
+                                </p>
+                                <div
+                                    class="grid grid-cols-1 sm:grid-cols-2 gap-4"
+                                >
+                                    <div>
+                                        <label
+                                            class="block text-xs font-semibold text-slate-700 mb-1"
+                                            >পৌরসভা</label
+                                        >
+                                        <SelectInput
+                                            v-model="form.pourashava"
+                                            :options="pourashavaOptions"
+                                            :placeholder="
+                                                loadingPourashavas
+                                                    ? 'লোড হচ্ছে...'
+                                                    : '— পৌরসভা —'
+                                            "
+                                            :error="form.errors.pourashava"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="block text-xs font-semibold text-slate-700 mb-1"
+                                            >ওয়ার্ড</label
+                                        >
+                                        <SelectInput
+                                            v-model="form.pourashava_ward"
+                                            :options="pourashavaWardOptions"
+                                            :placeholder="
+                                                loadingPourashavaWards
+                                                    ? 'লোড হচ্ছে...'
+                                                    : '— ওয়ার্ড —'
+                                            "
+                                            :error="form.errors.pourashava_ward"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- CITY CORPORATION PATH -->
-                        <div
-                            v-if="form.division && locationMode !== 'district'"
-                            class="mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200"
-                        >
-                            <p class="text-xs font-semibold text-blue-700 mb-3">
-                                <i class="fa-solid fa-city mr-1"></i>
-                                সিটি কর্পোরেশন ভিত্তিক ঠিকানা
-                            </p>
-
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div>
-                                    <label
-                                        class="block text-xs font-semibold text-slate-600 mb-1"
-                                        >সিটি কর্পোরেশন</label
-                                    >
-                                    <SelectInput
-                                        v-model="form.city_corporation"
-                                        :options="cityCorporationOptions"
-                                        :placeholder="
-                                            loadingCityCorps
-                                                ? 'লোড হচ্ছে...'
-                                                : 'সিটি কর্পোরেশন'
-                                        "
-                                        :error="form.errors.city_corporation"
-                                    />
-                                </div>
-
-                                <div>
-                                    <label
-                                        class="block text-xs font-semibold text-slate-600 mb-1"
-                                        >ওয়ার্ড</label
-                                    >
-                                    <SelectInput
-                                        v-model="form.ward"
-                                        :options="wardOptions"
-                                        :placeholder="
-                                            loadingWards
-                                                ? 'লোড হচ্ছে...'
-                                                : 'ওয়ার্ড'
-                                        "
-                                        :error="form.errors.ward"
-                                    />
-                                </div>
+                        <!-- Village + Reporter Area -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-5">
+                            <div>
+                                <label
+                                    class="block text-sm font-semibold text-slate-700 mb-1"
+                                    >গ্রাম / এলাকা</label
+                                >
+                                <TextInput
+                                    v-model="form.village"
+                                    type="text"
+                                    placeholder="গ্রাম"
+                                    :error="form.errors.village"
+                                />
                             </div>
-                        </div>
-
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                            <div class="sm:col-span-2">
+                            <div>
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
                                 >
@@ -733,14 +864,12 @@ function submit() {
                             <i class="fa-solid fa-id-badge mr-2"></i>রিপোর্টার
                             টাইপ
                         </h3>
-
                         <p class="text-xs text-slate-500 mb-3">
                             <i
                                 class="fa-solid fa-info-circle text-green-600"
                             ></i>
                             শুধুমাত্র একটি টাইপ নির্বাচন করুন
                         </p>
-
                         <div
                             class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2"
                         >
@@ -779,21 +908,18 @@ function submit() {
                         >
                             <i class="fa-solid fa-lock mr-2"></i>নিরাপত্তা
                         </h3>
-
                         <p class="text-xs text-slate-500 mb-3">
                             <i
                                 class="fa-solid fa-info-circle text-green-600"
                             ></i>
                             পাসওয়ার্ড পরিবর্তন না করতে চাইলে খালি রাখুন
                         </p>
-
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
+                                    >নতুন পাসওয়ার্ড</label
                                 >
-                                    নতুন পাসওয়ার্ড
-                                </label>
                                 <TextInput
                                     v-model="form.password"
                                     type="password"
@@ -801,13 +927,11 @@ function submit() {
                                     :error="form.errors.password"
                                 />
                             </div>
-
                             <div>
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
+                                    >পাসওয়ার্ড নিশ্চিত করুন</label
                                 >
-                                    পাসওয়ার্ড নিশ্চিত করুন
-                                </label>
                                 <TextInput
                                     v-model="form.password_confirmation"
                                     type="password"
@@ -826,7 +950,6 @@ function submit() {
                             <i class="fa-solid fa-file-arrow-up mr-2"></i
                             >প্রয়োজনীয় কাগজপত্র
                         </h3>
-
                         <p class="text-xs text-slate-500 mb-3">
                             <i
                                 class="fa-solid fa-info-circle text-green-600"
@@ -834,14 +957,12 @@ function submit() {
                             ফাইল পরিবর্তন করতে না চাইলে খালি রাখুন — বর্তমান
                             ফাইল সংরক্ষিত থাকবে
                         </p>
-
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
+                                    >প্রোফাইল ছবি</label
                                 >
-                                    প্রোফাইল ছবি
-                                </label>
                                 <FileInput
                                     v-model="form.image"
                                     accept="image/*"
@@ -855,7 +976,6 @@ function submit() {
                                     class="inline-block"
                                 >
                                     <img
-                                        v-if="props.user?.image"
                                         :src="`/storage/${props.user.image}`"
                                         class="w-20 h-20 mt-2 border border-slate-300 rounded"
                                         alt="Image"
@@ -866,9 +986,8 @@ function submit() {
                             <div>
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
+                                    >স্বাক্ষর</label
                                 >
-                                    স্বাক্ষর
-                                </label>
                                 <FileInput
                                     v-model="form.signature"
                                     accept="image/*"
@@ -882,7 +1001,6 @@ function submit() {
                                     class="inline-block"
                                 >
                                     <img
-                                        v-if="props.profile?.signature"
                                         :src="`/storage/${props.profile.signature}`"
                                         class="w-20 h-20 mt-2 border border-slate-300 rounded"
                                         alt="Signature"
@@ -893,9 +1011,8 @@ function submit() {
                             <div class="sm:col-span-2">
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
+                                    >এনআইডি / পাসপোর্ট / জন্ম নিবন্ধন</label
                                 >
-                                    এনআইডি / পাসপোর্ট / জন্ম নিবন্ধন
-                                </label>
                                 <FileInput
                                     v-model="form.nid_file"
                                     accept="image/*,application/pdf"
@@ -909,11 +1026,20 @@ function submit() {
                                     class="inline-block"
                                 >
                                     <img
-                                        v-if="props.profile?.nid_file"
+                                        v-if="
+                                            !props.profile.nid_file.endsWith(
+                                                '.pdf',
+                                            )
+                                        "
                                         :src="`/storage/${props.profile.nid_file}`"
                                         class="w-20 h-20 mt-2 border border-slate-300 rounded"
                                         alt="NID File"
                                     />
+                                    <span
+                                        v-else
+                                        class="text-xs text-blue-500 underline mt-2 block"
+                                        >বর্তমান PDF ডকুমেন্ট দেখুন</span
+                                    >
                                 </a>
                                 <p class="text-xs text-slate-500 mt-1">
                                     <i
@@ -927,9 +1053,8 @@ function submit() {
                             <div class="sm:col-span-2">
                                 <label
                                     class="block text-sm font-semibold text-slate-700 mb-1"
+                                    >এনআইডি নম্বর</label
                                 >
-                                    এনআইডি নম্বর
-                                </label>
                                 <TextInput
                                     v-model="form.nid_number"
                                     type="text"

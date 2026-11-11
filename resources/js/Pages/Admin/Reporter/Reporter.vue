@@ -112,12 +112,26 @@ const locationChain = computed(() => {
     if (!profile.value) return [];
     const p = profile.value;
     const parts = [];
-    if (p.division_data?.name) parts.push(p.division_data.name);
-    if (p.district_data?.name) parts.push(p.district_data.name);
-    if (p.upazila_data?.name) parts.push(p.upazila_data.name);
-    if (p.union_data?.name) parts.push(p.union_data.name);
-    if (p.city_corporation_data?.name) parts.push(p.city_corporation_data.name);
-    if (p.ward_data?.name) parts.push(p.ward_data.name);
+    if (p.division_data?.bn_name || p.division_data?.name)
+        parts.push(p.division_data.bn_name || p.division_data.name);
+    if (p.district_data?.bn_name || p.district_data?.name)
+        parts.push(p.district_data.bn_name || p.district_data.name);
+    if (p.upazila_data?.bn_name || p.upazila_data?.name)
+        parts.push(p.upazila_data.bn_name || p.upazila_data.name);
+    if (p.union_data?.bn_name || p.union_data?.name)
+        parts.push(p.union_data.bn_name || p.union_data.name);
+    if (p.city_corporation_data?.bn_name || p.city_corporation_data?.name)
+        parts.push(
+            p.city_corporation_data.bn_name || p.city_corporation_data?.name,
+        );
+    if (p.ward_data?.bn_name || p.ward_data?.name)
+        parts.push(p.ward_data.bn_name || p.ward_data.name);
+    if (p.pourashava_data?.bn_name || p.pourashava_data?.name)
+        parts.push(p.pourashava_data.bn_name || p.pourashava_data.name);
+    if (p.pourashava_ward_data?.bn_name || p.pourashava_ward_data?.name)
+        parts.push(
+            p.pourashava_ward_data.bn_name || p.pourashava_ward_data.name,
+        );
     if (p.village) parts.push(p.village);
     return parts;
 });

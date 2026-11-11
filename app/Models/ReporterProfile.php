@@ -66,4 +66,14 @@ class ReporterProfile extends Model
 
         return array_filter(array_map('intval', explode(',', $this->reporter_types)));
     }
+
+    public function pourashavaData()
+    {
+        return $this->belongsTo(Pourashava::class, 'pourashava', 'id');
+    }
+
+    public function pourashavaWardData()
+    {
+        return $this->belongsTo(PourashavaWard::class, 'pourashava_ward', 'id');
+    }
 }

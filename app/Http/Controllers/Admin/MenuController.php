@@ -34,7 +34,7 @@ class MenuController extends Controller
 
     public function store(Request $request)
     {
-         $this->authorize('menu.create');
+        $this->authorize('menu.create');
 
         $request->validate([
             'title' => 'required|string|max:191',

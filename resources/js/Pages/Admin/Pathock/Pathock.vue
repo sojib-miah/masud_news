@@ -88,8 +88,14 @@ const locationChain = computed(() => {
         parts.push(p.upazilla.bn_name || p.upazilla.name);
     if (p.union?.bn_name || p.union?.name)
         parts.push(p.union.bn_name || p.union.name);
-    if (p.city_corporation?.name) parts.push(p.city_corporation.name);
-    if (p.ward?.name) parts.push(p.ward.name);
+    if (p.city_corporation?.bn_name || p.city_corporation?.name)
+        parts.push(p.city_corporation.bn_name || p.city_corporation.name);
+    if (p.ward?.bn_name || p.ward?.name)
+        parts.push(p.ward.bn_name || p.ward.name);
+    if (p.pourashava?.bn_name || p.pourashava?.name)
+        parts.push(p.pourashava.bn_name || p.pourashava.name);
+    if (p.pourashava_ward?.bn_name || p.pourashava_ward?.name)
+        parts.push(p.pourashava_ward.bn_name || p.pourashava_ward.name);
     if (p.village) parts.push(p.village);
     return parts;
 });

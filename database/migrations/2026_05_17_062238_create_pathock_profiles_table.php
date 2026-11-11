@@ -20,6 +20,8 @@ return new class extends Migration
             $table->foreignId('union_id')->nullable()->constrained('unions')->nullOnDelete();
             $table->foreignId('city_corporation_id')->nullable()->constrained('city_corporations')->nullOnDelete();
             $table->foreignId('ward_id')->nullable()->constrained('wards')->nullOnDelete();
+            $table->foreignId('pourashava_id')->nullable()->constrained('pourashavas')->nullOnDelete();
+            $table->foreignId('pourashava_ward_id')->nullable()->constrained('pourashava_wards')->nullOnDelete();
             $table->string('village')->nullable();
             $table->string('occupation')->nullable();
             $table->timestamps();

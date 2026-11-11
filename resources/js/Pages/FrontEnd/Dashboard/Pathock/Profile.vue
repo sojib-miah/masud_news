@@ -3,7 +3,7 @@ import Layout from "@/Components/FrontEnd/Pathock/Layout.vue";
 import TextInput from "@/Shared/TextInput.vue";
 import SelectInput from "@/Shared/SelectInput.vue";
 import FlashMessage from "@/Shared/FlashMessage.vue";
-import { Head, useForm, usePage } from "@inertiajs/vue3";
+import { Head, useForm } from "@inertiajs/vue3";
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import { route } from "ziggy-js";
 import axios from "axios";
@@ -14,10 +14,7 @@ const props = defineProps({
     divisions: { type: Array, default: () => [] },
 });
 
-const page = usePage();
-
 // Pick the best human-readable label from an option row.
-// Works whether backend sends `name` or `bn_name`.
 function optionLabel(row) {
     if (!row) return "";
     return row.bn_name || row.name || String(row.id ?? "");
@@ -35,6 +32,8 @@ const form = useForm({
     union_id: props.profile?.union_id || "",
     city_corporation_id: props.profile?.city_corporation_id || "",
     ward_id: props.profile?.ward_id || "",
+    pourashava_id: props.profile?.pourashava_id || "",
+    pourashava_ward_id: props.profile?.pourashava_ward_id || "",
 
     village: props.profile?.village || "",
     occupation: props.profile?.occupation || "",
@@ -51,16 +50,22 @@ const upazilas = ref([]);
 const unions = ref([]);
 const cityCorporations = ref([]);
 const wards = ref([]);
+const pourashavas = ref([]);
+const pourashavaWards = ref([]);
 
 const loadingDistricts = ref(false);
 const loadingUpazilas = ref(false);
 const loadingUnions = ref(false);
 const loadingCityCorps = ref(false);
 const loadingWards = ref(false);
+const loadingPourashavas = ref(false);
+const loadingPourashavaWards = ref(false);
 
+// "district" | "city_corporation" | "pourashava" | ""
 const locationMode = computed(() => {
     if (form.city_corporation_id) return "city_corporation";
-    if (form.district_id) return "district";
+    if (form.pourashava_id) return "pourashava";
+    if (form.upazilla_id || form.union_id) return "district";
     return "";
 });
 
@@ -71,15 +76,23 @@ let cityCorpAbort = null;
 let upazilaAbort = null;
 let unionAbort = null;
 let wardAbort = null;
+let pourashavaAbort = null;
+let pourashavaWardAbort = null;
 
 function abortAll() {
-    [districtAbort, cityCorpAbort, upazilaAbort, unionAbort, wardAbort].forEach(
-        (ctrl) => ctrl && ctrl.abort(),
-    );
+    [
+        districtAbort,
+        cityCorpAbort,
+        upazilaAbort,
+        unionAbort,
+        wardAbort,
+        pourashavaAbort,
+        pourashavaWardAbort,
+    ].forEach((c) => c && c.abort());
 }
 onBeforeUnmount(abortAll);
 
-// ==================== FETCH HELPERS ====================
+// ==================== FETCHERS ====================
 async function fetchDistricts(divisionId) {
     if (districtAbort) districtAbort.abort();
     districtAbort = new AbortController();
@@ -93,22 +106,6 @@ async function fetchDistricts(divisionId) {
         if (!axios.isCancel(e)) console.error("districts", e);
     } finally {
         loadingDistricts.value = false;
-    }
-}
-
-async function fetchCityCorporations(divisionId) {
-    if (cityCorpAbort) cityCorpAbort.abort();
-    cityCorpAbort = new AbortController();
-    loadingCityCorps.value = true;
-    try {
-        const { data } = await axios.get(`/city-corporations/${divisionId}`, {
-            signal: cityCorpAbort.signal,
-        });
-        cityCorporations.value = data;
-    } catch (e) {
-        if (!axios.isCancel(e)) console.error("city-corporations", e);
-    } finally {
-        loadingCityCorps.value = false;
     }
 }
 
@@ -144,6 +141,22 @@ async function fetchUnions(upazilaId) {
     }
 }
 
+async function fetchCityCorporations(districtId) {
+    if (cityCorpAbort) cityCorpAbort.abort();
+    cityCorpAbort = new AbortController();
+    loadingCityCorps.value = true;
+    try {
+        const { data } = await axios.get(`/city-corporations/${districtId}`, {
+            signal: cityCorpAbort.signal,
+        });
+        cityCorporations.value = data;
+    } catch (e) {
+        if (!axios.isCancel(e)) console.error("city-corporations", e);
+    } finally {
+        loadingCityCorps.value = false;
+    }
+}
+
 async function fetchWards(cityCorpId) {
     if (wardAbort) wardAbort.abort();
     wardAbort = new AbortController();
@@ -160,29 +173,61 @@ async function fetchWards(cityCorpId) {
     }
 }
 
-// ==================== INITIAL LOAD ====================
+async function fetchPourashavas(districtId) {
+    if (pourashavaAbort) pourashavaAbort.abort();
+    pourashavaAbort = new AbortController();
+    loadingPourashavas.value = true;
+    try {
+        const { data } = await axios.get(`/pourashava/${districtId}`, {
+            signal: pourashavaAbort.signal,
+        });
+        pourashavas.value = data;
+    } catch (e) {
+        if (!axios.isCancel(e)) console.error("pourashavas", e);
+    } finally {
+        loadingPourashavas.value = false;
+    }
+}
+
+async function fetchPourashavaWards(pourashavaId) {
+    if (pourashavaWardAbort) pourashavaWardAbort.abort();
+    pourashavaWardAbort = new AbortController();
+    loadingPourashavaWards.value = true;
+    try {
+        const { data } = await axios.get(`/pourashava-wards/${pourashavaId}`, {
+            signal: pourashavaWardAbort.signal,
+        });
+        pourashavaWards.value = data;
+    } catch (e) {
+        if (!axios.isCancel(e)) console.error("pourashava-wards", e);
+    } finally {
+        loadingPourashavaWards.value = false;
+    }
+}
+
+// ==================== INITIAL PREFILL ====================
 onMounted(async () => {
     const tasks = [];
 
-    if (form.division_id) {
-        tasks.push(fetchDistricts(form.division_id));
-        tasks.push(fetchCityCorporations(form.division_id));
-    }
+    if (form.division_id) tasks.push(fetchDistricts(form.division_id));
     if (form.district_id) {
         tasks.push(fetchUpazilas(form.district_id));
+        tasks.push(fetchCityCorporations(form.district_id));
+        tasks.push(fetchPourashavas(form.district_id));
     }
-    if (form.upazilla_id) {
-        tasks.push(fetchUnions(form.upazilla_id));
-    }
-    if (form.city_corporation_id) {
+    if (form.upazilla_id) tasks.push(fetchUnions(form.upazilla_id));
+    if (form.city_corporation_id)
         tasks.push(fetchWards(form.city_corporation_id));
-    }
+    if (form.pourashava_id)
+        tasks.push(fetchPourashavaWards(form.pourashava_id));
 
     await Promise.all(tasks);
     initializing.value = false;
 });
 
 // ==================== CASCADE WATCHERS ====================
+
+// Division → load districts only
 watch(
     () => form.division_id,
     async (id) => {
@@ -193,18 +238,23 @@ watch(
         form.union_id = "";
         form.city_corporation_id = "";
         form.ward_id = "";
+        form.pourashava_id = "";
+        form.pourashava_ward_id = "";
 
         districts.value = [];
         upazilas.value = [];
         unions.value = [];
         cityCorporations.value = [];
         wards.value = [];
+        pourashavas.value = [];
+        pourashavaWards.value = [];
 
         if (!id) return;
-        await Promise.all([fetchDistricts(id), fetchCityCorporations(id)]);
+        await fetchDistricts(id);
     },
 );
 
+// District → load upazilas, city corps, pourashavas in parallel
 watch(
     () => form.district_id,
     async (id) => {
@@ -212,20 +262,28 @@ watch(
 
         form.upazilla_id = "";
         form.union_id = "";
+        form.city_corporation_id = "";
+        form.ward_id = "";
+        form.pourashava_id = "";
+        form.pourashava_ward_id = "";
+
         upazilas.value = [];
         unions.value = [];
-
-        if (id) {
-            form.city_corporation_id = "";
-            form.ward_id = "";
-            wards.value = [];
-        }
+        cityCorporations.value = [];
+        wards.value = [];
+        pourashavas.value = [];
+        pourashavaWards.value = [];
 
         if (!id) return;
-        await fetchUpazilas(id);
+        await Promise.all([
+            fetchUpazilas(id),
+            fetchCityCorporations(id),
+            fetchPourashavas(id),
+        ]);
     },
 );
 
+// Upazila → load unions
 watch(
     () => form.upazilla_id,
     async (id) => {
@@ -239,6 +297,7 @@ watch(
     },
 );
 
+// City corporation → load wards
 watch(
     () => form.city_corporation_id,
     async (id) => {
@@ -247,16 +306,70 @@ watch(
         form.ward_id = "";
         wards.value = [];
 
-        if (id) {
-            form.district_id = "";
-            form.upazilla_id = "";
-            form.union_id = "";
-            upazilas.value = [];
-            unions.value = [];
-        }
-
         if (!id) return;
         await fetchWards(id);
+    },
+);
+
+// Pourashava → load pourashava wards
+watch(
+    () => form.pourashava_id,
+    async (id) => {
+        if (initializing.value) return;
+
+        form.pourashava_ward_id = "";
+        pourashavaWards.value = [];
+
+        if (!id) return;
+        await fetchPourashavaWards(id);
+    },
+);
+
+// ==================== MUTUAL EXCLUSIVITY ====================
+// Picking city corp clears the district-path and pourashava-path
+watch(
+    () => form.city_corporation_id,
+    (id) => {
+        if (initializing.value || !id) return;
+        form.upazilla_id = "";
+        form.union_id = "";
+        upazilas.value = [];
+        unions.value = [];
+
+        form.pourashava_id = "";
+        form.pourashava_ward_id = "";
+        pourashavaWards.value = [];
+    },
+);
+
+// Picking pourashava clears the district-path and city-corp-path
+watch(
+    () => form.pourashava_id,
+    (id) => {
+        if (initializing.value || !id) return;
+        form.upazilla_id = "";
+        form.union_id = "";
+        upazilas.value = [];
+        unions.value = [];
+
+        form.city_corporation_id = "";
+        form.ward_id = "";
+        wards.value = [];
+    },
+);
+
+// Picking upazila clears the city-corp-path and pourashava-path
+watch(
+    () => form.upazilla_id,
+    (id) => {
+        if (initializing.value || !id) return;
+        form.city_corporation_id = "";
+        form.ward_id = "";
+        wards.value = [];
+
+        form.pourashava_id = "";
+        form.pourashava_ward_id = "";
+        pourashavaWards.value = [];
     },
 );
 
@@ -326,6 +439,12 @@ const cityCorporationOptions = computed(() =>
 );
 const wardOptions = computed(() =>
     wards.value.map((w) => ({ label: optionLabel(w), value: w.id })),
+);
+const pourashavaOptions = computed(() =>
+    pourashavas.value.map((p) => ({ label: optionLabel(p), value: p.id })),
+);
+const pourashavaWardOptions = computed(() =>
+    pourashavaWards.value.map((w) => ({ label: optionLabel(w), value: w.id })),
 );
 </script>
 
@@ -433,28 +552,42 @@ const wardOptions = computed(() =>
                             </h3>
 
                             <div class="field-grid">
-                                <div class="field full">
+                                <div class="field">
                                     <label class="field-label">বিভাগ</label>
                                     <SelectInput
                                         v-model="form.division_id"
                                         :options="divisionOptions"
-                                        placeholder="বিভাগ নির্বাচন করুন"
+                                        placeholder="— বিভাগ নির্বাচন করুন —"
                                         :error="form.errors.division_id"
+                                    />
+                                </div>
+                                <div class="field" v-if="form.division_id">
+                                    <label class="field-label">জেলা</label>
+                                    <SelectInput
+                                        v-model="form.district_id"
+                                        :options="districtOptions"
+                                        :placeholder="
+                                            loadingDistricts
+                                                ? 'লোড হচ্ছে...'
+                                                : '— জেলা —'
+                                        "
+                                        :error="form.errors.district_id"
                                     />
                                 </div>
                             </div>
 
                             <p v-if="form.division_id" class="mode-hint">
                                 <i class="fa-solid fa-info-circle"></i>
-                                জেলা <strong>অথবা</strong> সিটি কর্পোরেশন —
-                                যেকোনো একটি বেছে নিন
+                                উপজেলা, পৌরসভা <strong>অথবা</strong> সিটি
+                                কর্পোরেশন — যেকোনো একটি বেছে নিন
                             </p>
 
                             <!-- DISTRICT PATH -->
                             <div
                                 v-if="
-                                    form.division_id &&
-                                    locationMode !== 'city_corporation'
+                                    form.district_id &&
+                                    locationMode !== 'city_corporation' &&
+                                    locationMode !== 'pourashava'
                                 "
                                 class="path-box district"
                             >
@@ -462,20 +595,7 @@ const wardOptions = computed(() =>
                                     <i class="fa-solid fa-map-location-dot"></i>
                                     জেলা ভিত্তিক ঠিকানা
                                 </p>
-                                <div class="field-grid three">
-                                    <div class="field">
-                                        <label class="field-label">জেলা</label>
-                                        <SelectInput
-                                            v-model="form.district_id"
-                                            :options="districtOptions"
-                                            :placeholder="
-                                                loadingDistricts
-                                                    ? 'লোড হচ্ছে...'
-                                                    : 'জেলা'
-                                            "
-                                            :error="form.errors.district_id"
-                                        />
-                                    </div>
+                                <div class="field-grid">
                                     <div class="field">
                                         <label class="field-label"
                                             >উপজেলা</label
@@ -486,7 +606,7 @@ const wardOptions = computed(() =>
                                             :placeholder="
                                                 loadingUpazilas
                                                     ? 'লোড হচ্ছে...'
-                                                    : 'উপজেলা'
+                                                    : '— উপজেলা —'
                                             "
                                             :error="form.errors.upazilla_id"
                                         />
@@ -501,7 +621,7 @@ const wardOptions = computed(() =>
                                             :placeholder="
                                                 loadingUnions
                                                     ? 'লোড হচ্ছে...'
-                                                    : 'ইউনিয়ন'
+                                                    : '— ইউনিয়ন —'
                                             "
                                             :error="form.errors.union_id"
                                         />
@@ -512,8 +632,9 @@ const wardOptions = computed(() =>
                             <!-- CITY CORPORATION PATH -->
                             <div
                                 v-if="
-                                    form.division_id &&
-                                    locationMode !== 'district'
+                                    form.district_id &&
+                                    locationMode !== 'district' &&
+                                    locationMode !== 'pourashava'
                                 "
                                 class="path-box city"
                             >
@@ -532,7 +653,7 @@ const wardOptions = computed(() =>
                                             :placeholder="
                                                 loadingCityCorps
                                                     ? 'লোড হচ্ছে...'
-                                                    : 'সিটি কর্পোরেশন'
+                                                    : '— সিটি কর্পোরেশন —'
                                             "
                                             :error="
                                                 form.errors.city_corporation_id
@@ -549,9 +670,58 @@ const wardOptions = computed(() =>
                                             :placeholder="
                                                 loadingWards
                                                     ? 'লোড হচ্ছে...'
-                                                    : 'ওয়ার্ড'
+                                                    : '— ওয়ার্ড —'
                                             "
                                             :error="form.errors.ward_id"
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- POURASHAVA PATH -->
+                            <div
+                                v-if="
+                                    form.district_id &&
+                                    locationMode !== 'district' &&
+                                    locationMode !== 'city_corporation'
+                                "
+                                class="path-box pouro"
+                            >
+                                <p class="path-label">
+                                    <i class="fa-solid fa-building-columns"></i>
+                                    পৌরসভা ভিত্তিক ঠিকানা
+                                </p>
+                                <div class="field-grid">
+                                    <div class="field">
+                                        <label class="field-label"
+                                            >পৌরসভা</label
+                                        >
+                                        <SelectInput
+                                            v-model="form.pourashava_id"
+                                            :options="pourashavaOptions"
+                                            :placeholder="
+                                                loadingPourashavas
+                                                    ? 'লোড হচ্ছে...'
+                                                    : '— পৌরসভা —'
+                                            "
+                                            :error="form.errors.pourashava_id"
+                                        />
+                                    </div>
+                                    <div class="field">
+                                        <label class="field-label"
+                                            >ওয়ার্ড</label
+                                        >
+                                        <SelectInput
+                                            v-model="form.pourashava_ward_id"
+                                            :options="pourashavaWardOptions"
+                                            :placeholder="
+                                                loadingPourashavaWards
+                                                    ? 'লোড হচ্ছে...'
+                                                    : '— ওয়ার্ড —'
+                                            "
+                                            :error="
+                                                form.errors.pourashava_ward_id
+                                            "
                                         />
                                     </div>
                                 </div>
@@ -721,7 +891,6 @@ const wardOptions = computed(() =>
     font-weight: 800;
     line-height: 1.3;
 }
-
 .header-subtitle {
     margin: 2px 0 0;
     font-size: 0.82rem;
@@ -744,7 +913,6 @@ const wardOptions = computed(() =>
     flex-direction: column;
     gap: 22px;
 }
-
 @media (min-width: 640px) {
     .profile-form {
         padding: 26px;
@@ -760,13 +928,11 @@ const wardOptions = computed(() =>
     padding-bottom: 18px;
     border-bottom: 1px solid #e2e8f0;
 }
-
 .avatar-wrap {
     position: relative;
     width: 100px;
     height: 100px;
 }
-
 .avatar-img {
     width: 100%;
     height: 100%;
@@ -777,7 +943,6 @@ const wardOptions = computed(() =>
         0 0 0 2px #00930c,
         0 4px 14px rgba(0, 147, 12, 0.2);
 }
-
 @media (min-width: 640px) {
     .avatar-wrap {
         width: 116px;
@@ -803,15 +968,12 @@ const wardOptions = computed(() =>
     border: 2px solid #fff;
     transition: transform 0.2s ease;
 }
-
 .avatar-upload:hover {
     transform: scale(1.08);
 }
-
 .avatar-input {
     display: none;
 }
-
 .avatar-error {
     color: #dc2626;
     font-size: 0.78rem;
@@ -832,7 +994,6 @@ const wardOptions = computed(() =>
     text-transform: uppercase;
     letter-spacing: 0.4px;
 }
-
 .section-title i {
     color: #00930c;
     font-size: 0.95rem;
@@ -848,7 +1009,6 @@ const wardOptions = computed(() =>
     padding-bottom: 8px;
     border-bottom: 2px solid #f1f5f9;
 }
-
 .section-header-row .section-title {
     margin-bottom: 0;
     padding-bottom: 0;
@@ -861,11 +1021,9 @@ const wardOptions = computed(() =>
     grid-template-columns: 1fr;
     gap: 14px;
 }
-
 .field-grid.three {
     grid-template-columns: 1fr;
 }
-
 @media (min-width: 640px) {
     .field-grid {
         grid-template-columns: 1fr 1fr;
@@ -874,14 +1032,12 @@ const wardOptions = computed(() =>
         grid-template-columns: repeat(3, 1fr);
     }
 }
-
 .field {
     min-width: 0;
 }
 .field.full {
     grid-column: 1 / -1;
 }
-
 .field-label {
     display: block;
     margin-bottom: 4px;
@@ -903,7 +1059,6 @@ const wardOptions = computed(() =>
     border-radius: 8px;
     font-size: 0.8rem;
 }
-
 .mode-hint i {
     color: #00930c;
 }
@@ -915,17 +1070,18 @@ const wardOptions = computed(() =>
     border-radius: 10px;
     border: 1px solid;
 }
-
 .path-box.district {
     background: #f0fdf4;
     border-color: #bbf7d0;
 }
-
 .path-box.city {
     background: #eff6ff;
     border-color: #bfdbfe;
 }
-
+.path-box.pouro {
+    background: #fffbeb;
+    border-color: #fde68a;
+}
 .path-label {
     display: flex;
     align-items: center;
@@ -936,12 +1092,14 @@ const wardOptions = computed(() =>
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
-
 .path-box.district .path-label {
     color: #006b09;
 }
 .path-box.city .path-label {
     color: #1d4ed8;
+}
+.path-box.pouro .path-label {
+    color: #b45309;
 }
 
 /* ==================== TOGGLE PASSWORD ==================== */
@@ -960,11 +1118,9 @@ const wardOptions = computed(() =>
     transition: background 0.2s;
     font-family: inherit;
 }
-
 .toggle-pwd-btn:hover {
     background: #dcfce7;
 }
-
 .pwd-hint {
     display: flex;
     align-items: center;
@@ -977,7 +1133,6 @@ const wardOptions = computed(() =>
     border-radius: 8px;
     border: 1px dashed #cbd5e1;
 }
-
 .pwd-hint i {
     color: #00930c;
     flex-shrink: 0;
@@ -988,7 +1143,6 @@ const wardOptions = computed(() =>
     padding-top: 18px;
     border-top: 1px solid #e2e8f0;
 }
-
 .submit-btn {
     display: inline-flex;
     align-items: center;
@@ -1009,12 +1163,10 @@ const wardOptions = computed(() =>
         box-shadow 0.2s;
     font-family: inherit;
 }
-
 .submit-btn:hover:not(:disabled) {
     transform: translateY(-1px);
     box-shadow: 0 10px 26px rgba(0, 147, 12, 0.35);
 }
-
 .submit-btn:disabled {
     opacity: 0.65;
     cursor: not-allowed;
@@ -1027,7 +1179,6 @@ const wardOptions = computed(() =>
         opacity 0.25s ease,
         transform 0.25s ease;
 }
-
 .slide-fade-enter-from,
 .slide-fade-leave-to {
     opacity: 0;
@@ -1051,17 +1202,14 @@ const wardOptions = computed(() =>
     .header-subtitle {
         font-size: 0.74rem;
     }
-
     .profile-form {
         padding: 16px;
         gap: 18px;
     }
-
     .avatar-wrap {
         width: 88px;
         height: 88px;
     }
-
     .section-title {
         font-size: 0.84rem;
     }
@@ -1071,7 +1219,6 @@ const wardOptions = computed(() =>
     .field-grid {
         gap: 12px;
     }
-
     .submit-btn {
         padding: 12px 16px;
         font-size: 0.86rem;

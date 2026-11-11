@@ -9,6 +9,8 @@ use App\Models\Division;
 use App\Models\Education;
 use App\Models\EducationYear;
 use App\Models\PathockProfile;
+use App\Models\Pourashava;
+use App\Models\PourashavaWard;
 use App\Models\ReporterArea;
 use App\Models\ReporterProfile;
 use App\Models\ReporterType;
@@ -94,10 +96,10 @@ class RegisterController extends Controller
             ->get();
     }
 
-    public function getCityCorporations($divisionId)
+    public function getCityCorporations($districtId)
     {
-        return CityCorporation::where('division_id', $divisionId)
-            ->select('id', 'name')
+        return CityCorporation::where('district_id', $districtId)
+            ->select('id', 'bn_name')
             ->orderBy('name')
             ->get();
     }
@@ -105,7 +107,23 @@ class RegisterController extends Controller
     public function getWards($cityCorporationId)
     {
         return Ward::where('city_corporation_id', $cityCorporationId)
-            ->select('id', 'name')
+            ->select('id', 'bn_name')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function getPourashava($districtId)
+    {
+        return Pourashava::where('district_id', $districtId)
+            ->select('id', 'bn_name')
+            ->orderBy('name')
+            ->get();
+    }
+
+    public function getPourashavaWards($pourashavaId)
+    {
+        return PourashavaWard::where('pourashava_id', $pourashavaId)
+            ->select('id', 'bn_name')
             ->orderBy('name')
             ->get();
     }
@@ -113,56 +131,73 @@ class RegisterController extends Controller
     public function storePathock(Request $request)
     {
         $data = $request->validate([
-            'name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20|unique:users,phone',
+            'name'     => 'required|string|max:255',
+            'phone'    => 'required|string|max:20|unique:users,phone',
             'password' => 'required|min:6|confirmed',
-            'email' => 'nullable|email|unique:users,email',
+            'email'    => 'nullable|email|unique:users,email',
 
             'division_id' => 'nullable|exists:divisions,id',
             // District path
             'district_id' => 'nullable|exists:districts,id',
             'upazilla_id' => 'nullable|exists:upazilas,id',
-            'union_id' => 'nullable|exists:unions,id',
+            'union_id'    => 'nullable|exists:unions,id',
             // City corporation path
             'city_corporation_id' => 'nullable|exists:city_corporations,id',
-            'ward_id' => 'nullable|exists:wards,id',
+            'ward_id'             => 'nullable|exists:wards,id',
+            // Pourashava path
+            'pourashava_id'       => 'nullable|exists:pourashavas,id',
+            'pourashava_ward_id'  => 'nullable|exists:pourashava_wards,id',
 
-            'village' => 'nullable|string|max:255',
+            'village'    => 'nullable|string|max:255',
             'occupation' => 'nullable|string|max:255',
-            'ref' => 'nullable|string|max:255',
+            'ref'        => 'nullable|string|max:255',
         ]);
 
         // ---------------- LOCATION EXCLUSIVITY ----------------
-        // If user picked a district, clear city corporation fields (and vice versa)
-        if (! empty($data['district_id'])) {
+        // district_id is the common parent for all three sub-paths; keep it.
+        // Only one sub-path (district / city corp / pourashava) may have data.
+        if (! empty($data['city_corporation_id'])) {
+            // City corporation chosen → drop district & pourashava sub-paths
+            $data['upazilla_id']        = null;
+            $data['union_id']           = null;
+            $data['pourashava_id']      = null;
+            $data['pourashava_ward_id'] = null;
+        } elseif (! empty($data['pourashava_id'])) {
+            // Pourashava chosen → drop district & city corp sub-paths
+            $data['upazilla_id']        = null;
+            $data['union_id']           = null;
             $data['city_corporation_id'] = null;
-            $data['ward_id'] = null;
-        } elseif (! empty($data['city_corporation_id'])) {
-            $data['district_id'] = null;
-            $data['upazilla_id'] = null;
-            $data['union_id'] = null;
+            $data['ward_id']            = null;
+        } else {
+            // District path chosen (or nothing) → drop city corp & pourashava
+            $data['city_corporation_id'] = null;
+            $data['ward_id']            = null;
+            $data['pourashava_id']      = null;
+            $data['pourashava_ward_id'] = null;
         }
 
         // ---------------- CREATE USER ----------------
         $user = User::create([
-            'name' => $data['name'],
-            'phone' => $data['phone'],
+            'name'     => $data['name'],
+            'phone'    => $data['phone'],
             'password' => Hash::make($data['password']),
-            'role' => 'pathock',
-            'email' => $data['email'] ?? 'pathock' . Str::random(5) . '@pathock.com',
+            'role'     => 'pathock',
+            'email'    => $data['email'] ?? 'pathock' . Str::random(5) . '@pathock.com',
         ]);
 
         // ---------------- CREATE PROFILE ----------------
         PathockProfile::create([
-            'user_id' => $user->id,
-            'division_id' => $data['division_id'] ?? null,
-            'district_id' => $data['district_id'] ?? null,
-            'upazilla_id' => $data['upazilla_id'] ?? null,
-            'union_id' => $data['union_id'] ?? null,
+            'user_id'             => $user->id,
+            'division_id'         => $data['division_id']         ?? null,
+            'district_id'         => $data['district_id']         ?? null,
+            'upazilla_id'         => $data['upazilla_id']         ?? null,
+            'union_id'            => $data['union_id']            ?? null,
             'city_corporation_id' => $data['city_corporation_id'] ?? null,
-            'ward_id' => $data['ward_id'] ?? null,
-            'village' => $data['village'] ?? null,
-            'occupation' => $data['occupation'] ?? null,
+            'ward_id'             => $data['ward_id']             ?? null,
+            'pourashava_id'       => $data['pourashava_id']       ?? null,
+            'pourashava_ward_id'  => $data['pourashava_ward_id']  ?? null,
+            'village'             => $data['village']             ?? null,
+            'occupation'          => $data['occupation']          ?? null,
         ]);
 
         // ---------------- REFERRAL ----------------
@@ -174,9 +209,7 @@ class RegisterController extends Controller
             }
         }
 
-        return redirect()
-            ->route('user.login')
-            ->with('status', 'Pathock Registered Successfully');
+        return redirect()->route('user.login')->with('status', 'Pathock Registered Successfully');
     }
 
     public function storeMotamot(Request $request)
@@ -222,6 +255,9 @@ class RegisterController extends Controller
             // City corporation path
             'city_corporation' => 'nullable|exists:city_corporations,id',
             'ward' => 'nullable|exists:wards,id',
+            // pourashava path 
+            'pourashava'       => 'nullable|exists:pourashavas,id',
+            'pourashava_ward'  => 'nullable|exists:pourashava_wards,id',
 
             'village' => 'nullable|string|max:255',
             'reporter_area' => 'required|string',
@@ -235,13 +271,26 @@ class RegisterController extends Controller
         ]);
 
         // ---------- LOCATION EXCLUSIVITY ----------
-        if (! empty($data['district'])) {
+        // Only one sub-path (upazila / city corp / pourashava) may have data.
+
+        if (! empty($data['city_corporation'])) {
+            // City corporation chosen → drop district path & pourashava path
+            $data['upazila']         = null;
+            $data['union']           = null;
+            $data['pourashava']      = null;
+            $data['pourashava_ward'] = null;
+        } elseif (! empty($data['pourashava'])) {
+            // Pourashava chosen → drop district path & city corp path
+            $data['upazila']          = null;
+            $data['union']            = null;
             $data['city_corporation'] = null;
-            $data['ward'] = null;
-        } elseif (! empty($data['city_corporation'])) {
-            $data['district'] = null;
-            $data['upazila'] = null;
-            $data['union'] = null;
+            $data['ward']             = null;
+        } else {
+            // Upazila path chosen (or nothing) → drop city corp & pourashava
+            $data['city_corporation'] = null;
+            $data['ward']             = null;
+            $data['pourashava']       = null;
+            $data['pourashava_ward']  = null;
         }
 
         $imagePath = $request->file('image')->store('images/avatars', 'public');
@@ -275,6 +324,8 @@ class RegisterController extends Controller
             'union' => $data['union'] ?? null,
             'city_corporation' => $data['city_corporation'] ?? null,
             'ward' => $data['ward'] ?? null,
+            'pourashava' => $data['pourashava'] ?? null,
+            'pourashava_ward' => $data['pourashava_ward'] ?? null,
             'village' => $data['village'] ?? null,
             'reporter_area' => $data['reporter_area'],
             'nid_number' => $data['nid_number'] ?? null,

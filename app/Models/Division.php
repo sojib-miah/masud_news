@@ -14,9 +14,4 @@ class Division extends Model
     {
         return $this->hasMany(District::class);
     }
-
-    public function cityCorporations()
-    {
-        return $this->hasMany(CityCorporation::class);
-    }
 }
