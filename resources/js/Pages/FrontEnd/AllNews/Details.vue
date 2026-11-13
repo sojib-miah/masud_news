@@ -91,7 +91,9 @@ const completeViewCount = async () => {
         }
 
         // Only a successful Pathock response counts as success.
-        if (data.success === true) {
+        if (data.already_viewed === true) {
+            viewStatus.value = "already-viewed";
+        } else if (data.success === true) {
             viewStatus.value = "completed";
         } else {
             viewStatus.value = "failed";
@@ -173,9 +175,21 @@ const reporterImage = computed(() => {
 
 const reporterName = computed(() => props.news.user?.name || "স্টাফ রিপোর্টার");
 
+// const reporterTypes = computed(() => {
+//     const types = props.news.user?.reporter_profile?.types;
+//     if (!types || !types.length) return "ডেস্ক রিপোর্টার";
+//     return types.map((t) => t.name).join(", ");
+// });
 const reporterTypes = computed(() => {
-    const types = props.news.user?.reporter_profile?.types;
-    if (!types || !types.length) return "ডেস্ক রিপোর্টার";
+    const user = props.news.user;
+    // Admin হলে reporter type দেখাবে না
+    if (user?.roles?.some((role) => role.name === "admin")) {
+        return "";
+    }
+    const types = user?.reporter_profile?.types;
+    if (!types || !types.length) {
+        return "ডেস্ক রিপোর্টার";
+    }
     return types.map((t) => t.name).join(", ");
 });
 
@@ -637,6 +651,12 @@ function truncate(text, words = 9) {
 <template>
     <Layout>
         <Head :title="news.title" />
+        <!-- Full-page progress border -->
+        <div
+            class="global-view-progress-border"
+            :style="{ '--view-progress': viewProgress + '%' }"
+            aria-hidden="true"
+        ></div>
 
         <!-- Non-blocking login notification -->
         <Transition name="visitor-toast">
@@ -659,7 +679,9 @@ function truncate(text, words = 9) {
                 </div>
                 <div class="visitor-toast-content">
                     <strong>আপনি লগইন করেননি!</strong>
-                    <p>নিউজ পড়ে ভিউ থেকে আয় করতে পাঠক অ্যাকাউন্টে লগইন করুন।</p>
+                    <p class="leading-6">
+                        নিউজ পড়ে ভিউ থেকে আয় করতে পাঠক অ্যাকাউন্টে লগইন করুন।
+                    </p>
                     <Link
                         :href="route('user.login')"
                         class="visitor-login-button"
@@ -681,7 +703,7 @@ function truncate(text, words = 9) {
                             class="view-timer-heading"
                             v-if="viewStatus === 'waiting'"
                         >
-                            <span
+                            <span class="leading-6"
                                 ><i class="fa-regular fa-clock"></i> সংবাদটি 2০
                                 সেকেন্ড পড়ুন</span
                             >
@@ -689,36 +711,40 @@ function truncate(text, words = 9) {
                         </div>
                         <div
                             v-else-if="viewStatus === 'processing'"
-                            class="view-result processing"
+                            class="view-result processing leading-6"
                         >
                             আপনার ভিউ গণনা হচ্ছে...
                         </div>
                         <div
                             v-else-if="viewStatus === 'completed'"
-                            class="view-result success"
+                            class="view-result success leading-6"
                         >
                             <i class="fa-solid fa-circle-check"></i> ভিউ সফলভাবে
                             গণনা হয়েছে
                         </div>
                         <div
                             v-else-if="viewStatus === 'not-eligible'"
-                            class="view-result warning"
+                            class="view-result warning leading-6"
                         >
                             ভিউ থেকে আয় করতে পাঠক অ্যাকাউন্ট প্রয়োজন
                         </div>
                         <div
                             v-else-if="viewStatus === 'login-required'"
-                            class="view-result warning"
+                            class="view-result warning leading-6"
                         >
                             লগইন করলে এই ভিউ থেকে আয় করতে পারবেন।
                         </div>
                         <div
-                            class="view-count-shell"
-                            :style="{ '--view-progress': viewProgress + '%' }"
+                            v-else-if="viewStatus === 'already-viewed'"
+                            class="view-result warning leading-6"
                         >
-                            <article class="article-card">
-                                <!-- ==================== BREADCRUMB ==================== -->
-                                <!-- <nav
+                            <i class="fa-solid fa-circle-info"></i>
+                            আপনি ইতোমধ্যে এই নিউজটি দেখেছেন এবং আপনার ভিউ গণনা
+                            হয়েছে। আজ এই নিউজ থেকে আর আয় করতে পারবেন না।
+                        </div>
+                        <article class="article-card">
+                            <!-- ==================== BREADCRUMB ==================== -->
+                            <!-- <nav
                                     class="article-breadcrumb"
                                     aria-label="Breadcrumb"
                                 >
@@ -740,306 +766,304 @@ function truncate(text, words = 9) {
                                     </Link>
                                 </nav> -->
 
-                                <!-- ==================== TITLE ==================== -->
-                                <h1 class="article-title text-justify">
-                                    {{ news.title }}
-                                </h1>
-
-                                <!-- ==================== META ==================== -->
-                                <div class="article-meta">
-                                    <div class="author-block">
-                                        <img
-                                            class="author-img"
-                                            :src="reporterImage"
-                                            :alt="reporterName"
-                                            @error="
-                                                (e) =>
-                                                    (e.target.src =
-                                                        '/images/default.jpg')
-                                            "
-                                        />
-                                        <div class="author-info">
-                                            <p class="author-name">
-                                                {{ reporterName }}
-                                                <span class="author-types">
-                                                    ({{ reporterTypes }})
-                                                </span>
-                                            </p>
-
-                                            <p
-                                                v-if="reporterLocation"
-                                                class="author-location"
-                                            >
-                                                <i
-                                                    class="fa-solid fa-location-dot"
-                                                ></i>
-                                                {{ reporterLocation }}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div class="meta-right">
-                                        <p class="meta-date">
-                                            <i class="fa-regular fa-clock"></i>
-                                            {{ formattedDate }}
-                                        </p>
-                                    </div>
-                                </div>
-
-                                <!-- ==================== HERO IMAGE ==================== -->
-                                <div class="article-hero">
+                            <!-- ==================== TITLE ==================== -->
+                            <h1 class="article-title text-justify">
+                                {{ news.title }}
+                            </h1>
+                            <!-- ==================== META ==================== -->
+                            <div class="article-meta">
+                                <div class="author-block">
                                     <img
-                                        class="article-hero-img"
-                                        :src="
-                                            news.image
-                                                ? `/storage/${news.image}`
-                                                : '/images/default.jpg'
-                                        "
-                                        :alt="news.title"
+                                        class="author-img"
+                                        :src="reporterImage"
+                                        :alt="reporterName"
                                         @error="
                                             (e) =>
                                                 (e.target.src =
                                                     '/images/default.jpg')
                                         "
                                     />
-                                </div>
+                                    <div class="author-info">
+                                        <p class="author-name">
+                                            {{ reporterName }}
+                                            <span
+                                                v-if="reporterTypes"
+                                                class="author-types"
+                                            >
+                                                ({{ reporterTypes }})
+                                            </span>
+                                        </p>
 
-                                <!-- ==================== ACTIONS ==================== -->
-                                <div class="article-actions">
-                                    <button
-                                        class="action-btn print"
-                                        @click="printNews"
-                                    >
-                                        <i class="fa-solid fa-print"></i>
-                                        <span>প্রিন্ট</span>
-                                    </button>
-                                    <button
-                                        class="action-btn copy"
-                                        @click="copyLink"
-                                    >
-                                        <i class="fa-regular fa-copy"></i>
-                                        <span>লিঙ্ক কপি</span>
-                                    </button>
-                                    <button
-                                        v-if="!isReading"
-                                        class="action-btn listen"
-                                        @click="speakNews"
-                                    >
-                                        <i class="fa-solid fa-volume-high"></i>
-                                        <span>শুনুন</span>
-                                    </button>
-                                    <button
-                                        v-else
-                                        class="action-btn stop"
-                                        @click="stopReading"
-                                    >
-                                        <i class="fa-solid fa-stop"></i>
-                                        <span>বন্ধ</span>
-                                    </button>
-                                </div>
-
-                                <!-- ==================== DESCRIPTION ==================== -->
-                                <div
-                                    id="news-description"
-                                    class="article-content prose"
-                                    v-html="news.description"
-                                ></div>
-
-                                <!-- ==================== APPROVAL ==================== -->
-                                <div class="approval-bar">
-                                    <i class="fa-solid fa-circle-check"></i>
-                                    অনুমোদন করেছেন:
-                                    <strong>মাসুদ — ডেক্স রিপোর্ট</strong>
-                                </div>
-
-                                <!-- ==================== TAGS ==================== -->
-                                <div v-if="tags.length" class="article-tags">
-                                    <span class="tags-label">ট্যাগ:</span>
-                                    <span
-                                        v-for="tag in tags"
-                                        :key="tag"
-                                        class="tag-item"
-                                    >
-                                        #{{ tag }}
-                                    </span>
-                                </div>
-
-                                <!-- ==================== SHARE ==================== -->
-                                <div class="share-section">
-                                    <h2 class="share-title">
-                                        সংবাদটি ভালো লাগলে শেয়ার করুন
-                                    </h2>
-                                    <div class="share-buttons">
-                                        <a
-                                            :href="shareLinks.facebook"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="share-btn facebook"
-                                            aria-label="Share on Facebook"
+                                        <p
+                                            v-if="reporterLocation"
+                                            class="author-location"
                                         >
                                             <i
-                                                class="fa-brands fa-facebook-f"
+                                                class="fa-solid fa-location-dot"
                                             ></i>
-                                            <span>Facebook</span>
-                                        </a>
-                                        <a
-                                            :href="shareLinks.twitter"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="share-btn twitter"
-                                            aria-label="Share on Twitter"
-                                        >
-                                            <i
-                                                class="fa-brands fa-x-twitter"
-                                            ></i>
-                                            <span>Twitter</span>
-                                        </a>
-                                        <a
-                                            :href="shareLinks.linkedin"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="share-btn linkedin"
-                                            aria-label="Share on LinkedIn"
-                                        >
-                                            <i
-                                                class="fa-brands fa-linkedin-in"
-                                            ></i>
-                                            <span>LinkedIn</span>
-                                        </a>
-                                        <a
-                                            :href="shareLinks.whatsapp"
-                                            target="_blank"
-                                            rel="noopener"
-                                            class="share-btn whatsapp"
-                                            aria-label="Share on WhatsApp"
-                                        >
-                                            <i
-                                                class="fa-brands fa-whatsapp"
-                                            ></i>
-                                            <span>WhatsApp</span>
-                                        </a>
+                                            {{ reporterLocation }}
+                                        </p>
                                     </div>
                                 </div>
 
-                                <!-- ==================== COMMENTS ==================== -->
-                                <div class="comments-section">
-                                    <h2 class="comments-title">
-                                        <i class="fa-regular fa-comments"></i>
-                                        কমেন্ট করুন
-                                    </h2>
-
-                                    <form
-                                        class="comment-form"
-                                        @submit.prevent="submitComment(news.id)"
-                                    >
-                                        <input
-                                            v-model="form.body"
-                                            type="text"
-                                            placeholder="আপনার মন্তব্য লিখুন..."
-                                            class="comment-input"
-                                            required
-                                        />
-                                        <button
-                                            type="submit"
-                                            class="comment-submit"
-                                        >
-                                            <i
-                                                class="fa-solid fa-paper-plane"
-                                            ></i>
-                                            পাঠান
-                                        </button>
-                                    </form>
-
-                                    <!-- Comment list -->
-                                    <div class="comment-list">
-                                        <div
-                                            v-if="!news.comments?.length"
-                                            class="comment-empty"
-                                        >
-                                            <i
-                                                class="fa-regular fa-comment"
-                                            ></i>
-                                            <p>এখনো কোনো কমেন্ট নেই</p>
-                                        </div>
-
-                                        <div
-                                            v-for="comment in news.comments"
-                                            :key="comment.id"
-                                            class="comment-item"
-                                        >
-                                            <div class="comment-avatar">
-                                                <i class="fa-solid fa-user"></i>
-                                            </div>
-                                            <div class="comment-body">
-                                                <p class="comment-author">
-                                                    {{
-                                                        comment.user?.name ||
-                                                        "অতিথি"
-                                                    }}
-                                                </p>
-                                                <p class="comment-text">
-                                                    {{ comment.body }}
-                                                </p>
-                                            </div>
-                                        </div>
-                                    </div>
+                                <div class="meta-right">
+                                    <p class="meta-date">
+                                        <i class="fa-regular fa-clock"></i>
+                                        {{ formattedDate }}
+                                    </p>
                                 </div>
+                            </div>
 
-                                <!-- ==================== RELATED NEWS ==================== -->
-                                <div
-                                    v-if="relatedNews?.length"
-                                    class="related-section"
+                            <!-- ==================== HERO IMAGE ==================== -->
+                            <div class="article-hero relative">
+                                <img
+                                    class="article-hero-img"
+                                    :src="
+                                        news.image
+                                            ? `/storage/${news.image}`
+                                            : '/images/default.jpg'
+                                    "
+                                    :alt="news.title"
+                                    @error="
+                                        (e) =>
+                                            (e.target.src =
+                                                '/images/default.jpg')
+                                    "
+                                />
+                                <p
+                                    v-if="news.imagenote"
+                                    class="absolute bottom-5 left-5 image-note"
                                 >
-                                    <h2 class="related-title">
-                                        <i class="fa-solid fa-newspaper"></i>
-                                        এ বিভাগের আরো সংবাদ
-                                    </h2>
+                                    <i class="fa-solid fa-camera mr-1.5"></i
+                                    >{{ news.imagenote }}
+                                </p>
+                                <p
+                                    v-else
+                                    class="absolute bottom-5 left-5 image-note"
+                                >
+                                    <i class="fa-solid fa-camera mr-1.5"></i
+                                    >ছবি: সংগৃহীত
+                                </p>
+                            </div>
 
-                                    <div class="related-grid">
-                                        <Link
-                                            v-for="related in relatedNews.slice(
-                                                0,
-                                                6,
-                                            )"
-                                            :key="related.id"
-                                            :href="
-                                                route(
-                                                    'news.details',
-                                                    related.slug,
-                                                )
-                                            "
-                                            class="related-card"
-                                        >
-                                            <div class="related-img-wrap">
-                                                <img
-                                                    class="related-img"
-                                                    :src="
-                                                        related.image
-                                                            ? `/storage/${related.image}`
-                                                            : '/images/default.jpg'
-                                                    "
-                                                    :alt="related.title"
-                                                    loading="lazy"
-                                                    @error="
-                                                        (e) =>
-                                                            (e.target.src =
-                                                                '/images/default.jpg')
-                                                    "
-                                                />
-                                                <span
-                                                    class="related-overlay"
-                                                ></span>
-                                            </div>
-                                            <p class="related-news-title">
+                            <!-- ==================== ACTIONS ==================== -->
+                            <div class="article-actions">
+                                <button
+                                    class="action-btn print"
+                                    @click="printNews"
+                                >
+                                    <i class="fa-solid fa-print"></i>
+                                    <span>প্রিন্ট</span>
+                                </button>
+                                <button
+                                    class="action-btn copy"
+                                    @click="copyLink"
+                                >
+                                    <i class="fa-regular fa-copy"></i>
+                                    <span>লিঙ্ক কপি</span>
+                                </button>
+                                <button
+                                    v-if="!isReading"
+                                    class="action-btn listen"
+                                    @click="speakNews"
+                                >
+                                    <i class="fa-solid fa-volume-high"></i>
+                                    <span>শুনুন</span>
+                                </button>
+                                <button
+                                    v-else
+                                    class="action-btn stop"
+                                    @click="stopReading"
+                                >
+                                    <i class="fa-solid fa-stop"></i>
+                                    <span>বন্ধ</span>
+                                </button>
+                            </div>
+
+                            <!-- ==================== DESCRIPTION ==================== -->
+                            <div
+                                id="news-description"
+                                class="article-content prose"
+                                v-html="news.description"
+                            ></div>
+
+                            <!-- ==================== APPROVAL ==================== -->
+                            <div class="approval-bar">
+                                <i class="fa-solid fa-circle-check"></i>
+                                অনুমোদন করেছেন:
+                                <strong>মাসুদ — ডেক্স রিপোর্ট</strong>
+                            </div>
+
+                            <!-- ==================== TAGS ==================== -->
+                            <div v-if="tags.length" class="article-tags">
+                                <span class="tags-label">ট্যাগ:</span>
+                                <span
+                                    v-for="tag in tags"
+                                    :key="tag"
+                                    class="tag-item"
+                                >
+                                    #{{ tag }}
+                                </span>
+                            </div>
+
+                            <!-- ==================== SHARE ==================== -->
+                            <div class="share-section">
+                                <h2 class="share-title">
+                                    সংবাদটি ভালো লাগলে শেয়ার করুন
+                                </h2>
+                                <div class="share-buttons">
+                                    <a
+                                        :href="shareLinks.facebook"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="share-btn facebook"
+                                        aria-label="Share on Facebook"
+                                    >
+                                        <i class="fa-brands fa-facebook-f"></i>
+                                        <span>Facebook</span>
+                                    </a>
+                                    <a
+                                        :href="shareLinks.twitter"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="share-btn twitter"
+                                        aria-label="Share on Twitter"
+                                    >
+                                        <i class="fa-brands fa-x-twitter"></i>
+                                        <span>Twitter</span>
+                                    </a>
+                                    <a
+                                        :href="shareLinks.linkedin"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="share-btn linkedin"
+                                        aria-label="Share on LinkedIn"
+                                    >
+                                        <i class="fa-brands fa-linkedin-in"></i>
+                                        <span>LinkedIn</span>
+                                    </a>
+                                    <a
+                                        :href="shareLinks.whatsapp"
+                                        target="_blank"
+                                        rel="noopener"
+                                        class="share-btn whatsapp"
+                                        aria-label="Share on WhatsApp"
+                                    >
+                                        <i class="fa-brands fa-whatsapp"></i>
+                                        <span>WhatsApp</span>
+                                    </a>
+                                </div>
+                            </div>
+
+                            <!-- ==================== COMMENTS ==================== -->
+                            <div class="comments-section">
+                                <h2 class="comments-title">
+                                    <i class="fa-regular fa-comments"></i>
+                                    কমেন্ট করুন
+                                </h2>
+
+                                <form
+                                    class="comment-form"
+                                    @submit.prevent="submitComment(news.id)"
+                                >
+                                    <input
+                                        v-model="form.body"
+                                        type="text"
+                                        placeholder="আপনার মন্তব্য লিখুন..."
+                                        class="comment-input"
+                                        required
+                                    />
+                                    <button
+                                        type="submit"
+                                        class="comment-submit"
+                                    >
+                                        <i class="fa-solid fa-paper-plane"></i>
+                                        পাঠান
+                                    </button>
+                                </form>
+
+                                <!-- Comment list -->
+                                <div class="comment-list">
+                                    <div
+                                        v-if="!news.comments?.length"
+                                        class="comment-empty"
+                                    >
+                                        <i class="fa-regular fa-comment"></i>
+                                        <p>এখনো কোনো কমেন্ট নেই</p>
+                                    </div>
+
+                                    <div
+                                        v-for="comment in news.comments"
+                                        :key="comment.id"
+                                        class="comment-item"
+                                    >
+                                        <div class="comment-avatar">
+                                            <i class="fa-solid fa-user"></i>
+                                        </div>
+                                        <div class="comment-body">
+                                            <p class="comment-author">
                                                 {{
-                                                    truncate(related.title, 10)
+                                                    comment.user?.name ||
+                                                    "অতিথি"
                                                 }}
                                             </p>
-                                        </Link>
+                                            <p class="comment-text">
+                                                {{ comment.body }}
+                                            </p>
+                                        </div>
                                     </div>
                                 </div>
-                            </article>
-                        </div>
+                            </div>
+
+                            <!-- ==================== RELATED NEWS ==================== -->
+                            <div
+                                v-if="relatedNews?.length"
+                                class="related-section"
+                            >
+                                <h2 class="related-title">
+                                    <i class="fa-solid fa-newspaper"></i>
+                                    এ বিভাগের আরো সংবাদ
+                                </h2>
+
+                                <div class="related-grid">
+                                    <Link
+                                        v-for="related in relatedNews.slice(
+                                            0,
+                                            6,
+                                        )"
+                                        :key="related.id"
+                                        :href="
+                                            route('news.details', related.slug)
+                                        "
+                                        class="related-card"
+                                    >
+                                        <div class="related-img-wrap">
+                                            <img
+                                                class="related-img"
+                                                :src="
+                                                    related.image
+                                                        ? `/storage/${related.image}`
+                                                        : '/images/default.jpg'
+                                                "
+                                                :alt="related.title"
+                                                loading="lazy"
+                                                @error="
+                                                    (e) =>
+                                                        (e.target.src =
+                                                            '/images/default.jpg')
+                                                "
+                                            />
+                                            <span
+                                                class="related-overlay"
+                                            ></span>
+                                        </div>
+                                        <p class="related-news-title">
+                                            {{ truncate(related.title, 10) }}
+                                        </p>
+                                    </Link>
+                                </div>
+                            </div>
+                        </article>
                     </main>
 
                     <!-- ==================================================
@@ -1363,18 +1387,27 @@ aside {
     background: #fff7ed;
     color: #c2410c;
 }
-.view-count-shell {
-    padding: 3px;
-    border-radius: 17px;
+.global-view-progress-border {
+    position: fixed;
+    inset: 0;
+    box-sizing: border-box;
+    padding: 7px;
     background: conic-gradient(
-        from 315deg,
-        #16a34a var(--view-progress),
+        from -45deg,
+        #16a34a var(--view-progress, 0%),
         #dce7df 0
     );
+    -webkit-mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask:
+        linear-gradient(#fff 0 0) content-box,
+        linear-gradient(#fff 0 0);
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 99999;
     transition: background 0.1s linear;
-}
-.view-count-shell > .article-card {
-    border-radius: 14px;
 }
 
 /* Top-right, non-blocking login popup */
@@ -1515,7 +1548,7 @@ aside {
 .article-title {
     font-size: 1rem;
     font-weight: 800;
-    line-height: 1.35;
+    line-height: 1.45;
     color: #0f172a;
     margin: 0 0 16px;
     letter-spacing: -0.2px;
@@ -2761,6 +2794,65 @@ aside {
     .sidebar-thumb-wrap {
         width: 92px;
         height: 66px;
+    }
+}
+
+/* ---- Image note badge ---- */
+.image-note {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 14px;
+    background: linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.78),
+        rgba(20, 20, 20, 0.65)
+    );
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    color: #f1f5f9;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.01em;
+    line-height: 1.4;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.25),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    max-width: calc(100% - 2.5rem);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transition:
+        background 0.3s ease,
+        transform 0.3s ease;
+    pointer-events: none;
+    z-index: 2;
+}
+
+.image-note i {
+    font-size: 0.72rem;
+    opacity: 0.85;
+    flex-shrink: 0;
+}
+
+/* Subtle hover / focus lift if you ever make it interactive */
+.article-hero:hover .image-note {
+    background: linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.88),
+        rgba(30, 30, 30, 0.75)
+    );
+}
+
+/* Smaller screens */
+@media (max-width: 640px) {
+    .image-note {
+        bottom: 12px;
+        left: 12px;
+        padding: 5px 11px;
+        font-size: 0.72rem;
+        max-width: calc(100% - 1.5rem);
     }
 }
 

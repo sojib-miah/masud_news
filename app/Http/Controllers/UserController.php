@@ -160,6 +160,7 @@ class UserController extends Controller
     public function newsDetails($slug)
     {
         $news = News::with([
+            'user.roles',
             'user.reporterProfile.divisionData',
             'user.reporterProfile.districtData',
             'user.reporterProfile.upazilaData',
@@ -239,6 +240,7 @@ class UserController extends Controller
 
         $userId = $user->id;
 
+        // Check whether the news view was recorded today.
         $alreadyViewed = NewsView::where('news_id', $news->id)
             ->where('user_id', $userId)
             ->whereDate('created_at', today())
@@ -252,6 +254,7 @@ class UserController extends Controller
             ]);
         }
 
+        // Check whether this user has already earned from this news today.
         $alreadyUserViewed = NewsUserView::where('user_id', $userId)
             ->where('news_id', $news->id)
             ->whereDate('created_at', today())
@@ -266,7 +269,6 @@ class UserController extends Controller
             ]);
 
             $siteSetting = SiteSetting::first();
-
             $perViewAmount = $siteSetting?->news_view ?? 0;
 
             $user->earning_from_views =
@@ -291,9 +293,10 @@ class UserController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => $earned
-                ? 'অভিনন্দন! আপনার নিউজ ভিউ সফলভাবে গণনা হয়েছে।'
-                : 'ভিউ গণনা হয়েছে। আজকের আয় ইতোমধ্যে গণনা করা হয়েছে।',
+            'already_viewed' => $alreadyUserViewed,
+            'message' => $alreadyUserViewed
+                ? 'আপনি ইতোমধ্যে এই নিউজটি দেখেছেন এবং আপনার ভিউ গণনা হয়েছে। আজ এই নিউজ থেকে আর আয় করতে পারবেন না।'
+                : 'অভিনন্দন! আপনার নিউজ ভিউ সফলভাবে গণনা হয়েছে।',
             'current_view' => $currentView,
             'total_view' => $news->fresh()->total_view,
             'earned' => $earned,

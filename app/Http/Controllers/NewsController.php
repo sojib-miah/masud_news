@@ -27,6 +27,7 @@ class NewsController extends Controller
             'featured' => 'nullable|in:yes,no',
             'breaking' => 'nullable|in:yes,no',
             'division_name' => 'required|string',
+            'imagenote' => 'required|string',
         ]);
 
         $imagePath = $request->hasFile('image')
@@ -44,6 +45,7 @@ class NewsController extends Controller
             'description' => $request->description,
             'image' => $imagePath,
             'division_name' => $request->division_name,
+            'imagenote' => $request->imagenote,
             'category_id' => $request->category,
             'subcategory_id' => $request->subcategory,
             'featured' => $request->featured == 'yes' ? 1 : 0,
@@ -164,6 +166,7 @@ class NewsController extends Controller
             'featured' => 'nullable|in:yes,no',
             'breaking' => 'nullable|in:yes,no',
             'division_name' => 'required|string',
+            'imagenote' => 'required|string',
         ]);
 
         $imagePath = $news->image;
@@ -190,6 +193,7 @@ class NewsController extends Controller
             'featured' => $request->featured === 'yes' ? 1 : 0,
             'breaking' => $request->breaking === 'yes' ? 1 : 0,
             'division_name' => $request->division_name,
+            'imagenote' => $request->imagenote,
         ]);
 
         return redirect()->route('news.all')->with('status', 'News Updated Successfully');

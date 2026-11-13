@@ -38,6 +38,7 @@ const form = useForm({
     description: props.news.description ?? "",
     image: null,
     division_name: props.news.division_name ?? "",
+    imagenote: props.news.imagenote ?? "",
     category: props.news.category_id ?? "",
     subcategory: props.news.subcategory_id ?? "",
     featured: props.news.featured ? "yes" : "no",
@@ -405,6 +406,22 @@ const submit = () => {
                                     If you don't upload a new image, the current
                                     image will be saved.
                                 </p>
+
+                                <!-- Image Note -->
+                                <div>
+                                    <label
+                                        class="block text-sm font-semibold text-slate-700 mb-1"
+                                    >
+                                        Image Note
+                                        <span class="text-red-500">*</span>
+                                    </label>
+                                    <TextInput
+                                        v-model="form.imagenote"
+                                        type="text"
+                                        placeholder="Enter news imagenote..."
+                                        :error="form.errors.imagenote"
+                                    />
+                                </div>
                             </div>
                         </div>
 

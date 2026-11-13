@@ -96,7 +96,7 @@ function truncate(text, words = 10) {
                                 <span class="featured-overlay"></span>
                                 <span class="featured-badge">
                                     <i class="fa-solid fa-quote-left"></i>
-                                    সম্পাদকীয়
+                                    {{ category.name }}
                                 </span>
                             </Link>
 
@@ -142,7 +142,7 @@ function truncate(text, words = 10) {
                         <!-- Empty featured state -->
                         <div v-else class="featured-empty">
                             <i class="fa-regular fa-file-lines"></i>
-                            <p>কোনো সম্পাদকীয় নেই</p>
+                            <p>কোনো সংবাদ নেই</p>
                         </div>
 
                         <!-- LIST (remaining news) -->
@@ -187,7 +187,7 @@ function truncate(text, words = 10) {
                                     :href="route('all.news', category.slug)"
                                     class="read-more"
                                 >
-                                    আরো সম্পাদকীয়
+                                    আরো {{ category.name }}
                                     <i
                                         class="fa-solid fa-angles-right text-[0.65rem]"
                                     ></i>
