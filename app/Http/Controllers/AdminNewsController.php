@@ -8,6 +8,7 @@ use App\Models\Comment;
 use App\Models\NewsUserView;
 use App\Models\NewsView;
 use App\Models\SubCategory;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -118,7 +119,8 @@ class AdminNewsController extends Controller
             'breaking' => 'required|boolean',
             'status' => 'required|boolean',
             'image' => 'required|image|max:2048',
-            'division_name' => 'required|string|max:255',
+            'division_name' => 'nullable|string|max:255',
+            'imagenote' => 'required|string|max:255',
         ]);
 
         $imagePath = null;
@@ -143,6 +145,7 @@ class AdminNewsController extends Controller
             'breaking' => $request->breaking,
             'status' => $request->status,
             'division_name' => $request->division_name,
+            'imagenote' => $request->imagenote,
             'created_by' => Auth::id(),
             'created_at' => now(),
             // 'updated_at' => now(),
@@ -176,7 +179,8 @@ class AdminNewsController extends Controller
             'breaking'       => 'required|boolean',
             'status'         => 'required|boolean',
             'image'          => 'nullable|image|max:2048',
-            'division_name'  => 'required|string|max:255',
+            'division_name'  => 'nullable|string|max:255',
+            'imagenote' => 'required|string|max:255',
         ]);
 
         $news = News::findOrFail($id);
@@ -208,6 +212,7 @@ class AdminNewsController extends Controller
             'breaking'       => $request->breaking,
             'status'         => $request->status,
             'division_name'  => $request->division_name,
+            'imagenote' => $request->imagenote,
             // 'created_at' => now(),
             'updated_at' => now(),
         ]);
@@ -229,5 +234,71 @@ class AdminNewsController extends Controller
         $news->delete();
 
         return redirect()->back()->with('status', 'News deleted successfully');
+    }
+
+    // GET /admin/news/{news}/show — returns full details as JSON
+    public function show(News $news)
+    {
+        $news->load(['category', 'subcategory']);
+
+        return response()->json([
+            'news' => [
+                'id'             => $news->id,
+                'title'          => $news->title,
+                'slug'           => $news->slug,
+                'metatag'        => $news->metatag,
+                'tag'            => $news->tag,
+                'description'    => $news->description,
+                'image'          => $news->image,
+                'imagenote'      => $news->imagenote,
+                'category'       => $news->category?->name,
+                'subcategory'    => $news->subcategory?->name,
+                'featured'       => (bool) $news->featured,
+                'breaking'       => (bool) $news->breaking,
+                'schedule'       => $news->schedule,
+                'expire'         => $news->expire,
+                'status'         => (int) $news->status,
+                'total_view'     => (int) $news->total_view,
+                'current_view'   => (int) $news->current_view,
+                'division_name'  => $news->division_name,
+                'created_at'     => $news->created_at?->toIso8601String(),
+                'updated_at'     => $news->updated_at?->toIso8601String(),
+                'published_by'   => $news->published_by,
+                'created_by'     => $news->created_by,
+            ],
+            'publishers' => User::whereIn('id', function ($q) {
+                // You can restrict this — for now, list all users
+                $q->select('id')->from('users');
+            })->select('id', 'name')->orderBy('name')->get(),
+        ]);
+    }
+
+    // PATCH /admin/news/{news}/status — update status + published_by
+    public function updateStatus(Request $request, News $news)
+    {
+        $data = $request->validate([
+            'status' => ['required', 'in:0,1'],
+        ]);
+
+        $news->status = (int) $data['status'];
+
+        if ($news->status === 1) {
+            // Marking as Published — record who published it
+            $news->published_by = auth()->id();
+        } else {
+            // Reverting to Draft — clear publisher
+            $news->published_by = null;
+        }
+
+        $news->save();
+
+        return response()->json([
+            'message' => 'Status updated successfully',
+            'news' => [
+                'id'           => $news->id,
+                'status'       => (int) $news->status,
+                'published_by' => $news->published_by,
+            ],
+        ]);
     }
 }

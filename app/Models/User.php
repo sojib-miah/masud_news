@@ -96,6 +96,7 @@ class User extends Authenticatable
                 // === News articles created by this user ===
                 // `created_by` uses nullOnDelete → optionally null it out instead of deleting
                 DB::table('news')->where('created_by', $user->id)->update(['created_by' => null]);
+                DB::table('news')->where('published_by', $user->id)->update(['published_by' => null]);
             });
         });
     }

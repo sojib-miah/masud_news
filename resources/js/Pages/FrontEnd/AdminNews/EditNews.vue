@@ -40,6 +40,7 @@ const form = useForm({
     description: props.news.description,
     image: null,
     division_name: props.news.division_name,
+    imagenote: props.news.imagenote,
     category_id: props.news.category_id,
     subcategory_id: props.news.subcategory_id,
     featured: Number(props.news.featured),
@@ -467,6 +468,24 @@ function setField(field, value) {
                                     </span>
                                 </p>
                             </div>
+                            <!-- imagenote -->
+                            <div class="mt-5">
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-camera text-blue-600 mr-1"
+                                    ></i>
+                                    Image Note
+                                    <span class="text-red-500">*</span>
+                                </label>
+                                <TextInput
+                                    v-model="form.imagenote"
+                                    type="text"
+                                    placeholder="News Image Note..."
+                                    :error="form.errors.imagenote"
+                                />
+                            </div>
                         </div>
                     </div>
 
@@ -566,7 +585,7 @@ function setField(field, value) {
                                     <i
                                         class="fa-solid fa-location-dot text-rose-600 mr-1"
                                     ></i>
-                                    Division <span class="text-red-500">*</span>
+                                    Division
                                 </label>
                                 <select
                                     v-model="form.division_name"

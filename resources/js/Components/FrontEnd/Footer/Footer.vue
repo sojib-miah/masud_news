@@ -60,6 +60,10 @@ const web2 = computed(() => props.footer?.web2 || "");
                             <span class="lbl">সম্পাদক ও প্রকাশক : </span>
                             <span class="val">{{ footer.som }}</span>
                         </li>
+                        <li v-if="footer?.pro">
+                            <span class="lbl">প্রধান আইন উপদেষ্টা : </span>
+                            <span class="val">{{ footer.pro }}</span>
+                        </li>
                         <li v-if="footer?.bab">
                             <span class="lbl">ব্যবস্থাপনা সম্পাদক : </span>
                             <span class="val">{{ footer.bab }}</span>

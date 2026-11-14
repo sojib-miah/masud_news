@@ -12,6 +12,7 @@ class News extends Model
     //     'featured' => 'boolean',
     //     'breaking' => 'boolean',
     //     'status' => 'boolean',
+    //     'tag' => 'array',
     // ];
 
     public function category()
@@ -33,8 +34,14 @@ class News extends Model
     {
         return $this->hasMany(NewsView::class);
     }
+
     public function comments()
     {
         return $this->hasMany(Comment::class);
+    }
+
+    public function publishedBy()
+    {
+        return $this->belongsTo(User::class, 'published_by');
     }
 }

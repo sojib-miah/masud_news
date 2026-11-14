@@ -890,8 +890,14 @@ function truncate(text, words = 9) {
                             <!-- ==================== APPROVAL ==================== -->
                             <div class="approval-bar">
                                 <i class="fa-solid fa-circle-check"></i>
-                                অনুমোদন করেছেন:
-                                <strong>মাসুদ — ডেক্স রিপোর্ট</strong>
+                                অনুমোদন করেছেন :
+                                <strong>
+                                    {{
+                                        news.published_by
+                                            ? news.published_by.name
+                                            : "এডমিন"
+                                    }}
+                                </strong>
                             </div>
 
                             <!-- ==================== TAGS ==================== -->

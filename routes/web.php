@@ -136,6 +136,8 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/news/update/{id}', [AdminNewsController::class, 'update'])->name('admin.news.update');
 
         Route::delete('/news/delete/{id}', [AdminNewsController::class, 'delete'])->name('admin.news.delete');
+        Route::get('news/{news}/show',       [AdminNewsController::class, 'show'])->name('admin.news.show');
+        Route::patch('news/{news}/status',   [AdminNewsController::class, 'updateStatus'])->name('admin.news.updateStatus');
 
         // pathock and reporetr
         Route::get('/pathock', [AdminController::class, 'pathock'])->name('admin.pathock');

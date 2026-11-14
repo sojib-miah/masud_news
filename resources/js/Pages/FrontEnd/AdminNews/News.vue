@@ -5,6 +5,7 @@ import Layout from "@/Shared/Layout.vue";
 import Breadcrumb from "@/Shared/Breadcrumb.vue";
 import { route } from "ziggy-js";
 import { ref, computed, watch, onBeforeUnmount } from "vue";
+import axios from "axios";
 
 const props = defineProps({
     news: Object,
@@ -100,6 +101,20 @@ function formatDate(date) {
         year: "numeric",
     });
 }
+function formatDateTime(d) {
+    if (!d) return "—";
+    try {
+        return new Date(d).toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    } catch {
+        return d;
+    }
+}
 
 // Global row number
 function globalIndex(index) {
@@ -118,6 +133,107 @@ function visitPage(url) {
         preserveState: true,
     });
 }
+
+// inside <script setup>
+function joinTags(tag) {
+    if (!tag) return "";
+    if (Array.isArray(tag)) return tag.join(", ");
+    try {
+        const parsed = JSON.parse(tag);
+        if (Array.isArray(parsed)) return parsed.join(", ");
+    } catch {}
+    return tag;
+}
+
+// ==================== MODAL STATE ====================
+const showModal = ref(false);
+const loadingNews = ref(false);
+const loadingAction = ref(false);
+const newsDetails = ref(null);
+const publishers = ref([]);
+const currentNewsId = ref(null);
+
+const isPublished = computed(() => Number(newsDetails.value?.status) === 1);
+
+async function openNewsModal(item) {
+    currentNewsId.value = item.id;
+    showModal.value = true;
+    loadingNews.value = true;
+    newsDetails.value = null;
+
+    // Lock body scroll
+    document.body.style.overflow = "hidden";
+
+    try {
+        const { data } = await axios.get(route("admin.news.show", item.id));
+        newsDetails.value = data.news;
+        publishers.value = data.publishers ?? [];
+    } catch (e) {
+        console.error("Failed to load news details", e);
+    } finally {
+        loadingNews.value = false;
+    }
+}
+
+function closeModal() {
+    showModal.value = false;
+    document.body.style.overflow = "";
+    // Slight delay so animation can finish
+    setTimeout(() => {
+        newsDetails.value = null;
+        currentNewsId.value = null;
+        publishers.value = [];
+    }, 200);
+}
+
+// Close on Escape
+function onKeydown(e) {
+    if (e.key === "Escape" && showModal.value) closeModal();
+}
+
+if (typeof window !== "undefined") {
+    window.addEventListener("keydown", onKeydown);
+}
+onBeforeUnmount(() => {
+    if (typeof window !== "undefined") {
+        window.removeEventListener("keydown", onKeydown);
+        document.body.style.overflow = "";
+    }
+});
+
+// ==================== UPDATE STATUS ====================
+async function updateStatus(newStatus) {
+    if (!newsDetails.value) return;
+
+    loadingAction.value = true;
+    try {
+        const { data } = await axios.patch(
+            route("admin.news.updateStatus", newsDetails.value.id),
+            { status: newStatus === 1 ? 1 : 0 },
+        );
+
+        // Update local modal state
+        newsDetails.value.status = data.news.status;
+        newsDetails.value.published_by = data.news.published_by;
+
+        // Also update the table row so the row badge refreshes
+        const row = (props.news?.data ?? []).find(
+            (n) => n.id === newsDetails.value.id,
+        );
+        if (row) {
+            row.status = data.news.status;
+            row.published_by = data.news.published_by;
+        }
+
+        // Reload the page silently to refresh counts from server
+        router.reload({ only: ["news", "publishedCount", "draftCount"] });
+    } catch (e) {
+        console.error("Failed to update status", e);
+        alert("Failed to update status. Please try again.");
+    } finally {
+        loadingAction.value = false;
+    }
+}
 </script>
 
 <template>
@@ -132,7 +248,6 @@ function visitPage(url) {
 
         <Layout>
             <Breadcrumb />
-
             <!-- ==================== PAGE HEADER ==================== -->
             <div
                 class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-5 py-6 sm:px-8 shadow-xl mb-6"
@@ -530,6 +645,15 @@ function visitPage(url) {
                                     <div
                                         class="flex items-center justify-end gap-1.5"
                                     >
+                                        <button
+                                            @click="openNewsModal(item)"
+                                            class="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 text-slate-700 ring-1 ring-slate-200 px-2.5 py-1.5 text-xs font-bold hover:bg-slate-200 transition"
+                                        >
+                                            <i
+                                                class="fa fa-eye text-[10px]"
+                                            ></i>
+                                            View
+                                        </button>
                                         <Link
                                             :href="
                                                 route(
@@ -754,6 +878,535 @@ function visitPage(url) {
                 </template>
             </div>
         </Layout>
+        <!-- ============================================================ -->
+        <!-- ==================== NEWS DETAILS MODAL ==================== -->
+        <!-- ============================================================ -->
+        <Teleport to="body">
+            <Transition
+                enter-active-class="transition duration-200 ease-out"
+                enter-from-class="opacity-0"
+                enter-to-class="opacity-100"
+                leave-active-class="transition duration-150 ease-in"
+                leave-from-class="opacity-100"
+                leave-to-class="opacity-0"
+            >
+                <div
+                    v-if="showModal"
+                    class="fixed inset-0 z-50 flex items-start sm:items-center justify-center p-2 sm:p-4 bg-slate-900/70 backdrop-blur-sm overflow-y-auto"
+                    @click.self="closeModal"
+                >
+                    <Transition
+                        enter-active-class="transition duration-300 ease-out"
+                        enter-from-class="opacity-0 scale-95 translate-y-4"
+                        enter-to-class="opacity-100 scale-100 translate-y-0"
+                        leave-active-class="transition duration-150 ease-in"
+                        leave-from-class="opacity-100 scale-100"
+                        leave-to-class="opacity-0 scale-95"
+                    >
+                        <div
+                            v-if="showModal"
+                            class="w-full max-w-4xl my-4 sm:my-8 rounded-2xl bg-white shadow-2xl ring-1 ring-slate-200 overflow-hidden"
+                        >
+                            <!-- Modal header -->
+                            <div
+                                class="sticky top-0 z-10 flex items-center justify-between gap-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-4 sm:px-6 py-3 sm:py-4"
+                            >
+                                <div class="min-w-0">
+                                    <p
+                                        class="text-xs font-semibold uppercase tracking-wider text-blue-300"
+                                    >
+                                        <i
+                                            class="fa-solid fa-newspaper mr-1"
+                                        ></i>
+                                        News Details
+                                    </p>
+                                    <p
+                                        class="text-white text-sm font-bold truncate"
+                                    >
+                                        #{{ newsDetails?.id ?? currentNewsId }}
+                                    </p>
+                                </div>
+                                <button
+                                    @click="closeModal"
+                                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white/10 text-white ring-1 ring-white/20 hover:bg-white/20 transition"
+                                    title="Close"
+                                >
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                            </div>
+
+                            <!-- Loading skeleton -->
+                            <div v-if="loadingNews" class="p-8 space-y-4">
+                                <div
+                                    class="h-6 w-3/4 rounded bg-slate-200 animate-pulse"
+                                ></div>
+                                <div
+                                    class="h-4 w-1/2 rounded bg-slate-200 animate-pulse"
+                                ></div>
+                                <div
+                                    class="h-52 w-full rounded-xl bg-slate-200 animate-pulse"
+                                ></div>
+                                <div class="space-y-2">
+                                    <div
+                                        class="h-3 rounded bg-slate-200 animate-pulse"
+                                    ></div>
+                                    <div
+                                        class="h-3 rounded bg-slate-200 animate-pulse"
+                                    ></div>
+                                    <div
+                                        class="h-3 w-5/6 rounded bg-slate-200 animate-pulse"
+                                    ></div>
+                                </div>
+                            </div>
+
+                            <!-- Details -->
+                            <div
+                                v-else-if="newsDetails"
+                                class="max-h-[calc(100vh-200px)] overflow-y-auto"
+                            >
+                                <!-- Hero image -->
+                                <div v-if="newsDetails.image" class="relative">
+                                    <img
+                                        :src="`/storage/${newsDetails.image}`"
+                                        :alt="newsDetails.title"
+                                        class="w-full h-56 sm:h-72 object-cover"
+                                        @error="
+                                            (e) =>
+                                                (e.target.src =
+                                                    '/images/default.jpg')
+                                        "
+                                    />
+                                    <div
+                                        class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent"
+                                    ></div>
+                                    <div
+                                        class="absolute bottom-3 left-4 right-4"
+                                    >
+                                        <h2
+                                            class="text-white text-lg sm:text-2xl font-extrabold leading-tight drop-shadow"
+                                        >
+                                            {{ newsDetails.imagenote }}
+                                        </h2>
+                                    </div>
+                                </div>
+                                <div
+                                    v-else
+                                    class="p-5 sm:p-6 border-b border-slate-100"
+                                >
+                                    <h2
+                                        class="text-lg sm:text-2xl font-extrabold text-slate-800 leading-tight"
+                                    >
+                                        {{ newsDetails.title }}
+                                    </h2>
+                                </div>
+
+                                <div class="p-4 sm:p-6 space-y-5">
+                                    <!-- Status + breaking badges -->
+                                    <div
+                                        class="flex flex-wrap items-center gap-2"
+                                    >
+                                        <span
+                                            class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ring-1"
+                                            :class="
+                                                Number(newsDetails.status) === 1
+                                                    ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                                                    : 'bg-amber-50 text-amber-700 ring-amber-200'
+                                            "
+                                        >
+                                            <i
+                                                :class="
+                                                    Number(
+                                                        newsDetails.status,
+                                                    ) === 1
+                                                        ? 'fa-solid fa-circle-check'
+                                                        : 'fa-solid fa-pen-to-square'
+                                                "
+                                            ></i>
+                                            {{
+                                                Number(newsDetails.status) === 1
+                                                    ? "Published"
+                                                    : "Draft"
+                                            }}
+                                        </span>
+
+                                        <span
+                                            v-if="newsDetails.breaking"
+                                            class="inline-flex items-center gap-1.5 rounded-full bg-red-50 text-red-700 ring-1 ring-red-200 px-3 py-1 text-xs font-bold"
+                                        >
+                                            <i class="fa-solid fa-bolt"></i>
+                                            Breaking
+                                        </span>
+
+                                        <span
+                                            v-if="newsDetails.featured"
+                                            class="inline-flex items-center gap-1.5 rounded-full bg-violet-50 text-violet-700 ring-1 ring-violet-200 px-3 py-1 text-xs font-bold"
+                                        >
+                                            <i class="fa-solid fa-star"></i>
+                                            Featured
+                                        </span>
+
+                                        <span
+                                            class="ml-auto inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600"
+                                        >
+                                            <i class="fa-regular fa-eye"></i>
+                                            {{ newsDetails.total_view }} views
+                                        </span>
+                                    </div>
+
+                                    <!-- Meta grid -->
+                                    <div
+                                        class="grid grid-cols-2 sm:grid-cols-4 gap-3"
+                                    >
+                                        <div
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                        >
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                                            >
+                                                Category
+                                            </p>
+                                            <p
+                                                class="text-sm font-semibold text-slate-800 truncate"
+                                            >
+                                                {{
+                                                    newsDetails.category ?? "—"
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                        >
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                                            >
+                                                Subcategory
+                                            </p>
+                                            <p
+                                                class="text-sm font-semibold text-slate-800 truncate"
+                                            >
+                                                {{
+                                                    newsDetails.subcategory ??
+                                                    "—"
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                        >
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                                            >
+                                                Schedule
+                                            </p>
+                                            <p
+                                                class="text-sm font-semibold text-slate-800"
+                                            >
+                                                {{
+                                                    formatDate(
+                                                        newsDetails.schedule,
+                                                    )
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                        >
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                                            >
+                                                Expire
+                                            </p>
+                                            <p
+                                                class="text-sm font-semibold text-slate-800"
+                                            >
+                                                {{
+                                                    formatDate(
+                                                        newsDetails.expire,
+                                                    )
+                                                }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- title -->
+                                    <div>
+                                        <p
+                                            class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2"
+                                        >
+                                            <i
+                                                class="fa-solid fa-heading mr-1"
+                                            ></i>
+                                            Title
+                                        </p>
+                                        <div
+                                            class="prose prose-sm max-w-none rounded-lg bg-slate-50 ring-1 ring-slate-200 p-3 sm:p-4 text-slate-700 leading-7"
+                                        >
+                                            {{ newsDetails.title }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Description -->
+                                    <div>
+                                        <p
+                                            class="text-xs font-bold uppercase tracking-wider text-slate-500 mb-2"
+                                        >
+                                            <i
+                                                class="fa-solid fa-align-left mr-1"
+                                            ></i>
+                                            Description
+                                        </p>
+                                        <div
+                                            class="prose prose-sm max-w-none rounded-lg bg-slate-50 ring-1 ring-slate-200 p-3 sm:p-4 text-slate-700 leading-7"
+                                            v-html="newsDetails.description"
+                                        ></div>
+                                    </div>
+
+                                    <!-- Tags + metatag -->
+                                    <div
+                                        v-if="
+                                            newsDetails.tag ||
+                                            newsDetails.metatag
+                                        "
+                                        class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                                    >
+                                        <div
+                                            v-if="newsDetails.tag"
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                        >
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                                            >
+                                                Tag
+                                            </p>
+                                            <p
+                                                class="text-sm text-slate-700 break-words"
+                                            >
+                                                {{ joinTags(newsDetails.tag) }}
+                                            </p>
+                                        </div>
+                                        <div
+                                            v-if="newsDetails.metatag"
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                        >
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                                            >
+                                                Meta Tag
+                                            </p>
+                                            <p
+                                                class="text-sm text-slate-700 break-words"
+                                            >
+                                                {{ newsDetails.metatag }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- Created / published info -->
+                                    <div
+                                        class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                                    >
+                                        <div
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                        >
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                                            >
+                                                Created At
+                                            </p>
+                                            <p
+                                                class="text-sm font-semibold text-slate-800"
+                                            >
+                                                {{
+                                                    formatDateTime(
+                                                        newsDetails.created_at,
+                                                    )
+                                                }}
+                                            </p>
+                                        </div>
+                                        <div
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                        >
+                                            <p
+                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                                            >
+                                                Last Updated
+                                            </p>
+                                            <p
+                                                class="text-sm font-semibold text-slate-800"
+                                            >
+                                                {{
+                                                    formatDateTime(
+                                                        newsDetails.updated_at,
+                                                    )
+                                                }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <!-- ==================== UPDATE STATUS PANEL ==================== -->
+                                    <div
+                                        class="rounded-xl bg-gradient-to-br from-slate-50 to-slate-100 ring-1 ring-slate-200 p-4"
+                                    >
+                                        <p
+                                            class="text-xs font-bold uppercase tracking-wider text-slate-600 mb-3"
+                                        >
+                                            <i
+                                                class="fa-solid fa-sliders mr-1 text-emerald-600"
+                                            ></i>
+                                            Update Status
+                                        </p>
+
+                                        <div
+                                            class="grid grid-cols-1 sm:grid-cols-2 gap-3"
+                                        >
+                                            <!-- Status toggle -->
+                                            <div>
+                                                <label
+                                                    class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                                >
+                                                    Status
+                                                </label>
+                                                <div
+                                                    class="flex rounded-lg ring-1 ring-slate-300 overflow-hidden"
+                                                >
+                                                    <button
+                                                        type="button"
+                                                        @click="updateStatus(1)"
+                                                        :disabled="
+                                                            loadingAction ||
+                                                            isPublished
+                                                        "
+                                                        class="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold transition disabled:cursor-not-allowed"
+                                                        :class="
+                                                            isPublished
+                                                                ? 'bg-emerald-600 text-white'
+                                                                : 'bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-700'
+                                                        "
+                                                    >
+                                                        <i
+                                                            class="fa-solid fa-circle-check"
+                                                        ></i>
+                                                        Published
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        @click="updateStatus(0)"
+                                                        :disabled="
+                                                            loadingAction ||
+                                                            !isPublished
+                                                        "
+                                                        class="flex-1 flex items-center justify-center gap-1.5 py-2 text-xs font-bold transition disabled:cursor-not-allowed"
+                                                        :class="
+                                                            !isPublished
+                                                                ? 'bg-amber-600 text-white'
+                                                                : 'bg-white text-slate-600 hover:bg-amber-50 hover:text-amber-700'
+                                                        "
+                                                    >
+                                                        <i
+                                                            class="fa-solid fa-pen-to-square"
+                                                        ></i>
+                                                        Draft
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <!-- Publisher info -->
+                                            <div>
+                                                <label
+                                                    class="block text-[11px] font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                                >
+                                                    Published By
+                                                </label>
+                                                <div
+                                                    class="flex items-center gap-2 rounded-lg bg-white ring-1 ring-slate-300 px-3 py-2 text-sm"
+                                                >
+                                                    <i
+                                                        class="fa-solid fa-user-shield text-slate-400"
+                                                    ></i>
+                                                    <span
+                                                        class="font-semibold text-slate-700 truncate"
+                                                    >
+                                                        {{
+                                                            publishers.find(
+                                                                (u) =>
+                                                                    u.id ===
+                                                                    newsDetails.published_by,
+                                                            )?.name ??
+                                                            (newsDetails.published_by
+                                                                ? `User #${newsDetails.published_by}`
+                                                                : "Not published yet")
+                                                        }}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <p
+                                            class="mt-2 text-[11px] text-slate-500 italic"
+                                        >
+                                            <i
+                                                class="fa-solid fa-circle-info mr-1"
+                                            ></i>
+                                            Marking as Published will set you as
+                                            the publisher. Reverting to Draft
+                                            clears the publisher.
+                                        </p>
+                                    </div>
+
+                                    <!-- Actions -->
+                                    <div
+                                        class="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-slate-100"
+                                    >
+                                        <Link
+                                            :href="
+                                                route(
+                                                    'admin.news.edit',
+                                                    newsDetails.id,
+                                                )
+                                            "
+                                            class="inline-flex items-center gap-2 rounded-lg bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 px-4 py-2 text-sm font-bold hover:bg-emerald-100 transition"
+                                        >
+                                            <i class="fa fa-edit"></i>
+                                            Edit News
+                                        </Link>
+                                        <button
+                                            @click="closeModal"
+                                            class="inline-flex items-center gap-2 rounded-lg bg-slate-100 text-slate-700 ring-1 ring-slate-200 px-4 py-2 text-sm font-bold hover:bg-slate-200 transition"
+                                        >
+                                            <i class="fa-solid fa-xmark"></i>
+                                            Close
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Error state -->
+                            <div v-else class="p-8 text-center">
+                                <div
+                                    class="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-red-100 mb-3"
+                                >
+                                    <i
+                                        class="fa-solid fa-triangle-exclamation text-2xl text-red-500"
+                                    ></i>
+                                </div>
+                                <p class="text-slate-700 font-bold mb-1">
+                                    Failed to load news details
+                                </p>
+                                <p class="text-sm text-slate-500 mb-4">
+                                    Please close and try again.
+                                </p>
+                                <button
+                                    @click="closeModal"
+                                    class="rounded-lg bg-slate-800 text-white font-bold text-sm px-4 py-2 hover:bg-slate-900 transition"
+                                >
+                                    Close
+                                </button>
+                            </div>
+                        </div>
+                    </Transition>
+                </div>
+            </Transition>
+        </Teleport>
     </div>
 </template>
 

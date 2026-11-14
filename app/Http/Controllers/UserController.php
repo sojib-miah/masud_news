@@ -168,6 +168,7 @@ class UserController extends Controller
             'user.reporterProfile.cityCorporationData',
             'user.reporterProfile.wardData',
             'comments',
+            'publishedBy'
         ])
             ->where('slug', $slug)
             ->firstOrFail();

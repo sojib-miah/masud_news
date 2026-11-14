@@ -3,7 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\Comment;
 use App\Models\News;
+use App\Models\NewsUserView;
+use App\Models\NewsView;
 use App\Models\SiteSetting;
 use App\Models\SubCategory;
 use Illuminate\Http\Request;
@@ -206,6 +209,9 @@ class NewsController extends Controller
     public function destroy($id)
     {
         $news = News::findOrFail($id);
+        Comment::where('news_id', $news->id)->delete();
+        NewsUserView::where('news_id', $news->id)->delete();
+        NewsView::where('news_id', $news->id)->delete();
         if ($news->image) {
             Storage::disk('public')->delete($news->image);
         }

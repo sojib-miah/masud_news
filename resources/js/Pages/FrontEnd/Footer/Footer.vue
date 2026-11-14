@@ -38,6 +38,14 @@ const contentFields = [
         ring: "ring-emerald-200",
     },
     {
+        key: "pro",
+        label: "প্রধান আইন উপদেষ্টা",
+        icon: "fa-solid fa-scale-balanced",
+        color: "text-green-600",
+        bg: "bg-green-50",
+        ring: "ring-green-200",
+    },
+    {
         key: "bab",
         label: "ব্যবস্থাপনা সম্পাদক",
         icon: "fa-solid fa-user-tie",
@@ -490,13 +498,22 @@ function cleanWebsite(url) {
                             </div>
 
                             <!-- Hidden 'pro' field (kept for controller compatibility) -->
-                            <div class="hidden">
-                                <label class="form-label">প্রকাশক</label>
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                    >প্রধান আইন উপদেষ্টা</label
+                                >
                                 <input
                                     v-model="form.pro"
-                                    placeholder="প্রকাশক..."
-                                    class="form-input"
+                                    placeholder="প্রধান আইন উপদেষ্টা..."
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
                                 />
+                                <p
+                                    v-if="form.errors.pro"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.pro }}
+                                </p>
                             </div>
 
                             <div>
