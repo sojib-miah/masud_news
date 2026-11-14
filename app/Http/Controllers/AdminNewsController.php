@@ -144,6 +144,8 @@ class AdminNewsController extends Controller
             'status' => $request->status,
             'division_name' => $request->division_name,
             'created_by' => Auth::id(),
+            'created_at' => now(),
+            // 'updated_at' => now(),
         ]);
 
         return redirect()->route('admin.news')
@@ -205,7 +207,9 @@ class AdminNewsController extends Controller
             'featured'       => $request->featured,
             'breaking'       => $request->breaking,
             'status'         => $request->status,
-            'division_name'  => $request->division_name
+            'division_name'  => $request->division_name,
+            // 'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return redirect()->route('admin.news')->with('status', 'News Updated Successfully');

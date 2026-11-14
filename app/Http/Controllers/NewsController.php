@@ -23,11 +23,11 @@ class NewsController extends Controller
             'image' => 'required|image',
             'category' => 'required',
             'subcategory' => 'nullable',
-            'tag' => 'nullable|string',
+            'tag' => 'nullable|string|max:255',
             'featured' => 'nullable|in:yes,no',
             'breaking' => 'nullable|in:yes,no',
             'division_name' => 'required|string',
-            'imagenote' => 'required|string',
+            'imagenote' => 'required|string|max:255',
         ]);
 
         $imagePath = $request->hasFile('image')
@@ -52,6 +52,8 @@ class NewsController extends Controller
             'breaking' => $request->breaking == 'yes' ? 1 : 0,
             'status' => 0,
             'created_by' => Auth::id(),
+            'created_at' => now(),
+            // 'updated_at' => now(),
         ]);
 
         $user = Auth::user();
@@ -162,11 +164,11 @@ class NewsController extends Controller
             'image' => 'nullable|image',
             'category' => 'required',
             'subcategory' => 'nullable',
-            'tag' => 'nullable|string',
+            'tag' => 'nullable|string|max:255',
             'featured' => 'nullable|in:yes,no',
             'breaking' => 'nullable|in:yes,no',
             'division_name' => 'required|string',
-            'imagenote' => 'required|string',
+            'imagenote' => 'required|string|max:255',
         ]);
 
         $imagePath = $news->image;
@@ -194,6 +196,8 @@ class NewsController extends Controller
             'breaking' => $request->breaking === 'yes' ? 1 : 0,
             'division_name' => $request->division_name,
             'imagenote' => $request->imagenote,
+            // 'created_at' => now(),
+            'updated_at' => now(),
         ]);
 
         return redirect()->route('news.all')->with('status', 'News Updated Successfully');
