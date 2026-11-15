@@ -76,4 +76,9 @@ class ReporterProfile extends Model
     {
         return $this->belongsTo(PourashavaWard::class, 'pourashava_ward', 'id');
     }
+
+    public function reporterAreaData()
+    {
+        return $this->belongsTo(ReporterArea::class, 'reporter_area', 'id');
+    }
 }

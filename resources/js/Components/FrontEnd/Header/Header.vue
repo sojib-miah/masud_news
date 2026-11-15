@@ -153,6 +153,10 @@ function cancelHide() {
                         </li>
 
                         <li class="shrink-0">
+                            <Link :href="route('our.family')"> পরিবার </Link>
+                        </li>
+
+                        <li class="shrink-0">
                             <Link :href="route('news.archive')">
                                 <i class="fa-solid fa-box-archive"></i>
                             </Link>
@@ -218,6 +222,13 @@ function cancelHide() {
                                 </Link>
                             </li>
                         </ul>
+                    </li>
+
+                    <li>
+                        <Link :href="route('our.family')">
+                            <i class="fa-solid fa-users"></i>
+                            <span class="ml-2">পরিবার</span>
+                        </Link>
                     </li>
 
                     <li>
@@ -325,6 +336,7 @@ ul li a {
     color: #fff;
     animation: gradientMove 6s ease infinite;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    padding: 5px 0;
 }
 
 /* ---------- Desktop scrollable menu ---------- */

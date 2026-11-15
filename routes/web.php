@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AdminController;
 use App\Http\Controllers\Admin\ProductController;
 use App\Http\Controllers\AdminNewsController;
 use App\Http\Controllers\CartController;
+use App\Http\Controllers\FamilyController;
 use App\Http\Controllers\FrontEnd\TermesController;
 use App\Http\Controllers\LoginController;
 use App\Http\Controllers\MotamotController;
@@ -64,6 +65,11 @@ Route::post('/reset-password', [LoginController::class, 'updatePassword'])->name
 Route::get('/news/details/{slug}', [UserController::class, 'newsDetails'])->name('news.details');
 Route::get('/news/archive', [UserController::class, 'newsArchive'])->name('news.archive');
 Route::get('/news/{category}/{subcategory?}', [UserController::class, 'allNews'])->name('all.news');
+
+// family route
+Route::get('/our/family', [FamilyController::class, 'ourFamily'])->name('our.family');
+Route::get('/our/family/{family}', [FamilyController::class, 'familyDetail'])->name('our.family.detail');
+Route::get('/our/reporters/{user}', [FamilyController::class, 'show'])->name('our.reporter.detail');
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/pathock', [UserController::class, 'pathockDashboard'])->name('dashboard.pathock');

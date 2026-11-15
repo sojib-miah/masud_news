@@ -31,8 +31,16 @@ live server add this database
 
 ///// add live server database 
 
-ALTER TABLE `news`
-ADD COLUMN `published_by` BIGINT UNSIGNED NULL AFTER `created_by`,
-ADD CONSTRAINT `news_published_by_foreign`
-    FOREIGN KEY (`published_by`) REFERENCES `users` (`id`)
-    ON DELETE SET NULL;
+CREATE TABLE `families` (
+    `id` BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    `name` VARCHAR(255) NOT NULL,
+    `email` VARCHAR(255) NULL,
+    `designation` VARCHAR(255) NULL,
+    `phone` VARCHAR(20) NULL,
+    `location` VARCHAR(255) NULL,
+    `image` VARCHAR(255) NULL,
+    `short_desc` TEXT NULL,
+    `long_desc` LONGTEXT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL
+);
