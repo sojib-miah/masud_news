@@ -379,7 +379,7 @@ const tabs = [
                             <div class="relative">
                                 <TextInput
                                     id="create_news"
-                                    label="News Creation Fee"
+                                    label="News View Fee Reporter"
                                     type="number"
                                     v-model="form.create_news"
                                     :error="form.errors.create_news"

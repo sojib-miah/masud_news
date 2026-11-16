@@ -66,6 +66,10 @@ const completeViewCount = async () => {
             news_id: props.news.id,
         });
 
+        axios
+            .post(route("news.countReporterIncome"), { news_id: props.news.id })
+            .catch(() => {});
+
         const data = response.data;
 
         // Update counters even when success is false.

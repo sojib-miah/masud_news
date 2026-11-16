@@ -73,7 +73,6 @@ Route::get('/our/reporters/{user}', [FamilyController::class, 'show'])->name('ou
 
 Route::middleware(['auth'])->group(function () {
     Route::get('/dashboard/pathock', [UserController::class, 'pathockDashboard'])->name('dashboard.pathock');
-    Route::get('/dashboard/reporter', [UserController::class, 'reporterDashboard'])->name('dashboard.reporter');
     Route::get('/dashboard/motamot', [UserController::class, 'motamotDashboard'])->name('dashboard.motamot');
     Route::get('/pathock/profile', [UserController::class, 'pathockProfile'])->name('pathock.profile');
     Route::post('/pathock/profile/update', [UserController::class, 'pathockProfileUpdate'])->name('pathock.profile.update');
@@ -86,12 +85,6 @@ Route::middleware(['auth'])->group(function () {
 
     Route::resource('stock-money', StockMoneyController::class);
 
-    Route::get('/reporter/{id}/edit', [UserController::class, 'editReporter'])->name('reporter.edit');
-
-    Route::post('/reporter/{id}/update', [UserController::class, 'updateReporter'])->name('reporter.update');
-
-    Route::get('/reporter/applicationform', [UserController::class, 'applicationForm'])->name('reporter.application');
-
     // motamot dashboard
     Route::get('/motamot/profile', [UserController::class, 'motamotProfile'])->name('motamot.profile');
     Route::post('/motamot/profile/update', [UserController::class, 'motamotProfileUpdate'])->name('motamot.profile.update');
@@ -102,26 +95,28 @@ Route::middleware(['auth'])->group(function () {
     Route::delete('/motamot/delete/{id}', [MotamotController::class, 'destroy'])->name('motamot.destroy');
 
     Route::get('/add/news', [UserController::class, 'addNews'])->name('add.news');
-    // Route::post('/count-news-view', [UserController::class, 'countView'])->name('news.count.view');
 
-    Route::get('/idcard', [ReporterController::class, 'idCard'])->name('id.card');
-    Route::get('/draftnews', [ReporterController::class, 'news'])->name('news');
-    Route::get('/audio/news', [ReporterController::class, 'audioNews'])->name('audio.news');
-    Route::get('/video/news', [ReporterController::class, 'videoNews'])->name('video.news');
+    // reporter all route
+    Route::get('/dashboard/reporter', [UserController::class, 'reporterDashboard'])->name('dashboard.reporter');
+    Route::get('/reporter/{id}/edit', [UserController::class, 'editReporter'])->name('reporter.edit');
+    Route::post('/reporter/{id}/update', [UserController::class, 'updateReporter'])->name('reporter.update');
 
-    Route::post('/audio/store', [NewsController::class, 'audioStore'])->name('audio.store');
-    Route::post('/video/store', [NewsController::class, 'videoStore'])->name('video.store');
-
-    Route::resource('reporter/news', NewsController::class);
-
-    Route::get('/all/News', [NewsController::class, 'allNews'])->name('news.all');
-    Route::get('/featured/News', [NewsController::class, 'featuredNews'])->name('featured.news');
-    Route::get('/breaking/News', [NewsController::class, 'breakingNews'])->name('breaking.news');
-    Route::get('/pending/News', [NewsController::class, 'pendingNews'])->name('pending.news');
-    Route::get('/schedule/News', [NewsController::class, 'scheduleNews'])->name('schedule.news');
-    Route::get('/draft/News', [NewsController::class, 'draftNews'])->name('draft.news');
-
-    Route::get('/all/reporter', [ReporterController::class, 'allReporter'])->name('all.reporter');
+    Route::middleware(['reporter.approved'])->group(function () {
+        Route::get('/all/News', [NewsController::class, 'allNews'])->name('news.all');
+        Route::get('/featured/News', [NewsController::class, 'featuredNews'])->name('featured.news');
+        Route::get('/breaking/News', [NewsController::class, 'breakingNews'])->name('breaking.news');
+        Route::get('/pending/News', [NewsController::class, 'pendingNews'])->name('pending.news');
+        Route::get('/schedule/News', [NewsController::class, 'scheduleNews'])->name('schedule.news');
+        Route::get('/draft/News', [NewsController::class, 'draftNews'])->name('draft.news');
+        Route::get('/idcard', [ReporterController::class, 'idCard'])->name('id.card');
+        Route::get('/reporter/applicationform', [UserController::class, 'applicationForm'])->name('reporter.application');
+        Route::get('/draftnews', [ReporterController::class, 'news'])->name('news');
+        Route::get('/audio/news', [ReporterController::class, 'audioNews'])->name('audio.news');
+        Route::get('/video/news', [ReporterController::class, 'videoNews'])->name('video.news');
+        Route::post('/audio/store', [NewsController::class, 'audioStore'])->name('audio.store');
+        Route::post('/video/store', [NewsController::class, 'videoStore'])->name('video.store');
+        Route::resource('reporter/news', NewsController::class);
+    });
 
     // catogory subcategory
     Route::get('/admin/categories', [ReporterController::class, 'index'])->name('categories.index');
@@ -182,6 +177,7 @@ Route::middleware(['auth'])->group(function () {
 
 // count view 
 Route::post('/count-news-view', [UserController::class, 'countView'])->name('news.count.view');
+Route::post('/news/count-reporter-income', [UserController::class, 'countReporterIncome'])->name('news.countReporterIncome');
 
 Route::post('/subscribe', [TermesController::class, 'subscribe'])->name('subscribe');
 

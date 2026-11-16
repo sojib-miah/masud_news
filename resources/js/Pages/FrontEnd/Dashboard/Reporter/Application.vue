@@ -3,6 +3,13 @@ import { Head } from "@inertiajs/vue3";
 import Layout from "@/Components/FrontEnd/Reporter/Layout.vue";
 import { ref } from "vue";
 
+const props = defineProps({
+    footer: {
+        type: Object,
+        default: () => ({}),
+    },
+});
+
 const today = ref(
     new Date().toLocaleDateString("bn-BD", {
         year: "numeric",
@@ -92,13 +99,14 @@ function printForm() {
                                 <p class="mb-1 font-semibold text-slate-900">
                                     সম্পাদক,
                                 </p>
-                                <p class="mb-1 font-semibold text-slate-900">
-                                    বাংলাদেশ নিউজ টুডে মাল্টিমিডিয়া ও পাবলিকেশন
-                                    লিমিটেড
+                                <p
+                                    v-if="footer?.copy"
+                                    class="mb-1 font-semibold text-slate-900"
+                                >
+                                    {{ footer.copy }}
                                 </p>
-                                <p class="text-slate-600">
-                                    ৯০/১, সিটি সেন্টার, মতিঝিল সি/এ, ঢাকা-১০০০
-                                    বাংলাদেশ
+                                <p v-if="footer?.ban" class="text-slate-600">
+                                    {{ footer.ban }}
                                 </p>
                             </div>
 

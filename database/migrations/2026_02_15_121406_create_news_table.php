@@ -30,8 +30,8 @@ return new class extends Migration
             $table->boolean('status')->default(0);
             $table->integer('total_view')->default(0);
             $table->integer('current_view')->default(0);
-            $table->string('audio');
-            $table->string('video');
+            $table->string('audio')->nullable();
+            $table->string('video')->nullable();
             $table->string('division_name')->nullable();
             $table->foreignId('created_by')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('published_by')->nullable()->constrained()->nullOnDelete();

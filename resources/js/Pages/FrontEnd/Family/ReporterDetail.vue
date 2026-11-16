@@ -169,7 +169,7 @@ const statusIcon = computed(() => {
                                 >যোগাযোগ
                             </h3>
                             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                                <div
+                                <!-- <div
                                     v-if="props.reporter.phone"
                                     class="info-tile"
                                 >
@@ -207,7 +207,7 @@ const statusIcon = computed(() => {
                                             </a>
                                         </p>
                                     </div>
-                                </div>
+                                </div> -->
 
                                 <div
                                     v-if="props.reporter.location"
@@ -217,7 +217,7 @@ const statusIcon = computed(() => {
                                         class="fa-solid fa-location-dot text-green-600"
                                     ></i>
                                     <div>
-                                        <p class="label">ঠিকানা</p>
+                                        <p class="label mb-2">ঠিকানা</p>
                                         <p class="value">
                                             {{ props.reporter.location }}
                                         </p>
@@ -242,7 +242,7 @@ const statusIcon = computed(() => {
                         </section>
 
                         <!-- Personal -->
-                        <section>
+                        <!-- <section>
                             <h3
                                 class="text-sm font-bold text-green-700 uppercase mb-3 pb-2 border-b border-green-200"
                             >
@@ -310,10 +310,10 @@ const statusIcon = computed(() => {
                                     </div>
                                 </div>
                             </div>
-                        </section>
+                        </section> -->
 
                         <!-- Professional -->
-                        <section>
+                        <!-- <section>
                             <h3
                                 class="text-sm font-bold text-green-700 uppercase mb-3 pb-2 border-b border-green-200"
                             >
@@ -393,10 +393,10 @@ const statusIcon = computed(() => {
                                     </div>
                                 </div>
                             </div>
-                        </section>
+                        </section> -->
 
                         <!-- Signature -->
-                        <section>
+                        <!-- <section>
                             <h3
                                 class="text-sm font-bold text-green-700 uppercase mb-3 pb-2 border-b border-green-200"
                             >
@@ -427,7 +427,7 @@ const statusIcon = computed(() => {
                                     class="h-16 object-contain"
                                 />
                             </div>
-                        </section>
+                        </section> -->
                     </div>
                 </div>
             </div>

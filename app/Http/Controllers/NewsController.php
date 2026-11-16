@@ -61,9 +61,9 @@ class NewsController extends Controller
 
         $user = Auth::user();
         $user->increment('published_news', 1);
-        $sitesetting = SiteSetting::first();
-        $perViewAmount = $sitesetting->create_news ?? 0;
-        $user->increment('reporter_income', $perViewAmount);
+        // $sitesetting = SiteSetting::first();
+        // $perViewAmount = $sitesetting->create_news ?? 0;
+        // $user->increment('reporter_income', $perViewAmount);
 
         return redirect()->route('news.all')->with('status', 'News Created Successfully');
     }

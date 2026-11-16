@@ -70,6 +70,7 @@ class HandleInertiaRequests extends Middleware
                 'status'  => fn() => $request->session()->get('status'),
                 'error'   => fn() => $request->session()->get('error'),
                 'warning' => fn() => $request->session()->get('warning'),
+                'modal'  => fn() => $request->session()->get('modal'),
             ],
 
             // ----------------------------

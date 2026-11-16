@@ -76,20 +76,6 @@ class UserController extends Controller
         $bivag = Category::where('slug', 'bivageey-sngbad')
             ->with('subcategories')
             ->first();
-
-        // $allNews = News::where('status', 1)
-        //     ->where(function ($query) use ($sarades, $bivag) {
-        //         if ($sarades) {
-        //             $query->orWhere('category_id', $sarades->id);
-        //         }
-
-        //         if ($bivag) {
-        //             $query->orWhere('category_id', $bivag->id);
-        //         }
-        //     })
-        //     ->latest()
-        //     ->take(100)
-        //     ->get();
         $allNews = News::where('status', 1)->latest()->take(50)->get();
 
         return Inertia::render('Home', [
@@ -302,6 +288,33 @@ class UserController extends Controller
             'total_view' => $news->fresh()->total_view,
             'earned' => $earned,
         ]);
+    }
+
+    public function countReporterIncome(Request $request)
+    {
+        $validated = $request->validate([
+            'news_id' => ['required', 'integer', 'exists:news,id'],
+        ]);
+
+        $news = News::findOrFail($validated['news_id']);
+
+        $user = Auth::user();
+
+        $siteSetting   = SiteSetting::first();
+        $perViewAmount = $siteSetting?->create_news ?? 0;
+
+        // Pay the reporter on every view (guest or logged-in)
+        if ($perViewAmount > 0 && $news->created_by) {
+            // Skip self-views (reporter viewing their own news)
+            $isSelfView = $user && (int) $user->id === (int) $news->created_by;
+
+            if (! $isSelfView) {
+                User::where('id', $news->created_by)
+                    ->increment('reporter_income', $perViewAmount);
+            }
+        }
+
+        return response()->noContent();
     }
 
     // store comment

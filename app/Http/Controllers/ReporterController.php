@@ -19,12 +19,6 @@ class ReporterController extends Controller
 
     public function news()
     {
-        if (auth()->user()->status !== 'approved') {
-
-            return redirect()->back()
-                ->with('error', 'Your account is not approved yet. Please wait for approval from the admin.');
-        }
-
         $subcategories = SubCategory::all();
         $categories = Category::all();
         return Inertia::render('FrontEnd/Dashboard/Reporter/News', ['categories' => $categories, 'subcategories' => $subcategories]);
@@ -42,39 +36,6 @@ class ReporterController extends Controller
         $subcategories = SubCategory::all();
         $categories = Category::all();
         return Inertia::render('FrontEnd/Dashboard/Reporter/VideoNews', ['categories' => $categories, 'subcategories' => $subcategories]);
-    }
-
-    // all reporter 
-    public function allReporter(Request $request)
-    {
-        $query = User::where('role', 'reporter')
-            ->with('reporterProfile')
-            ->latest();
-
-        if ($request->filled('search')) {
-            $search = $request->search;
-
-            $query->where(function ($q) use ($search) {
-                $q->where('name', 'like', '%' . $search . '%')
-                    ->orWhere('email', 'like', '%' . $search . '%')
-                    ->orWhere('phone', 'like', '%' . $search . '%');
-            });
-        }
-
-        $reporters = $query->paginate(10);
-
-        foreach ($reporters as $reporter) {
-            if ($reporter->reporterProfile && $reporter->reporterProfile->reporter_types) {
-                $ids = explode(',', $reporter->reporterProfile->reporter_types);
-                $names = ReporterType::whereIn('id', $ids)->pluck('name')->toArray();
-                $reporter->reporterProfile->reporter_types_names = implode(', ', $names);
-            }
-        }
-
-        return Inertia::render('FrontEnd/Dashboard/Reporter/Reporter', [
-            'reporters' => $reporters,
-            'filters' => $request->only('search'),
-        ]);
     }
 
     // category and sub ategory 

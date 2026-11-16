@@ -1,12 +1,49 @@
 <script setup>
 import Layout from "@/Components/FrontEnd/Reporter/Layout.vue";
 import FlashMessage from "@/Shared/FlashMessage.vue";
-import { Head, Link, usePage } from "@inertiajs/vue3";
+import { Head, Link, router, usePage } from "@inertiajs/vue3";
+import AlertModal from "@/Shared/AlertModal.vue";
 import { route } from "ziggy-js";
-import { computed } from "vue";
+import { computed, ref, watch } from "vue";
 
 const page = usePage();
 const stats = computed(() => page.props.stats || {});
+
+const modal = ref({
+    show: false,
+    type: "error",
+    title: "",
+    message: "",
+});
+
+watch(
+    () => page.props.flash?.modal,
+    (data) => {
+        if (data) {
+            modal.value = {
+                show: true,
+                type: data.type ?? "error",
+                title: data.title ?? "",
+                message: data.message ?? "",
+            };
+        }
+    },
+    { immediate: true }, // show even if redirect lands with flash present
+);
+
+function closeModal() {
+    modal.value.show = false;
+
+    // Clear flash so it won't show again on refresh/back navigation
+    router.reload({
+        preserveScroll: true,
+        preserveState: true,
+        only: [],
+        onSuccess: () => {
+            // optional
+        },
+    });
+}
 </script>
 
 <template>
@@ -24,6 +61,14 @@ const stats = computed(() => page.props.stats || {});
     />
 
     <Layout>
+        <AlertModal
+            :show="modal.show"
+            :type="modal.type"
+            :title="modal.title"
+            :message="modal.message"
+            @close="closeModal"
+        />
+
         <div class="font-robo pb-10">
             <!-- ==================== WELCOME HEADER ==================== -->
             <div
