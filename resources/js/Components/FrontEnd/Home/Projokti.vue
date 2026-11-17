@@ -237,7 +237,7 @@ function truncate(text, words = 10) {
                                         />
                                     </div>
                                     <p class="slide-title">
-                                        {{ truncate(item.title, 9) }}
+                                        {{ truncate(item.title, 6) }}
                                     </p>
                                 </Link>
                             </SwiperSlide>

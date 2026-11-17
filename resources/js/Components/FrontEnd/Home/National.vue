@@ -41,6 +41,15 @@ function truncate(text, words = 10) {
 function listOf(cat, from = 1, to = 5) {
     return cat?.news?.slice(from, to) ?? [];
 }
+
+function stripHtml(html) {
+    if (!html) return "";
+    return String(html).replace(/<[^>]*>/g, "");
+}
+function descCut(html, len = 150) {
+    const text = stripHtml(html).trim();
+    return text.length > len ? text.slice(0, len) + " ..." : text;
+}
 </script>
 
 <template>
@@ -108,6 +117,15 @@ function listOf(cat, from = 1, to = 5) {
                                 >
                                     {{ truncate(category.news[0].title, 12) }}
                                 </Link>
+
+                                <p class="featured-desc">
+                                    {{
+                                        descCut(
+                                            category.news[0].description,
+                                            150,
+                                        )
+                                    }}
+                                </p>
 
                                 <Link
                                     :href="
@@ -249,10 +267,23 @@ function listOf(cat, from = 1, to = 5) {
 .cat-title:hover {
     opacity: 0.85;
 }
-
+.featured-desc {
+    color: #475569;
+    font-size: 0.83rem;
+    line-height: 1.6;
+    text-align: justify;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin: 0;
+}
 @media (min-width: 640px) {
     .cat-title {
         font-size: 1.1rem;
+    }
+    .featured-desc {
+        font-size: 0.85rem;
     }
 }
 
@@ -529,6 +560,9 @@ function listOf(cat, from = 1, to = 5) {
 @media (max-width: 359px) {
     .cat-header {
         padding: 10px 12px;
+    }
+    .featured-desc {
+        font-size: 0.78rem;
     }
     .cat-title {
         font-size: 0.95rem;

@@ -44,6 +44,8 @@ function closeModal() {
         },
     });
 }
+
+const showPendingAlert = ref(true);
 </script>
 
 <template>
@@ -335,5 +337,164 @@ function closeModal() {
                 </div>
             </div>
         </div>
+
+        <!-- pending news alert  -->
+        <Transition name="pending-alert">
+            <div
+                v-if="Number(stats.pending_news) > 0 && showPendingAlert"
+                class="pending-news-alert"
+                role="alert"
+                aria-live="polite"
+            >
+                <button
+                    type="button"
+                    class="pending-alert-close"
+                    aria-label="Close alert"
+                    @click="showPendingAlert = false"
+                >
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+
+                <div class="pending-alert-icon">
+                    <i class="fa-solid fa-bell"></i>
+                </div>
+
+                <div class="pending-alert-content">
+                    <strong>Pending News Alert!</strong>
+
+                    <p>
+                        আপনার
+                        <strong>{{ stats.pending_news }}</strong>
+                        টি নিউজ Pending রয়েছে। নিউজ Active করতে Admin-এর সাথে
+                        যোগাযোগ করুন। 01320991356
+                    </p>
+
+                    <Link
+                        :href="route('pending.news')"
+                        class="pending-alert-link"
+                    >
+                        Pending News দেখুন
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </Link>
+                </div>
+            </div>
+        </Transition>
     </Layout>
 </template>
+
+<style scoped>
+.pending-news-alert {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 9999;
+
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+
+    width: min(410px, calc(100vw - 32px));
+    padding: 22px 20px;
+
+    background: #fff;
+    border: 1px solid #fde68a;
+    border-left: 5px solid #f59e0b;
+    border-radius: 16px;
+
+    box-shadow: 0 12px 35px rgba(15, 23, 42, 0.16);
+}
+
+.pending-alert-icon {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+
+    color: #b45309;
+    background: #fef3c7;
+    font-size: 20px;
+}
+
+.pending-alert-content {
+    padding-right: 12px;
+}
+
+.pending-alert-content > strong {
+    display: block;
+    margin-bottom: 6px;
+    color: #92400e;
+    font-size: 16px;
+}
+
+.pending-alert-content p {
+    margin: 0;
+    color: #475569;
+    font-size: 13px;
+    line-height: 1.8;
+}
+
+.pending-alert-close {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+
+    color: #64748b;
+    background: #f8fafc;
+    cursor: pointer;
+}
+
+.pending-alert-close:hover {
+    color: #b91c1c;
+    background: #fee2e2;
+}
+
+.pending-alert-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    margin-top: 12px;
+    color: #b45309;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.pending-alert-link:hover {
+    color: #92400e;
+    text-decoration: underline;
+}
+
+.pending-alert-enter-active,
+.pending-alert-leave-active {
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
+}
+
+.pending-alert-enter-from,
+.pending-alert-leave-to {
+    opacity: 0;
+    transform: translateY(16px);
+}
+
+@media (max-width: 480px) {
+    .pending-news-alert {
+        right: 12px;
+        bottom: 12px;
+        width: calc(100vw - 24px);
+    }
+}
+</style>

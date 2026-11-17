@@ -96,7 +96,8 @@ class UserController extends Controller
 
     public function allNews($categorySlug, $subcategorySlug = null)
     {
-        $category = Category::where('slug', $categorySlug)->firstOrFail();
+        $category = Category::where('slug', $categorySlug)
+            ->firstOrFail();
 
         $subcategory = null;
 
@@ -106,20 +107,35 @@ class UserController extends Controller
                 ->firstOrFail();
         }
 
-        $newsQuery = News::where('status', 1)->latest();
+        // Base query: only published news from this category/subcategory
+        $baseQuery = News::where('status', 1);
 
         if ($subcategory) {
-            $newsQuery->where('subcategory_id', $subcategory->id);
+            $baseQuery->where('subcategory_id', $subcategory->id);
         } else {
-            $newsQuery->where('category_id', $category->id);
+            $baseQuery->where('category_id', $category->id);
         }
 
-        $news = $newsQuery->get();
+        $featuredNews = (clone $baseQuery)
+            ->where('featured', 1)
+            ->latest('created_at')
+            ->take(4)
+            ->get();
+
+        $news = (clone $baseQuery)
+            ->where(function ($query) {
+                $query->where('featured', '!=', 1)
+                    ->orWhereNull('featured');
+            })
+            ->latest('created_at')
+            ->paginate(12)
+            ->withQueryString();
 
         return Inertia::render('FrontEnd/AllNews/AllNews', [
-            'category' => $category,
-            'subcategory' => $subcategory,
-            'news' => $news,
+            'category'       => $category,
+            'subcategory'    => $subcategory,
+            'featuredNews'   => $featuredNews,
+            'news'           => $news,
         ]);
     }
 

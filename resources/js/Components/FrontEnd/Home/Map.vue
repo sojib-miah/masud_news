@@ -282,7 +282,7 @@ watch(
                                 />
                             </div>
                             <h3 class="news-title">
-                                {{ truncate(item.title, 10) }}
+                                {{ truncate(item.title, 5) }}
                             </h3>
                         </Link>
                     </div>

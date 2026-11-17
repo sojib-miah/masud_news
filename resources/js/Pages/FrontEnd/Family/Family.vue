@@ -164,7 +164,7 @@ function clearSearch() {
                                     v-if="f.image_url"
                                     :src="f.image_url"
                                     :alt="f.name"
-                                    class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                                    class="w-full h-full object-contain group-hover:scale-105 transition duration-300"
                                 />
                                 <div
                                     v-else
@@ -263,7 +263,7 @@ function clearSearch() {
                                         v-if="r.photo_url"
                                         :src="r.photo_url"
                                         :alt="r.name"
-                                        class="w-full h-full object-cover"
+                                        class="w-full h-full object-contain"
                                         :class="
                                             r.is_approved
                                                 ? 'group-hover:scale-105 transition duration-300'

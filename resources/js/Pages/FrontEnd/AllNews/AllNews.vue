@@ -51,10 +51,38 @@ function truncate(text, words = 8) {
         : text;
 }
 
-// Featured and others
-const featured = computed(() => news.value[0] ?? null);
-const secondary = computed(() => news.value.slice(1, 4));
-const gridNews = computed(() => news.value.slice(4, 13));
+const featuredNews = computed(() => page.props.featuredNews ?? []);
+
+// Laravel paginator support; also supports a normal array
+const newsItems = computed(() => {
+    const value = page.props.news;
+
+    if (Array.isArray(value)) return value;
+
+    return value?.data ?? [];
+});
+
+const paginationLinks = computed(() => {
+    const value = page.props.news;
+
+    return Array.isArray(value) ? [] : (value?.links ?? []);
+});
+
+const paginationMeta = computed(() => {
+    const value = page.props.news;
+
+    return {
+        total: value?.total ?? newsItems.value.length,
+        from: value?.from ?? (newsItems.value.length ? 1 : 0),
+        to: value?.to ?? newsItems.value.length,
+        currentPage: value?.current_page ?? 1,
+        lastPage: value?.last_page ?? 1,
+    };
+});
+
+const featured = computed(() => featuredNews.value[0] ?? null);
+const secondary = computed(() => featuredNews.value.slice(1, 4));
+const gridNews = computed(() => newsItems.value);
 </script>
 
 <template>
@@ -67,9 +95,10 @@ const gridNews = computed(() => news.value.slice(4, 13));
                     <!-- ==================================================
                      MAIN NEWS (2/3)
                 =================================================== -->
+
                     <main class="lg:col-span-2 space-y-6">
-                        <template v-if="news.length">
-                            <!-- ==================== FEATURED ==================== -->
+                        <!-- FEATURED NEWS -->
+                        <template v-if="featured || secondary.length">
                             <article v-if="featured" class="featured-card">
                                 <Link
                                     :href="route('news.details', featured.slug)"
@@ -79,14 +108,16 @@ const gridNews = computed(() => news.value.slice(4, 13));
                                         class="featured-img"
                                         :src="imgUrl(featured.image)"
                                         :alt="featured.title"
-                                        loading="lazy"
+                                        loading="eager"
                                         @error="
                                             (e) =>
                                                 (e.target.src =
                                                     '/images/default.jpg')
                                         "
                                     />
+
                                     <span class="featured-overlay"></span>
+
                                     <span class="featured-badge">
                                         <i class="fa-solid fa-star"></i>
                                         প্রধান সংবাদ
@@ -121,7 +152,7 @@ const gridNews = computed(() => news.value.slice(4, 13));
                                 </div>
                             </article>
 
-                            <!-- ==================== SECONDARY ==================== -->
+                            <!-- SECONDARY FEATURED NEWS -->
                             <section
                                 v-if="secondary.length"
                                 class="secondary-grid"
@@ -150,14 +181,33 @@ const gridNews = computed(() => news.value.slice(4, 13));
 
                                     <Link
                                         :href="route('news.details', item.slug)"
-                                        class="secondary-title"
+                                        class="secondary-title leading-7"
                                     >
-                                        {{ truncate(item.title, 9) }}
+                                        {{ truncate(item.title, 7) }}
                                     </Link>
                                 </article>
                             </section>
+                        </template>
 
-                            <!-- ==================== GRID ==================== -->
+                        <!-- ALL NEWS -->
+                        <section class="space-y-4">
+                            <div
+                                class="flex items-center justify-between gap-3"
+                            >
+                                <h2
+                                    class="text-lg sm:text-xl font-bold text-slate-800"
+                                >
+                                    <span
+                                        class="inline-block w-1 h-6 rounded-full bg-green-600 mr-2 align-middle"
+                                    ></span>
+                                    সর্বশেষ সংবাদ
+                                </h2>
+
+                                <span class="text-xs sm:text-sm text-slate-500">
+                                    মোট {{ paginationMeta.total }} টি সংবাদ
+                                </span>
+                            </div>
+
                             <section v-if="gridNews.length" class="news-grid">
                                 <article
                                     v-for="item in gridNews"
@@ -185,17 +235,63 @@ const gridNews = computed(() => news.value.slice(4, 13));
                                         :href="route('news.details', item.slug)"
                                         class="grid-title"
                                     >
-                                        {{ truncate(item.title, 10) }}
+                                        {{ truncate(item.title, 7) }}
                                     </Link>
                                 </article>
                             </section>
-                        </template>
 
-                        <!-- ==================== EMPTY ==================== -->
-                        <div v-else class="empty-state">
-                            <i class="fa-regular fa-newspaper"></i>
-                            <p>এই ক্যাটাগরিতে কোনো সংবাদ পাওয়া যায়নি।</p>
-                        </div>
+                            <!-- EMPTY NEWS -->
+                            <div
+                                v-else-if="!featured && !secondary.length"
+                                class="empty-state"
+                            >
+                                <i class="fa-regular fa-newspaper"></i>
+                                <p>এই ক্যাটাগরিতে কোনো সংবাদ পাওয়া যায়নি।</p>
+                            </div>
+
+                            <!-- PAGINATION -->
+                            <nav
+                                v-if="paginationLinks.length > 3"
+                                class="news-pagination"
+                                aria-label="News pagination"
+                            >
+                                <Link
+                                    v-for="(link, index) in paginationLinks"
+                                    :key="index"
+                                    :href="link.url || '#'"
+                                    :class="[
+                                        'pagination-link',
+                                        {
+                                            active: link.active,
+                                            disabled: !link.url,
+                                        },
+                                    ]"
+                                    :aria-current="
+                                        link.active ? 'page' : undefined
+                                    "
+                                    preserve-scroll
+                                    preserve-state
+                                    :only="['news']"
+                                    @click="
+                                        !link.url && $event.preventDefault()
+                                    "
+                                >
+                                    <span v-html="link.label"></span>
+                                </Link>
+                            </nav>
+
+                            <!-- Pagination information -->
+                            <p
+                                v-if="paginationMeta.total > 0"
+                                class="text-center text-xs text-slate-500"
+                            >
+                                {{ paginationMeta.from }}–{{
+                                    paginationMeta.to
+                                }}
+                                দেখানো হচ্ছে, মোট {{ paginationMeta.total }} টি
+                                সংবাদ
+                            </p>
+                        </section>
                     </main>
 
                     <!-- ==================================================
@@ -509,7 +605,7 @@ aside {
     color: #1e293b;
     font-size: 0.85rem;
     font-weight: 600;
-    line-height: 1.45;
+    /* line-height: 1.45; */
     text-decoration: none;
     transition: color 0.2s;
     display: -webkit-box;
@@ -918,6 +1014,62 @@ aside {
     .grid-card:hover .grid-img,
     .sidebar-item:hover .sidebar-thumb {
         transform: none;
+    }
+}
+
+.news-pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 28px;
+}
+
+.pagination-link {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    min-width: 38px;
+    min-height: 38px;
+    padding: 8px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+    color: #475569;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.pagination-link:hover:not(.disabled) {
+    border-color: #00930c;
+    color: #00930c;
+}
+
+.pagination-link.active {
+    background: linear-gradient(135deg, #00930c, #00b515);
+    border-color: #00930c;
+    color: #fff;
+    box-shadow: 0 3px 10px rgba(0, 147, 12, 0.2);
+}
+
+.pagination-link.disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+@media (max-width: 420px) {
+    .news-pagination {
+        gap: 5px;
+    }
+
+    .pagination-link {
+        min-width: 32px;
+        min-height: 32px;
+        padding: 6px 9px;
+        font-size: 12px;
     }
 }
 </style>
