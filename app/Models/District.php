@@ -9,6 +9,9 @@ class District extends Model
     protected $table = 'districts';
 
     protected $guarded = [];
+    public $timestamps = false;
+    public $incrementing = false;   // IDs are 1..8, not auto-increment
+    protected $keyType = 'int';
 
     public function division()
     {

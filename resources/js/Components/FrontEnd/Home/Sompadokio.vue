@@ -35,6 +35,14 @@ function truncate(text, words = 10) {
         ? parts.slice(0, words).join(" ") + "..."
         : text;
 }
+// Build sub-category URL safely
+function subLink(category) {
+    if (!category?.category?.slug || !category?.slug) return "#";
+    return route("all.news", {
+        category: category.category.slug,
+        subcategory: category.slug,
+    });
+}
 </script>
 
 <template>
@@ -51,14 +59,11 @@ function truncate(text, words = 10) {
                         <div class="header-icon">
                             <i class="fa-solid fa-feather-pointed"></i>
                         </div>
-                        <Link
-                            :href="route('all.news', category.slug)"
-                            class="editorial-title"
-                        >
+                        <Link :href="subLink(category)" class="editorial-title">
                             {{ category.name }}
                         </Link>
                         <Link
-                            :href="route('all.news', category.slug)"
+                            :href="subLink(category)"
                             class="editorial-more"
                             aria-label="View all"
                         >
@@ -184,7 +189,7 @@ function truncate(text, words = 10) {
                             <!-- Footer link -->
                             <div class="list-footer">
                                 <Link
-                                    :href="route('all.news', category.slug)"
+                                    :href="subLink(category)"
                                     class="read-more"
                                 >
                                     আরো {{ category.name }}

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class PourashavaWard extends Model
 {
     protected $table = 'pourashava_wards';
-
+    public $timestamps = false;
     protected $guarded = [];
 
     public function pourashava()

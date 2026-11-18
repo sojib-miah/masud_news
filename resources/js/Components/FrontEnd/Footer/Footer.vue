@@ -206,7 +206,11 @@ const web2 = computed(() => props.footer?.web2 || "");
                             <i class="fa-solid fa-users text-green-600"></i>
 
                             <span
-                                >ভিজিটর : ({{ page.props.visitorCount ?? 0 }})
+                                >ভিজিটর : ({{
+                                    Number(
+                                        page.props.visitorCount ?? 0,
+                                    ).toLocaleString("en-US")
+                                }})
                             </span>
                         </div>
                     </div>

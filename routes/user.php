@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Admin\FamilyController;
+use App\Http\Controllers\Admin\LookupController;
+use App\Http\Controllers\Admin\UserChangePassword;
 use App\Http\Controllers\FrontEnd\FooterController;
 use App\Http\Controllers\FrontEnd\HeaderController;
 use App\Http\Controllers\FrontEnd\TermesController;
@@ -21,4 +23,15 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::post('/termes&conditions', [TermesController::class, 'storeOrUpdate'])->name('terms.storeOrUpdate');
 
     Route::resource('families', FamilyController::class)->only(['index', 'store', 'update', 'destroy']);
+
+    Route::get('/users/changepassword', [UserChangePassword::class, 'index'])->name('users.changePassword.index');
+    Route::get('/users/list/changepassword', [UserChangePassword::class, 'list'])->name('users.changePassword.list');
+    Route::post('/{user}/change-password', [UserChangePassword::class, 'changePassword'])->name('users.changePassword');
+
+    Route::get('/lookups', [LookupController::class, 'index'])->name('lookups.index');
+    Route::get('/lookups/{table}/list', [LookupController::class, 'list'])->name('lookups.list');
+    Route::get('/lookups/{table}/options', [LookupController::class, 'options'])->name('lookups.options');
+    Route::post('/lookups/{table}', [LookupController::class, 'store'])->name('lookups.store');
+    Route::put('/lookups/{table}/{id}', [LookupController::class, 'update'])->name('lookups.update');
+    Route::delete('/lookups/{table}/{id}', [LookupController::class, 'destroy'])->name('lookups.destroy');
 });

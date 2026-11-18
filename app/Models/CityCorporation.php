@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 class CityCorporation extends Model
 {
     protected $table = 'city_corporations';
-
+    public $timestamps = false;
     protected $guarded = [];
 
     public function district()
