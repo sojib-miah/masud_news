@@ -261,13 +261,13 @@ class RegisterController extends Controller
 
             'village' => 'nullable|string|max:255',
             'reporter_area' => 'required|string',
-            'nid_number' => 'nullable|string|max:30',
+            'nid_number' => 'required|string|max:255',
             'reporter_types' => 'nullable|array',
             'reporter_types.*' => 'exists:reporter_types,id',
 
             'image' => 'required|image|max:2048',
             'signature' => 'required|image|max:2048',
-            'nid_file' => 'required|mimes:pdf,jpg,jpeg,png|max:5120',
+            'nid_file' => 'nullable|mimes:pdf,jpg,jpeg,png|max:5120',
         ]);
 
         // ---------- LOCATION EXCLUSIVITY ----------
@@ -306,7 +306,12 @@ class RegisterController extends Controller
 
         // ---------- UPLOADS ----------
         $signaturePath = $request->file('signature')->store('images/register', 'public');
-        $nidPath = $request->file('nid_file')->store('images/register', 'public');
+
+        $nidPath = null;
+
+        if ($request->hasFile('nid_file')) {
+            $nidPath = $request->file('nid_file')->store('images/register', 'public');
+        }
 
         // ---------- PROFILE ----------
         ReporterProfile::create([
@@ -330,7 +335,7 @@ class RegisterController extends Controller
             'reporter_area' => $data['reporter_area'],
             'nid_number' => $data['nid_number'] ?? null,
             'signature' => $signaturePath,
-            'nid_file' => $nidPath,
+            'nid_file' => $nidPath ?? null,
             'reporter_types' => ! empty($data['reporter_types'])
                 ? implode(',', $data['reporter_types'])
                 : null,

@@ -865,7 +865,6 @@ function submit() {
                                         class="block text-sm font-semibold text-slate-700 mb-1"
                                     >
                                         এনআইডি / পাসপোর্ট / জন্ম নিবন্ধন
-                                        <span class="text-red-500">*</span>
                                     </label>
                                     <FileInput
                                         v-model="form.nid_file"
@@ -876,25 +875,35 @@ function submit() {
                                         <i
                                             class="fa-solid fa-info-circle text-green-600"
                                         ></i>
-                                        এনআইডি কার্ডের সামনের ও পিছনের ছবি
-                                        একসাথে আপলোড করুন (PDF বা ছবি)
+                                        এনআইডি কার্ডের সামনের ছবি আপলোড করুন
+                                        <!-- ও পিছনের একসাথে  (PDF বা ছবি)-->
                                     </p>
                                 </div>
                                 <div class="sm:col-span-2">
                                     <label
                                         class="block text-sm font-semibold text-slate-700 mb-1"
                                     >
-                                        এনআইডি নম্বর
+                                        এনআইডি / জন্ম নিবন্ধন / পাসপোর্ট নম্বর
+                                        <span class="text-red-500">*</span>
                                     </label>
                                     <TextInput
                                         v-model="form.nid_number"
                                         type="text"
-                                        placeholder="এনআইডি নম্বর"
+                                        placeholder="এনআইডি / জন্ম নিবন্ধন / পাসপোর্ট নম্বর..."
                                         :error="form.errors.nid_number"
                                     />
                                 </div>
                             </div>
                         </section>
+                        <div
+                            class="flex text-xs items-center gap-4 text-red-600"
+                        >
+                            <i class="fa-solid fa-info-circle"></i>
+                            <p>
+                                বি: দ্র: আপনার দেওয়া তথ্যে কোন ভুল থাকলে আপনি
+                                সাংবাদিক হিসেবে গণ্য হবেন না ।
+                            </p>
+                        </div>
 
                         <!-- ==================== SUBMIT ==================== -->
                         <div class="pt-3 border-t border-slate-200">

@@ -650,11 +650,71 @@ function truncate(text, words = 9) {
         ? parts.slice(0, words).join(" ") + "..."
         : text;
 }
+
+// meta script
+const news = computed(() => page.props.news);
+
+const imageUrl2 = computed(() => {
+    const image = news.value?.image;
+
+    if (!image) {
+        return `${window.location.origin}/images/default.jpg`;
+    }
+
+    return image.startsWith("http")
+        ? image
+        : `${window.location.origin}/storage/${image}`;
+});
+
+const pageUrl = computed(() => window.location.href);
+
+const description2 = computed(() => {
+    const text = (news.value?.description ?? news.value?.content ?? "")
+        .replace(/<[^>]*>/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    return text.substring(0, 200);
+});
 </script>
 
 <template>
     <Layout>
-        <Head :title="news.title" />
+        <Head :title="news?.title ?? 'News Details'">
+            <meta
+                head-key="description"
+                name="description"
+                :content="description2"
+            />
+
+            <meta
+                head-key="og-title"
+                property="og:title"
+                :content="news?.title ?? ''"
+            />
+
+            <meta
+                head-key="og-description"
+                property="og:description"
+                :content="description2"
+            />
+
+            <meta
+                head-key="og-image"
+                property="og:image"
+                :content="imageUrl2"
+            />
+
+            <meta head-key="og-url" property="og:url" :content="pageUrl" />
+
+            <meta head-key="og-type" property="og:type" content="article" />
+
+            <meta
+                head-key="twitter-card"
+                name="twitter:card"
+                content="summary_large_image"
+            />
+        </Head>
         <!-- Full-page progress border -->
         <div
             class="global-view-progress-border"

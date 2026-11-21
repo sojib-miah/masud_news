@@ -200,10 +200,6 @@ class UserController extends Controller
             ->whereDate('created_at', today())
             ->count();
 
-        // IMPORTANT:
-        // এখানে total_view increment করবে না।
-        // Vue-এর 20-second timer শেষ হলে countView() call হবে।
-
         return Inertia::render('FrontEnd/AllNews/Details', [
             'news' => $news,
             'relatedNews' => $relatedNews,

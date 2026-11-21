@@ -155,6 +155,7 @@ class AdminController extends Controller
                 'reporterProfile.wardData',
                 'reporterProfile.pourashavaData',
                 'reporterProfile.pourashavaWardData',
+                'reporterProfile.reporterAreaData',
             ]);
 
         if ($request->search) {

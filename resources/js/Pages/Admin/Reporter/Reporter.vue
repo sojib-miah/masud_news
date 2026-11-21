@@ -898,7 +898,7 @@ function fileUrl(path) {
                                         class="fa-solid fa-bullseye text-emerald-600 mr-1"
                                     ></i>
                                     <strong>Reporter Area:</strong>
-                                    {{ profile.reporter_area }}
+                                    {{ profile.reporter_area_data.name }}
                                 </p>
                             </div>
                         </div>
