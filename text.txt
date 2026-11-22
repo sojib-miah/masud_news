@@ -46,5 +46,8 @@ live server add this database
 //     dd($e->getMessage(), $e->getTraceAsString());
 // }
 
+find ~ -name artisan -type f 2>/dev/null
+cd /home/avnewsbd/public_html
+
 ///// add live server database 
 

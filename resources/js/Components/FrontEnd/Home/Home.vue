@@ -1,13 +1,16 @@
 <script setup>
+import { defineAsyncComponent } from "vue";
 import LazySection from "../../LazySection.vue";
-import Agriculture from "./Agriculture.vue";
-import Health from "./Health.vue";
-import Map from "./Map.vue";
-import National from "./National.vue";
-import Politic from "./Politic.vue";
-import Projokti from "./Projokti.vue";
-import Sompadokio from "./Sompadokio.vue";
-import Video from "./Video.vue";
+
+const Agriculture = defineAsyncComponent(() => import("./Agriculture.vue"));
+const Health = defineAsyncComponent(() => import("./Health.vue"));
+const Map = defineAsyncComponent(() => import("./Map.vue"));
+const National = defineAsyncComponent(() => import("./National.vue"));
+const Politic = defineAsyncComponent(() => import("./Politic.vue"));
+const Projokti = defineAsyncComponent(() => import("./Projokti.vue"));
+const Sompadokio = defineAsyncComponent(() => import("./Sompadokio.vue"));
+const Video = defineAsyncComponent(() => import("./Video.vue"));
+
 defineProps({
     divisions: Array,
     homeCategories: Array,

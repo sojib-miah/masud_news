@@ -34,6 +34,6 @@ defineProps({
             :allNews="allNews"
             :bivag="bivag"
             :video="video"
-        ></Home>
+        />
     </Layout>
 </template>
