@@ -12,7 +12,7 @@ const props = defineProps({
     },
     minHeight: {
         type: String,
-        default: "250px",
+        default: null,
     },
 });
 
@@ -22,7 +22,7 @@ const isVisible = ref(false);
 let observer = null;
 
 onMounted(() => {
-    if (!("IntersectionObserver" in window)) {
+    if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
         isVisible.value = true;
         return;
     }
@@ -31,14 +31,11 @@ onMounted(() => {
         (entries) => {
             if (entries.some((entry) => entry.isIntersecting)) {
                 isVisible.value = true;
-
                 observer?.disconnect();
                 observer = null;
             }
         },
-        {
-            rootMargin: props.rootMargin,
-        },
+        { rootMargin: props.rootMargin },
     );
 
     if (sectionElement.value) {
@@ -56,9 +53,7 @@ onBeforeUnmount(() => {
     <section
         ref="sectionElement"
         :data-lazy-section="section"
-        :style="{
-            minHeight: isVisible ? undefined : minHeight,
-        }"
+        :style="!isVisible && minHeight ? { minHeight } : undefined"
     >
         <slot v-if="isVisible" />
 
@@ -69,7 +64,7 @@ onBeforeUnmount(() => {
 <style scoped>
 .lazy-section-placeholder {
     width: 100%;
-    min-height: inherit;
+    height: 100%;
     contain: layout paint;
 }
 </style>

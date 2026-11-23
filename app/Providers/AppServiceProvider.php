@@ -34,23 +34,53 @@ class AppServiceProvider extends ServiceProvider
             'categories' => function () {
                 return Category::with('subCategories')->get();
             },
+
             'breakingNews' => function () {
-                return News::where('breaking', 1)
-                    ->latest()
-                    ->take(10)
+                return News::query()
+                    ->select([
+                        'id',
+                        'title',
+                        'slug',
+                        'image',
+                        'created_at',
+                    ])
+                    ->where('status', 1)
+                    ->where('breaking', 1)
+                    ->latest('created_at')
+                    ->limit(10)
                     ->get();
             },
+
             'sidebarLatest' => function () {
-                return News::where('status', 1)->latest()
-                    ->take(20)
+                return News::query()
+                    ->select([
+                        'id',
+                        'title',
+                        'slug',
+                        'image',
+                        'created_at',
+                    ])
+                    ->where('status', 1)
+                    ->latest('created_at')
+                    ->limit(10)
                     ->get();
             },
 
             'sidebarPopular' => function () {
-                return News::where('status', 1)->orderByDesc('total_view')
-                    ->take(20)
+                return News::query()
+                    ->select([
+                        'id',
+                        'title',
+                        'slug',
+                        'image',
+                        'total_view',
+                        'created_at',
+                    ])
+                    ->where('status', 1)
+                    ->orderByDesc('total_view')
+                    ->limit(10)
                     ->get();
-            }
+            },
         ]);
     }
 }

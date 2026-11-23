@@ -63,7 +63,7 @@ defineProps({
         <LazySection section="map">
             <Map
                 :divisions="divisions"
-                :saradesh="sarades"
+                :sarades="sarades"
                 :allNews="allNews"
                 :bivag="bivag"
             />

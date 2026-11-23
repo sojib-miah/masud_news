@@ -1128,7 +1128,7 @@ const description2 = computed(() => {
                                             ></span>
                                         </div>
                                         <p class="related-news-title">
-                                            {{ truncate(related.title, 10) }}
+                                            {{ truncate(related.title, 6) }}
                                         </p>
                                     </Link>
                                 </div>

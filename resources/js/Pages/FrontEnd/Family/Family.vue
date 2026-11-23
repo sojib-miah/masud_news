@@ -1,7 +1,7 @@
 <script setup>
 import { Head, Link } from "@inertiajs/vue3";
 import Layout from "@/Components/Layout.vue";
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { route } from "ziggy-js";
 
 const props = defineProps({
@@ -51,6 +51,29 @@ function setType(id) {
 function clearSearch() {
     search.value = "";
 }
+
+// pagination
+const currentPage = ref(1);
+const perPage = 50;
+
+const totalPages = computed(() =>
+    Math.ceil(filteredReporters.value.length / perPage),
+);
+
+const paginatedReporters = computed(() => {
+    const start = (currentPage.value - 1) * perPage;
+    return filteredReporters.value.slice(start, start + perPage);
+});
+
+function changePage(page) {
+    if (page >= 1 && page <= totalPages.value) {
+        currentPage.value = page;
+    }
+}
+
+watch([search, activeType], () => {
+    currentPage.value = 1;
+});
 </script>
 
 <template>
@@ -182,13 +205,13 @@ function clearSearch() {
 
                             <div class="p-4">
                                 <h3
-                                    class="font-bold text-slate-800 truncate group-hover:text-green-700 transition"
+                                    class="font-bold text-slate-800 group-hover:text-green-700 transition"
                                 >
                                     {{ f.name }}
                                 </h3>
                                 <p
                                     v-if="f.phone"
-                                    class="text-sm text-slate-500 mt-1 truncate"
+                                    class="text-sm text-slate-500 mt-1"
                                 >
                                     <i
                                         class="fa-solid fa-phone text-green-600 mr-1"
@@ -197,7 +220,7 @@ function clearSearch() {
                                 </p>
                                 <p
                                     v-if="f.location"
-                                    class="text-xs text-slate-400 mt-1 truncate"
+                                    class="text-xs text-slate-400 mt-1"
                                 >
                                     <i
                                         class="fa-solid fa-location-dot mr-1"
@@ -242,7 +265,7 @@ function clearSearch() {
                         class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
                     >
                         <Link
-                            v-for="r in filteredReporters"
+                            v-for="r in paginatedReporters"
                             :key="r.id"
                             :href="route('our.reporter.detail', r.id)"
                             class="reporter-card group"
@@ -297,7 +320,7 @@ function clearSearch() {
                             </div>
                             <div class="p-4">
                                 <h3
-                                    class="font-bold text-slate-800 truncate group-hover:text-green-700 transition"
+                                    class="font-bold text-slate-800 group-hover:text-green-700 transition"
                                 >
                                     {{ r.name }}
                                 </h3>
@@ -326,7 +349,7 @@ function clearSearch() {
                                 <!-- Location stays -->
                                 <p
                                     v-if="r.location"
-                                    class="text-xs text-slate-400 mt-2 truncate"
+                                    class="text-xs text-slate-400 mt-2"
                                 >
                                     <i
                                         class="fa-solid fa-location-dot mr-1"
@@ -335,6 +358,42 @@ function clearSearch() {
                                 </p>
                             </div>
                         </Link>
+                    </div>
+
+                    <!-- Reporter Pagination -->
+                    <div
+                        v-if="totalPages > 1"
+                        class="flex flex-wrap justify-center items-center gap-2 mt-8"
+                    >
+                        <button
+                            @click="changePage(currentPage - 1)"
+                            :disabled="currentPage === 1"
+                            class="px-4 py-2 rounded-lg border text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-green-50"
+                        >
+                            Previous
+                        </button>
+
+                        <button
+                            v-for="page in totalPages"
+                            :key="page"
+                            @click="changePage(page)"
+                            class="w-10 h-10 rounded-lg border text-sm font-semibold transition"
+                            :class="
+                                currentPage === page
+                                    ? 'bg-green-600 text-white border-green-600'
+                                    : 'bg-white text-slate-600 border-slate-200 hover:bg-green-50'
+                            "
+                        >
+                            {{ page }}
+                        </button>
+
+                        <button
+                            @click="changePage(currentPage + 1)"
+                            :disabled="currentPage === totalPages"
+                            class="px-4 py-2 rounded-lg border text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed hover:bg-green-50"
+                        >
+                            Next
+                        </button>
                     </div>
                 </section>
             </div>

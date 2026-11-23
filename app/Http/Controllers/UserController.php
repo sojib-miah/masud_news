@@ -29,54 +29,127 @@ use Inertia\Inertia;
 
 class UserController extends Controller
 {
+
     public function home()
     {
-        $divisions = Division::all();
-        $video = Video::all();
+        // Required fields for the homepage news cards.
+        $newsColumns = [
+            'id',
+            'category_id',
+            'subcategory_id',
+            'title',
+            'slug',
+            'description',
+            'image',
+            'division_name',
+            'created_at',
+        ];
 
-        $homeCategories = Category::whereIn('slug', ['jateey', 'sarades'])
-            ->with(['news' => function ($q) {
-                $q->where('status', 1)
-                    ->latest()
-                    ->take(5);
-            }])->get();
+        // Reusable eager-loading constraint.
+        $loadNews = function (int $limit) use ($newsColumns) {
+            return function ($query) use ($limit, $newsColumns) {
+                $query->select($newsColumns)
+                    ->where('status', 1)
+                    ->latest('created_at')
+                    ->limit($limit);
+            };
+        };
 
-        $rajcategories = Category::whereIn('slug', ['rajneeti', 'antrjatik', 'kheladhula'])
-            ->with(['news' => function ($q) {
-                $q->where('status', 1)->latest()->take(5);
-            }])->get();
+        $divisions = Division::query()
+            ->select('id', 'name', 'bn_name', 'url')
+            ->get();
 
-        $techCategories = Category::whereIn('slug', ['przukti', 'binodn'])
-            ->with(['news' => function ($q) {
-                $q->where('status', 1)
-                    ->latest()
-                    ->take(10);
-            }])->get();
-        $subCategories = SubCategory::with(['category', 'news' => function ($q) {
-            $q->where('status', 1)->latest()->take(6);
-        }])->whereIn('slug', ['swasthz-oo-cikittsa', 'ain-adalt'])->get();
+        $video = Video::query()
+            ->select('id', 'link')
+            ->latest('created_at')
+            ->limit(1)
+            ->get();
 
-        $sompadokiyos = SubCategory::with(['category', 'news' => function ($q) {
-            $q->where('status', 1)->latest()->take(6);
-        }])->whereIn('slug', ['smpadkeez', 'orthneeti'])->get();
+        $homeCategories = Category::query()
+            ->select('id', 'name', 'slug')
+            ->whereIn('slug', ['jateey', 'sarades'])
+            ->with(['news' => $loadNews(5)])
+            ->get();
 
-        $mainCategories = Category::with(['news' => function ($q) {
-            $q->where('status', 1)->latest()->take(6);
-        }])->whereIn('slug', ['krrishi'])->get();
+        $rajcategories = Category::query()
+            ->select('id', 'name', 'slug')
+            ->whereIn('slug', [
+                'rajneeti',
+                'antrjatik',
+                'kheladhula',
+            ])
+            ->with(['news' => $loadNews(5)])
+            ->get();
 
-        $subCategory = SubCategory::with([
-            'category',
-            'news' => function ($q) {
-                $q->where('status', 1)->latest()->take(6);
-            },
-        ])->where('slug', 'cakurir-khbr')->first();
+        $techCategories = Category::query()
+            ->select('id', 'name', 'slug')
+            ->whereIn('slug', ['przukti', 'binodn'])
+            ->with(['news' => $loadNews(10)])
+            ->get();
 
-        $sarades = Category::where('slug', 'sarades')->first();
+        $subCategories = SubCategory::query()
+            ->select('id', 'category_id', 'name', 'slug')
+            ->whereIn('slug', [
+                'swasthz-oo-cikittsa',
+                'ain-adalt',
+            ])
+            ->with([
+                'category:id,name,slug',
+                'news' => $loadNews(6),
+            ])
+            ->get();
 
-        $bivag = Category::where('slug', 'bivageey-sngbad')
+        $sompadokiyos = SubCategory::query()
+            ->select('id', 'category_id', 'name', 'slug')
+            ->whereIn('slug', ['smpadkeez', 'orthneeti'])
+            ->with([
+                'category:id,name,slug',
+                'news' => $loadNews(6),
+            ])
+            ->get();
+
+        $mainCategories = Category::query()
+            ->select('id', 'name', 'slug')
+            ->whereIn('slug', ['krrishi'])
+            ->with(['news' => $loadNews(6)])
+            ->get();
+
+        $subCategory = SubCategory::query()
+            ->select('id', 'category_id', 'name', 'slug')
+            ->where('slug', 'cakurir-khbr')
+            ->with([
+                'category:id,name,slug',
+                'news' => $loadNews(6),
+            ])
+            ->first();
+
+        $sarades = Category::query()
+            ->select('id', 'name', 'slug')
+            ->where('slug', 'sarades')
+            ->first();
+
+        $bivag = Category::query()
+            ->select('id', 'name', 'slug')
+            ->where('slug', 'bivageey-sngbad')
             ->with('subcategories')
             ->first();
-        $allNews = News::where('status', 1)->latest()->take(50)->get();
+
+        // Map.vue uses these fields to filter and display news.
+        $allNews = News::query()
+            ->select([
+                'id',
+                'category_id',
+                'subcategory_id',
+                'title',
+                'slug',
+                'image',
+                'division_name',
+                'created_at',
+            ])
+            ->where('status', 1)
+            ->latest('created_at')
+            ->limit(50)
+            ->get();
 
         return Inertia::render('Home', [
             'divisions' => $divisions,

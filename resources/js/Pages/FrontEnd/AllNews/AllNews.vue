@@ -183,7 +183,7 @@ const gridNews = computed(() => newsItems.value);
                                         :href="route('news.details', item.slug)"
                                         class="secondary-title leading-7"
                                     >
-                                        {{ truncate(item.title, 7) }}
+                                        {{ truncate(item.title, 6) }}
                                     </Link>
                                 </article>
                             </section>
@@ -235,7 +235,7 @@ const gridNews = computed(() => newsItems.value);
                                         :href="route('news.details', item.slug)"
                                         class="grid-title"
                                     >
-                                        {{ truncate(item.title, 7) }}
+                                        {{ truncate(item.title, 6) }}
                                     </Link>
                                 </article>
                             </section>

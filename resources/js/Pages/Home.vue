@@ -30,7 +30,7 @@ defineProps({
             :sompadokiyos="sompadokiyos"
             :mainCategories="mainCategories"
             :subCategory="subCategory"
-            :saradesh="sarades"
+            :sarades="sarades"
             :allNews="allNews"
             :bivag="bivag"
             :video="video"
