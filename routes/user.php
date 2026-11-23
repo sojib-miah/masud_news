@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\FamilyController;
 use App\Http\Controllers\Admin\LookupController;
+use App\Http\Controllers\Admin\ReporterActivityController;
 use App\Http\Controllers\Admin\UserChangePassword;
 use App\Http\Controllers\FrontEnd\FooterController;
 use App\Http\Controllers\FrontEnd\HeaderController;
@@ -28,10 +29,16 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/users/list/changepassword', [UserChangePassword::class, 'list'])->name('users.changePassword.list');
     Route::post('/{user}/change-password', [UserChangePassword::class, 'changePassword'])->name('users.changePassword');
 
+    // looksup routes 
     Route::get('/lookups', [LookupController::class, 'index'])->name('lookups.index');
     Route::get('/lookups/{table}/list', [LookupController::class, 'list'])->name('lookups.list');
     Route::get('/lookups/{table}/options', [LookupController::class, 'options'])->name('lookups.options');
     Route::post('/lookups/{table}', [LookupController::class, 'store'])->name('lookups.store');
     Route::put('/lookups/{table}/{id}', [LookupController::class, 'update'])->name('lookups.update');
     Route::delete('/lookups/{table}/{id}', [LookupController::class, 'destroy'])->name('lookups.destroy');
+
+    // inactive route 
+    Route::get('/reporters/inactive', [ReporterActivityController::class, 'index'])->name('reporters.inactive.index');
+    Route::get('/reporters/inactive/list', [ReporterActivityController::class, 'list'])->name('reporters.inactive.list');
+    Route::get('/reporters/inactive/{user}', [ReporterActivityController::class, 'details'])->name('reporters.inactive.details');
 });

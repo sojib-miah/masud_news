@@ -142,4 +142,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(Motamot::class);
     }
+
+    public function news()
+    {
+        return $this->hasMany(News::class, 'created_by');
+    }
 }
