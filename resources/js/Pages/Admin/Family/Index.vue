@@ -76,7 +76,7 @@ function submit() {
     if (editingId.value) {
         form.transform((data) => ({
             ...data,
-            _method: "put", // 👈 method spoofing
+            _method: "put",
         })).post(route("admin.families.update", editingId.value), {
             forceFormData: true,
             preserveScroll: true,

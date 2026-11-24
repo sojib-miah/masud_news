@@ -7,8 +7,13 @@ use App\Http\Controllers\Admin\UserChangePassword;
 use App\Http\Controllers\FrontEnd\FooterController;
 use App\Http\Controllers\FrontEnd\HeaderController;
 use App\Http\Controllers\FrontEnd\TermesController;
+use App\Http\Controllers\FrontEnd\VideoController;
 use Illuminate\Support\Facades\Route;
 
+// frontend route 
+Route::get('/videos', [VideoController::class, 'index'])->name('videos.index');
+
+// backend admin route 
 Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/headers', [HeaderController::class, 'index'])->name('headers.index');
     Route::post('/headers', [HeaderController::class, 'store'])->name('headers.store');

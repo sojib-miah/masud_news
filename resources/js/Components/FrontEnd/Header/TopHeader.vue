@@ -454,7 +454,7 @@ onBeforeUnmount(() => {
     display: flex;
     align-items: center;
     gap: 10px;
-    padding: 5px 14px;
+    padding: 7px 14px;
     background: linear-gradient(135deg, #f0fdf4, #dcfce7);
 }
 
@@ -499,7 +499,7 @@ onBeforeUnmount(() => {
     align-items: center;
     gap: 10px;
     width: 100%;
-    padding: 10px 14px;
+    padding: 15px 20px;
     color: #334155;
     font-size: 0.88rem;
     font-weight: 500;

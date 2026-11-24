@@ -22,7 +22,7 @@ const form = useForm({
 const activeTab = ref("termes"); // 'termes' | 'privacy'
 
 function submit() {
-    form.post(route("terms.storeOrUpdate"), {
+    form.post(route("admin.terms.storeOrUpdate"), {
         preserveScroll: true,
     });
 }

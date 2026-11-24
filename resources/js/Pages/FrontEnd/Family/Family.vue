@@ -8,6 +8,8 @@ const props = defineProps({
     families: { type: Array, default: () => [] },
     reporters: { type: Array, default: () => [] },
     reporterTypes: { type: Array, default: () => [] },
+    topReportersByNews: { type: Array, default: () => [] },
+    topReportersByViews: { type: Array, default: () => [] },
 });
 
 const activeType = ref("all"); // "all" | numeric type id
@@ -152,7 +154,7 @@ watch([search, activeType], () => {
                         <i
                             class="fa-solid fa-house-chimney text-green-600 mr-2"
                         ></i>
-                        ফ্যামিলি মেম্বার
+                        পরিচালনা ও সম্পাদকীয় পরিষদ
                         <span class="text-sm font-normal text-slate-400">
                             ({{ filteredFamilies.length }})
                         </span>
@@ -236,6 +238,144 @@ watch([search, activeType], () => {
                             </div>
                         </Link>
                     </div>
+                </section>
+
+                <!-- ============ TOP 10 REPORTERS BY NEWS POSTS ============ -->
+                <section class="mb-8">
+                    <h2
+                        class="text-lg sm:text-xl font-bold text-slate-800 mb-4"
+                    >
+                        <i class="fa-solid fa-id-badge text-green-600 mr-2"></i>
+                        সর্বাধিক সংবাদ প্রকাশকারী রিপোর্টার
+                        <span class="text-sm font-normal text-slate-400">
+                            ({{ topReportersByNews.length }})
+                        </span>
+                    </h2>
+
+                    <div
+                        v-if="topReportersByNews.length"
+                        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4"
+                    >
+                        <Link
+                            v-for="(r, i) in topReportersByNews"
+                            :key="r.id"
+                            :href="route('our.reporter.detail', r.id)"
+                            class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition p-3 flex flex-col items-center text-center"
+                        >
+                            <span
+                                class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold mb-2"
+                                :class="
+                                    i === 0
+                                        ? 'bg-amber-400 text-white'
+                                        : i === 1
+                                          ? 'bg-slate-400 text-white'
+                                          : i === 2
+                                            ? 'bg-orange-500 text-white'
+                                            : 'bg-slate-100 text-slate-600'
+                                "
+                            >
+                                {{ i + 1 }}
+                            </span>
+
+                            <img
+                                v-if="r.photo_url"
+                                :src="r.photo_url"
+                                :alt="r.name"
+                                loading="lazy"
+                                class="w-16 h-16 rounded-full object-contain border-2 border-green-500 mb-2"
+                            />
+                            <div
+                                v-else
+                                class="w-16 h-16 rounded-full border-2 border-green-500 mb-2 flex items-center justify-center text-green-700 text-3xl font-bold"
+                            >
+                                {{ (r.name || "?").charAt(0) }}
+                            </div>
+
+                            <p
+                                class="text-sm font-semibold text-slate-800 line-clamp-1"
+                            >
+                                {{ r.name }}
+                            </p>
+
+                            <p class="text-xs text-green-600 font-bold mt-1">
+                                <i class="fa-solid fa-newspaper mr-1"></i>
+                                {{ r.news_count }} নিউজ
+                            </p>
+                        </Link>
+                    </div>
+
+                    <p v-else class="text-sm text-slate-500">
+                        কোনো রিপোর্টার পাওয়া যায়নি।
+                    </p>
+                </section>
+
+                <!-- ============ TOP 10 REPORTERS BY TOTAL VIEWS ============ -->
+                <section class="mb-8">
+                    <h2
+                        class="text-lg sm:text-xl font-bold text-slate-800 mb-4"
+                    >
+                        <i class="fa-solid fa-fire text-red-500 mr-2"></i>
+                        সর্বাধিক ভিউ পাওয়া রিপোর্টার
+                        <span class="text-sm font-normal text-slate-400">
+                            ({{ topReportersByViews.length }})
+                        </span>
+                    </h2>
+
+                    <div
+                        v-if="topReportersByViews.length"
+                        class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4"
+                    >
+                        <Link
+                            v-for="(r, i) in topReportersByViews"
+                            :key="r.id"
+                            :href="route('our.reporter.detail', r.id)"
+                            class="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition p-3 flex flex-col items-center text-center"
+                        >
+                            <span
+                                class="inline-flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold mb-2"
+                                :class="
+                                    i === 0
+                                        ? 'bg-amber-400 text-white'
+                                        : i === 1
+                                          ? 'bg-slate-400 text-white'
+                                          : i === 2
+                                            ? 'bg-orange-500 text-white'
+                                            : 'bg-slate-100 text-slate-600'
+                                "
+                            >
+                                {{ i + 1 }}
+                            </span>
+
+                            <img
+                                v-if="r.photo_url"
+                                :src="r.photo_url"
+                                :alt="r.name"
+                                loading="lazy"
+                                class="w-16 h-16 rounded-full object-contain border-2 border-red-500 mb-2"
+                            />
+                            <div
+                                v-else
+                                class="w-16 h-16 rounded-full border-2 border-green-500 mb-2 flex items-center justify-center text-green-700 text-3xl font-bold"
+                            >
+                                {{ (r.name || "?").charAt(0) }}
+                            </div>
+
+                            <p
+                                class="text-sm font-semibold text-slate-800 line-clamp-1"
+                            >
+                                {{ r.name }}
+                            </p>
+
+                            <p class="text-xs text-red-600 font-bold mt-1">
+                                <i class="fa-solid fa-eye mr-1"></i>
+                                {{ r.total_views.toLocaleString() }} ভিউ
+                            </p>
+                        </Link>
+                    </div>
+
+                    <p v-else class="text-sm text-slate-500">
+                        কোনো রিপোর্টার পাওয়া যায়নি।
+                    </p>
                 </section>
 
                 <!-- Reporter section -->

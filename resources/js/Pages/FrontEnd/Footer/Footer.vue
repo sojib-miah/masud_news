@@ -73,11 +73,11 @@ const contentFields = [
 
 function submit() {
     if (editing.value) {
-        form.put(route("footers.update", currentId.value), {
+        form.put(route("admin.footers.update", currentId.value), {
             onSuccess: () => resetForm(),
         });
     } else {
-        form.post(route("footers.store"), {
+        form.post(route("admin.footers.store"), {
             onSuccess: () => resetForm(),
         });
     }
@@ -98,7 +98,7 @@ function edit(footer) {
 
 function remove(footer) {
     if (confirm("Are you sure you want to delete this footer?")) {
-        router.delete(route("footers.destroy", footer.id));
+        router.delete(route("admin.footers.destroy", footer.id));
     }
 }
 

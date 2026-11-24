@@ -76,12 +76,12 @@ function submit() {
         form.transform((data) => ({
             ...data,
             _method: "put",
-        })).post(route("headers.update", { header: currentId.value }), {
+        })).post(route("admin.headers.update", { header: currentId.value }), {
             forceFormData: true,
             onSuccess: () => resetForm(),
         });
     } else {
-        form.post(route("headers.store"), {
+        form.post(route("admin.headers.store"), {
             forceFormData: true,
             onSuccess: () => resetForm(),
         });
@@ -109,7 +109,7 @@ function edit(header) {
 
 function remove(header) {
     if (confirm("Are you sure you want to delete this header?")) {
-        router.delete(route("headers.destroy", header.id));
+        router.delete(route("admin.headers.destroy", header.id));
     }
 }
 

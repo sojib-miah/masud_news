@@ -153,6 +153,12 @@ function cancelHide() {
                         </li>
 
                         <li class="shrink-0">
+                            <Link :href="route('videos.index')">
+                                ভিডিও নিউজ
+                            </Link>
+                        </li>
+
+                        <li class="shrink-0">
                             <Link :href="route('our.family')"> পরিবার </Link>
                         </li>
 
@@ -179,10 +185,7 @@ function cancelHide() {
                     class="mobile-menu lg:hidden absolute top-full left-0 right-0 z-40"
                 >
                     <li>
-                        <Link :href="route('home')" class="active">
-                            <i class="fa-regular fa-house"></i>
-                            <span class="ml-2">হোম</span>
-                        </Link>
+                        <Link :href="route('home')" class="active"> হোম </Link>
                     </li>
 
                     <li v-for="cat in categories" :key="cat.id">
@@ -225,17 +228,15 @@ function cancelHide() {
                     </li>
 
                     <li>
-                        <Link :href="route('our.family')">
-                            <i class="fa-solid fa-users"></i>
-                            <span class="ml-2">পরিবার</span>
-                        </Link>
+                        <Link :href="route('videos.index')"> ভিডিও নিউজ </Link>
                     </li>
 
                     <li>
-                        <Link :href="route('news.archive')">
-                            <i class="fa-solid fa-box-archive"></i>
-                            <span class="ml-2">আর্কাইভ</span>
-                        </Link>
+                        <Link :href="route('our.family')"> পরিবার </Link>
+                    </li>
+
+                    <li>
+                        <Link :href="route('news.archive')"> আর্কাইভ </Link>
                     </li>
                 </ul>
 

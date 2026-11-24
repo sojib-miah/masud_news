@@ -77,10 +77,52 @@ class FamilyController extends Controller
                 ];
             });
 
+        // ---- Top 10 reporters by number of news posts ----
+        $topReportersByNews = User::query()
+            ->where('role', 'reporter') // plain string role column
+            ->whereHas('news')          // must have at least one news
+            ->withCount('news as news_count')
+            ->orderByDesc('news_count')
+            ->take(10)
+            ->get()
+            ->map(function (User $u) {
+                return [
+                    'id'             => $u->id,
+                    'name'           => $u->name,
+                    'email'          => $u->email,
+                    'photo_url'      => $u->image ? asset('storage/' . $u->image) : null,
+                    'news_count'     => $u->news_count,
+                    'status'         => $u->status,
+                    'is_approved'    => $u->status === 'approved',
+                ];
+            });
+
+        // ---- Top 10 reporters by total view count (sum of news.total_view) ----
+        $topReportersByViews = User::query()
+            ->where('role', 'reporter')
+            ->whereHas('news')
+            ->withSum('news as total_views', 'total_view')
+            ->orderByDesc('total_views')
+            ->take(10)
+            ->get()
+            ->map(function (User $u) {
+                return [
+                    'id'             => $u->id,
+                    'name'           => $u->name,
+                    'email'          => $u->email,
+                    'photo_url'      => $u->image ? asset('storage/' . $u->image) : null,
+                    'total_views'    => (int) ($u->total_views ?? 0),
+                    'status'         => $u->status,
+                    'is_approved'    => $u->status === 'approved',
+                ];
+            });
+
         return Inertia::render('FrontEnd/Family/Family', [
             'families'      => $families,
             'reporters'     => $reporters,
             'reporterTypes' => $reporterTypes,
+            'topReportersByNews'   => $topReportersByNews,
+            'topReportersByViews'  => $topReportersByViews,
         ]);
     }
 
