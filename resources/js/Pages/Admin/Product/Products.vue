@@ -24,7 +24,6 @@ const form = useForm({
     dipo: "",
     dillar: "",
     sub_dillar: "",
-    percentage: "",
     image: null,
 });
 
@@ -88,7 +87,6 @@ const editProduct = (product) => {
     form.dipo = product.dipo ?? "";
     form.dillar = product.dillar ?? "";
     form.sub_dillar = product.sub_dillar ?? "";
-    form.percentage = product.percentage ?? "";
     form.image = null;
 
     preview.value = product.image ? `/storage/${product.image}` : null;
@@ -378,19 +376,19 @@ function visitPage(url) {
                                     </td>
                                     <td class="px-3 py-3 text-center">
                                         <span
-                                            v-if="
-                                                p.percentage !== null &&
-                                                p.percentage !== ''
-                                            "
                                             class="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700 ring-1 ring-amber-200"
                                         >
-                                            {{ p.percentage }}%
+                                            {{
+                                                Math.round(
+                                                    (1 -
+                                                        Number(
+                                                            p.discount_price,
+                                                        ) /
+                                                            Number(p.price)) *
+                                                        100,
+                                                )
+                                            }}%
                                         </span>
-                                        <span
-                                            v-else
-                                            class="text-slate-400 text-xs"
-                                            >—</span
-                                        >
                                     </td>
                                     <td class="px-4 py-3">
                                         <div
@@ -562,7 +560,14 @@ function visitPage(url) {
                                     %
                                 </p>
                                 <p class="font-bold text-amber-700">
-                                    {{ p.percentage ?? 0 }}%
+                                    {{
+                                        Math.round(
+                                            (1 -
+                                                Number(p.discount_price) /
+                                                    Number(p.price)) *
+                                                100,
+                                        )
+                                    }}%
                                 </p>
                             </div>
                         </div>
@@ -801,7 +806,7 @@ function visitPage(url) {
                                 <p
                                     class="text-[10px] text-slate-500 mt-1 font-semibold uppercase tracking-wider"
                                 >
-                                    Price
+                                    Price <span class="text-red-500">*</span>
                                 </p>
                                 <p
                                     v-if="form.errors.price"
@@ -825,7 +830,7 @@ function visitPage(url) {
                                 <p
                                     class="text-[10px] text-slate-500 mt-1 font-semibold uppercase tracking-wider"
                                 >
-                                    Discount
+                                    Discount <span class="text-red-500">*</span>
                                 </p>
                                 <p
                                     v-if="form.errors.discount_price"
@@ -855,7 +860,13 @@ function visitPage(url) {
                                 <p
                                     class="text-[10px] text-slate-500 mt-1 text-center font-semibold uppercase tracking-wider"
                                 >
-                                    Qty
+                                    Qty <span class="text-red-500">*</span>
+                                </p>
+                                <p
+                                    v-if="form.errors.quantity"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.quantity }}
                                 </p>
                             </div>
                             <div>
@@ -867,7 +878,13 @@ function visitPage(url) {
                                 <p
                                     class="text-[10px] text-slate-500 mt-1 text-center font-semibold uppercase tracking-wider"
                                 >
-                                    Croy
+                                    Croy <span class="text-red-500">*</span>
+                                </p>
+                                <p
+                                    v-if="form.errors.croy"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.croy }}
                                 </p>
                             </div>
                             <div>
@@ -879,7 +896,13 @@ function visitPage(url) {
                                 <p
                                     class="text-[10px] text-slate-500 mt-1 text-center font-semibold uppercase tracking-wider"
                                 >
-                                    Dipo
+                                    Dipo <span class="text-red-500">*</span>
+                                </p>
+                                <p
+                                    v-if="form.errors.dipo"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.dipo }}
                                 </p>
                             </div>
                         </div>
@@ -896,46 +919,33 @@ function visitPage(url) {
                             Classification
                         </label>
                         <div class="grid grid-cols-1 gap-2">
-                            <input
-                                v-model="form.dillar"
-                                placeholder="Dillar..."
-                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                            />
-                            <input
-                                v-model="form.sub_dillar"
-                                placeholder="Sub Dillar..."
-                                class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
-                            />
+                            <div>
+                                <input
+                                    v-model="form.dillar"
+                                    placeholder="Dillar..."
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                                />
+                                <p
+                                    v-if="form.errors.dillar"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.dillar }}
+                                </p>
+                            </div>
+                            <div>
+                                <input
+                                    v-model="form.sub_dillar"
+                                    placeholder="Sub Dillar..."
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
+                                />
+                                <p
+                                    v-if="form.errors.sub_dillar"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.sub_dillar }}
+                                </p>
+                            </div>
                         </div>
-                    </div>
-
-                    <!-- PERCENTAGE -->
-                    <div>
-                        <label
-                            class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
-                        >
-                            <i
-                                class="fa-solid fa-percent text-amber-600 mr-1"
-                            ></i>
-                            Percentage
-                        </label>
-                        <div class="relative">
-                            <input
-                                v-model="form.percentage"
-                                placeholder="0"
-                                class="w-full rounded-lg border border-slate-300 pl-3 pr-8 py-2 text-sm outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-200"
-                            />
-                            <span
-                                class="absolute right-3 top-1/2 -translate-y-1/2 text-amber-600 text-sm font-bold"
-                                >%</span
-                            >
-                        </div>
-                        <p
-                            v-if="form.errors.percentage"
-                            class="text-xs text-red-500 mt-1"
-                        >
-                            {{ form.errors.percentage }}
-                        </p>
                     </div>
 
                     <!-- DESCRIPTION -->
@@ -946,13 +956,19 @@ function visitPage(url) {
                             <i
                                 class="fa-solid fa-align-left text-slate-500 mr-1"
                             ></i>
-                            Description
+                            Description <span class="text-red-500">*</span>
                         </label>
                         <RichTextEditor
                             v-model="form.description"
                             placeholder="Enter product description"
                             :error="form.errors.description"
                         />
+                        <p
+                            v-if="form.errors.description"
+                            class="text-xs text-red-500 mt-1"
+                        >
+                            {{ form.errors.description }}
+                        </p>
                     </div>
 
                     <!-- SUBMIT -->
@@ -1121,18 +1137,23 @@ function visitPage(url) {
                                         {{ formatMoney(viewProduct.price) }}
                                     </p>
                                 </div>
-                                <div
-                                    v-if="
-                                        viewProduct.percentage !== null &&
-                                        viewProduct.percentage !== ''
-                                    "
-                                    class="ml-auto"
-                                >
+                                <div class="ml-auto">
                                     <span
                                         class="inline-flex items-center gap-1 rounded-full bg-amber-500 text-white px-3 py-1 text-xs font-bold shadow"
                                     >
                                         <i class="fa-solid fa-percent"></i>
-                                        {{ viewProduct.percentage }}% OFF
+                                        {{
+                                            Math.round(
+                                                (1 -
+                                                    Number(
+                                                        viewProduct.discount_price,
+                                                    ) /
+                                                        Number(
+                                                            viewProduct.price,
+                                                        )) *
+                                                    100,
+                                            )
+                                        }}% OFF
                                     </span>
                                 </div>
                             </div>

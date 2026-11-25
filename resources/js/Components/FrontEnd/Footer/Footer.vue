@@ -64,6 +64,10 @@ const web2 = computed(() => props.footer?.web2 || "");
                             <span class="lbl">প্রধান আইন উপদেষ্টা : </span>
                             <span class="val">{{ footer.pro }}</span>
                         </li>
+                        <li>
+                            <span class="lbl">বার্তা সম্পাদক : </span>
+                            <span class="val">মিসেস রহিমা হোসাইন</span>
+                        </li>
                         <li v-if="footer?.bab">
                             <span class="lbl">ব্যবস্থাপনা সম্পাদক : </span>
                             <span class="val">{{ footer.bab }}</span>
@@ -396,7 +400,7 @@ const web2 = computed(() => props.footer?.web2 || "");
 .footer-list li > .lbl {
     color: #a7f3d0;
     font-weight: 600;
-    min-width: 130px;
+    min-width: 140px;
     flex-shrink: 0;
 }
 

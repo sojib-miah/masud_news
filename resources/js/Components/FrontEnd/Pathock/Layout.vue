@@ -1,5 +1,5 @@
 <script setup>
-import { Link, useForm, usePage } from "@inertiajs/vue3";
+import { Link, router, useForm, usePage } from "@inertiajs/vue3";
 import { route } from "ziggy-js";
 import { ref, computed, watch } from "vue";
 
@@ -47,9 +47,32 @@ const navItems = computed(() => [
         icon: "fa-solid fa-box-open",
     },
 ]);
+
+const leaveImpersonation = () => {
+    router.post(route("admin.impersonate.leave"));
+};
 </script>
 
 <template>
+    <div
+        v-if="$page.props.auth.user && $page.props.session?.impersonator_id"
+        class="bg-yellow-600 text-white text-center py-2 text-sm font-bold fixed bottom-0 left-0 w-full z-[9999]"
+    >
+        আপনি বর্তমানে
+        <strong
+            >{{ $page.props.auth.user.name }}({{
+                $page.props.auth.user.phone
+            }})</strong
+        >
+        হিসেবে লগইন আছেন (Impersonating)
+        <button
+            @click="leaveImpersonation"
+            class="ml-4 bg-black/30 hover:bg-black/50 px-3 py-1 rounded transition"
+        >
+            অ্যাডমিনে ফিরে যান
+        </button>
+    </div>
+
     <div class="min-h-screen bg-slate-100">
         <!-- ==================== HEADER ==================== -->
         <header

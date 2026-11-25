@@ -80,43 +80,24 @@ class OrderController extends Controller
         $balanceUsed = 0;
         $stockMoneyUsed = 0;
 
-        /*
-        |--------------------------------------------------------------------------
-        | USE BALANCE (MAX 30%)
-        |--------------------------------------------------------------------------
-        */
-
         if ($request->use_balance) {
-
-            $maxBalanceUse = $grandTotal * 0.30;
-
+            $maxBalanceUse = $grandTotal * 0.20;
             $balanceUsed = min(
                 $user->total_balance,
                 $maxBalanceUse
             );
-
             $total -= $balanceUsed;
         }
 
-        /*
-        |--------------------------------------------------------------------------
-        | USE STOCK MONEY
-        |--------------------------------------------------------------------------
-        */
-
         if ($request->use_stock_money) {
-
             $approvedStock = StockMoney::where('user_id', $user->id)
                 ->where('status', 'approved')
                 ->get();
-
             $availableStock = $approvedStock->sum('amount');
-
             $stockMoneyUsed = min(
                 $availableStock,
                 $total
             );
-
             $total -= $stockMoneyUsed;
         }
 
@@ -187,34 +168,23 @@ class OrderController extends Controller
     {
         // 10 generation levels
         $levels = [10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-
         $currentUser = $user;
-
         foreach ($levels as $percent) {
-
             if (!$currentUser->referred_by) {
                 break;
             }
-
             $parent = User::find($currentUser->referred_by);
-
             if (!$parent) {
                 break;
             }
-
             $commission = ($amount * $percent) / 100;
-
             // generation commission
             $parent->generation_commission += $commission;
-
             // marketing wallet
             $parent->marketing_wallet += $commission;
-
             // total earning
             $parent->total_earning += $commission;
-
             $parent->save();
-
             $currentUser = $parent;
         }
     }
@@ -285,12 +255,6 @@ class OrderController extends Controller
         // update status
         $order->status = $request->status;
         $order->save();
-
-        /*
-        |--------------------------------------------------------------------------
-        | COMMISSION ONLY ONE TIME
-        |--------------------------------------------------------------------------
-        */
 
         if (
             $request->status == 'delivered'

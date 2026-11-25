@@ -11,6 +11,7 @@ const props = defineProps({
     avatar: String,
     auth: Object,
     todayNews: Number,
+    totalPendingNews: Number,
     monthNews: Number,
     totalNews: Number,
     todaySell: Number,
@@ -151,6 +152,15 @@ const newsCards = [
         gradient: "from-amber-500 to-orange-500",
         glow: "shadow-amber-500/30",
         ring: "ring-amber-500/20",
+    },
+    {
+        label: "Total Pending News",
+        value: () => props.totalPendingNews,
+        href: () => route("admin.news"),
+        icon: "fa-regular fa-clock",
+        gradient: "from-red-500 to-rose-500",
+        glow: "shadow-red-500/30",
+        ring: "ring-red-500/20",
     },
 ];
 

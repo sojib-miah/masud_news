@@ -56,7 +56,7 @@ function clearSearch() {
 
 // pagination
 const currentPage = ref(1);
-const perPage = 50;
+const perPage = 48;
 
 const totalPages = computed(() =>
     Math.ceil(filteredReporters.value.length / perPage),

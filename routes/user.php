@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\FamilyController;
+use App\Http\Controllers\Admin\ImpersonateController;
 use App\Http\Controllers\Admin\LookupController;
 use App\Http\Controllers\Admin\ReporterActivityController;
 use App\Http\Controllers\Admin\UserChangePassword;
@@ -46,4 +47,9 @@ Route::middleware(['auth'])->prefix('admin')->name('admin.')->group(function () 
     Route::get('/reporters/inactive', [ReporterActivityController::class, 'index'])->name('reporters.inactive.index');
     Route::get('/reporters/inactive/list', [ReporterActivityController::class, 'list'])->name('reporters.inactive.list');
     Route::get('/reporters/inactive/{user}', [ReporterActivityController::class, 'details'])->name('reporters.inactive.details');
+
+    // Impersonation route 
+    Route::get('/impersonate', [ImpersonateController::class, 'index'])->name('impersonate.index');
+    Route::post('/impersonate', [ImpersonateController::class, 'login'])->name('impersonate.login');
+    Route::post('/impersonate/leave', [ImpersonateController::class, 'leave'])->name('impersonate.leave');
 });

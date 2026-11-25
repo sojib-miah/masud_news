@@ -23,7 +23,6 @@ return new class extends Migration
             $table->decimal('dipo', 8, 2);
             $table->string('dillar')->nullable();
             $table->string('sub_dillar')->nullable();
-            $table->integer('percentage')->nullable();
             $table->timestamps();
         });
     }

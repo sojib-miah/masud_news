@@ -8,12 +8,10 @@ use App\Models\NewsletterSubscriber;
 use App\Models\Order;
 use App\Models\ReporterType;
 use App\Models\User;
-use Illuminate\Container\Attributes\Auth;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Laravolt\Avatar\Facade as Avatar;
 
 class AdminController extends Controller
 {
@@ -31,6 +29,7 @@ class AdminController extends Controller
             ->count();
 
         $totalNews = News::count();
+        $totalPendingNews = News::where('status', 0)->count();
 
         // SALES
         $todaySell = Order::whereDate('created_at', today())
@@ -56,11 +55,8 @@ class AdminController extends Controller
         $sales = [];
 
         for ($i = 1; $i <= 12; $i++) {
-
             $months[] = date('M', mktime(0, 0, 0, $i, 1));
-
             $found = $monthlySales->firstWhere('month', $i);
-
             $sales[] = $found ? $found->total : 0;
         }
 
@@ -68,6 +64,7 @@ class AdminController extends Controller
             'todayNews' => $todayNews,
             'monthNews' => $monthNews,
             'totalNews' => $totalNews,
+            'totalPendingNews' => $totalPendingNews,
 
             // sales
             'todaySell' => (float) $todaySell,
@@ -103,7 +100,7 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Subscriptions/Subscriptions', [
             'subscriptions' => $subscriptions,
-            'search'        => $request->search ?? '',
+            'search' => $request->search ?? '',
         ]);
     }
 
@@ -139,7 +136,7 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Pathock/Pathock', [
             'pathocks' => $query->latest()->paginate(20)->withQueryString(),
-            'search'   => $request->search,
+            'search' => $request->search,
         ]);
     }
 
@@ -187,7 +184,7 @@ class AdminController extends Controller
 
         return Inertia::render('Admin/Reporter/Reporter', [
             'reporters' => $reporters,
-            'search'    => $request->search,
+            'search' => $request->search,
         ]);
     }
 

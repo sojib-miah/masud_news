@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     /**
      * Run the migrations.
      */
@@ -17,11 +16,28 @@ return new class extends Migration
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
-            $table->string('image')->nullable();
             $table->string('phone')->nullable();
-            $table->string('role')->nullable();
+            $table->string('image')->nullable();
             $table->rememberToken();
             $table->boolean('termes')->default(false);
+            $table->enum('role', ['pathock', 'reporter', 'motamot'])->nullable();
+            $table->string('total_views')->nullable();
+            $table->string('total_income')->nullable();
+            $table->string('current_views')->nullable();
+            $table->string('current_income')->nullable();
+            $table->string('ref_id')->nullable();
+            $table->string('referred_by')->nullable();
+            $table->decimal('earning_from_views', 10, 2)->default(0);
+            $table->decimal('generation_commission', 10, 2)->default(0);
+            $table->decimal('total_earning', 10, 2)->default(0);
+            $table->decimal('total_balance', 10, 2)->default(0);
+            $table->integer('published_news')->default(0);
+            $table->decimal('reporter_income', 10, 2)->default(0);
+            $table->boolean('is_paid')->default(false);
+            $table->decimal('marketing_wallet', 10, 2)->default(0);
+            $table->decimal('daily_return_wallet', 10, 2)->default(0);
+            $table->decimal('gift_wallet', 10, 2)->default(0);
+            $table->enum('status', ['pending', 'approved'])->default('pending');
             $table->timestamps();
         });
 

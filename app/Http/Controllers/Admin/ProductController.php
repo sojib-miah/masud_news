@@ -13,24 +13,23 @@ class ProductController extends Controller
     public function index()
     {
         return Inertia::render('Admin/Product/Products', [
-            'products' => Product::latest()->paginate(20),
+            'products' => Product::latest('created_at')->paginate(20),
         ]);
     }
 
     public function store(Request $request)
     {
         $data = $request->validate([
-            'name'            => 'required|string|max:255',
-            'description'     => 'nullable|string',
-            'price'           => 'required|numeric|min:0',
-            'discount_price'  => 'required|numeric|min:0',
-            'quantity'        => 'required|integer|min:0',
-            'image'           => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'croy'            => 'required|numeric|min:0',
-            'dipo'            => 'required|numeric|min:0',
-            'dillar'          => 'nullable|string|max:255',
-            'sub_dillar'      => 'nullable|string|max:255',
-            'percentage'      => 'nullable|integer|min:0|max:100',
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'discount_price' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:0',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'croy' => 'required|numeric|min:0',
+            'dipo' => 'required|numeric|min:0',
+            'dillar' => 'nullable|string|max:255',
+            'sub_dillar' => 'nullable|string|max:255',
         ]);
 
         // Remove image from $data before mass-assigning (we set it manually)
@@ -48,17 +47,16 @@ class ProductController extends Controller
     public function update(Request $request, Product $product)
     {
         $data = $request->validate([
-            'name'            => 'required|string|max:255',
-            'description'     => 'nullable|string',
-            'price'           => 'required|numeric|min:0',
-            'discount_price'  => 'required|numeric|min:0',
-            'quantity'        => 'required|integer|min:0',
-            'image'           => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
-            'croy'            => 'required|numeric|min:0',
-            'dipo'            => 'required|numeric|min:0',
-            'dillar'          => 'nullable|string|max:255',
-            'sub_dillar'      => 'nullable|string|max:255',
-            'percentage'      => 'nullable|integer|min:0|max:100',
+            'name' => 'required|string|max:255',
+            'description' => 'required|string',
+            'price' => 'required|numeric|min:0',
+            'discount_price' => 'required|numeric|min:0',
+            'quantity' => 'required|integer|min:0',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png|max:2048',
+            'croy' => 'required|numeric|min:0',
+            'dipo' => 'required|numeric|min:0',
+            'dillar' => 'nullable|string|max:255',
+            'sub_dillar' => 'nullable|string|max:255',
         ]);
 
         // CRITICAL FIX: never let an empty "image" key overwrite the column

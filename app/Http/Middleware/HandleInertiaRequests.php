@@ -49,12 +49,12 @@ class HandleInertiaRequests extends Middleware
             // ----------------------------
             'auth' => fn() => [
                 'user' => $user ? [
-                    'id'     => $user->id,
-                    'name'   => $user->name,
-                    'image'  => $user->image,
-                    'phone'  => $user->phone,
-                    'role'  => $user->role,
-                    'roles'  => $user->roles->pluck('name'),
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'image' => $user->image,
+                    'phone' => $user->phone,
+                    'role' => $user->role,
+                    'roles' => $user->roles->pluck('name'),
                     'unread' => $user->unreadNotifications()->count(),
                 ] : null,
                 'avatar' => $request->user()
@@ -67,10 +67,10 @@ class HandleInertiaRequests extends Middleware
             // FLASH MESSAGES
             // ----------------------------
             'flash' => [
-                'status'  => fn() => $request->session()->get('status'),
-                'error'   => fn() => $request->session()->get('error'),
+                'status' => fn() => $request->session()->get('status'),
+                'error' => fn() => $request->session()->get('error'),
                 'warning' => fn() => $request->session()->get('warning'),
-                'modal'  => fn() => $request->session()->get('modal'),
+                'modal' => fn() => $request->session()->get('modal'),
             ],
 
             // ----------------------------
@@ -83,7 +83,8 @@ class HandleInertiaRequests extends Middleware
             // ----------------------------
             'menus' => function () use ($user) {
 
-                if (!$user) return [];
+                if (!$user)
+                    return [];
 
                 $menus = $user->menus()->where('status', 1)->orderBy('order_by')->get();
                 $grouped = $menus->groupBy('parent_id');
@@ -102,13 +103,13 @@ class HandleInertiaRequests extends Middleware
                         }
 
                         return [
-                            'id'       => $menu->id,
-                            'title'    => $menu->title,
-                            'route'    => $menu->route,
-                            'icon'     => $menu->icon,
-                            'top'      => $menu->top,
-                            'left'     => $menu->left,
-                            'footer'   => $menu->footer,
+                            'id' => $menu->id,
+                            'title' => $menu->title,
+                            'route' => $menu->route,
+                            'icon' => $menu->icon,
+                            'top' => $menu->top,
+                            'left' => $menu->left,
+                            'footer' => $menu->footer,
                             'children' => $buildTree($menu->id),
                         ];
                     })
@@ -119,8 +120,8 @@ class HandleInertiaRequests extends Middleware
                 $tree = $buildTree();
 
                 return [
-                    'top'    => $tree->filter(fn($m) => $m['top']),
-                    'left'   => $tree->filter(fn($m) => $m['left']),
+                    'top' => $tree->filter(fn($m) => $m['top']),
+                    'left' => $tree->filter(fn($m) => $m['left']),
                     'footer' => $tree->filter(fn($m) => $m['footer']),
                 ];
             },
@@ -136,6 +137,9 @@ class HandleInertiaRequests extends Middleware
                 return Cart::sum('quantity'); // total items
             },
             'visitorCount' => fn() => SiteVisitor::count(),
+            'session' => [
+                'impersonator_id' => $request->session()->get('impersonator_id'),
+            ],
         ]);
     }
 }

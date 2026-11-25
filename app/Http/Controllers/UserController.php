@@ -205,10 +205,10 @@ class UserController extends Controller
             ->withQueryString();
 
         return Inertia::render('FrontEnd/AllNews/AllNews', [
-            'category'       => $category,
-            'subcategory'    => $subcategory,
-            'featuredNews'   => $featuredNews,
-            'news'           => $news,
+            'category' => $category,
+            'subcategory' => $subcategory,
+            'featuredNews' => $featuredNews,
+            'news' => $news,
         ]);
     }
 
@@ -343,14 +343,11 @@ class UserController extends Controller
             $siteSetting = SiteSetting::first();
             $perViewAmount = $siteSetting?->news_view ?? 0;
 
-            $user->earning_from_views =
-                ($user->earning_from_views ?? 0) + $perViewAmount;
+            $user->earning_from_views = ($user->earning_from_views ?? 0) + $perViewAmount;
 
-            $user->marketing_wallet =
-                ($user->marketing_wallet ?? 0) + $perViewAmount;
+            $user->marketing_wallet = ($user->marketing_wallet ?? 0) + $perViewAmount;
 
-            $user->total_earning =
-                ($user->total_earning ?? 0) + $perViewAmount;
+            $user->total_earning = ($user->total_earning ?? 0) + $perViewAmount;
 
             $user->save();
 
@@ -385,7 +382,7 @@ class UserController extends Controller
 
         $user = Auth::user();
 
-        $siteSetting   = SiteSetting::first();
+        $siteSetting = SiteSetting::first();
         $perViewAmount = $siteSetting?->create_news ?? 0;
 
         // Pay the reporter on every view (guest or logged-in)
@@ -393,7 +390,7 @@ class UserController extends Controller
             // Skip self-views (reporter viewing their own news)
             $isSelfView = $user && (int) $user->id === (int) $news->created_by;
 
-            if (! $isSelfView) {
+            if (!$isSelfView) {
                 User::where('id', $news->created_by)
                     ->increment('reporter_income', $perViewAmount);
             }
@@ -422,13 +419,13 @@ class UserController extends Controller
 
         foreach ($levels as $percent) {
 
-            if (! $currentUser->referred_by) {
+            if (!$currentUser->referred_by) {
                 break;
             }
 
             $parent = User::find($currentUser->referred_by);
 
-            if (! $parent) {
+            if (!$parent) {
                 break;
             }
 
@@ -482,11 +479,8 @@ class UserController extends Controller
         $user = Auth::user();
 
         return Inertia::render('FrontEnd/Dashboard/PathockDashboard', [
-
             'role' => $user->role,
-
             'affiliate_link' => url('/register/pathock?ref=' . $user->ref_id),
-
             'products' => Product::latest()->get(),
             'stockMoney' => StockMoney::where('user_id', $user->id)
                 ->where('status', 'approved')
@@ -586,20 +580,20 @@ class UserController extends Controller
 
         // ---------- VALIDATION ----------
         $rules = [
-            'name'  => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'phone' => 'required|string|max:20|unique:users,phone,' . $user->id,
 
-            'division_id'         => 'nullable|exists:divisions,id',
-            'district_id'         => 'nullable|exists:districts,id',
-            'upazilla_id'         => 'nullable|exists:upazilas,id',
-            'union_id'            => 'nullable|exists:unions,id',
+            'division_id' => 'nullable|exists:divisions,id',
+            'district_id' => 'nullable|exists:districts,id',
+            'upazilla_id' => 'nullable|exists:upazilas,id',
+            'union_id' => 'nullable|exists:unions,id',
             'city_corporation_id' => 'nullable|exists:city_corporations,id',
-            'ward_id'             => 'nullable|exists:wards,id',
-            'pourashava_id'       => 'nullable|exists:pourashavas,id',
-            'pourashava_ward_id'  => 'nullable|exists:pourashava_wards,id',
+            'ward_id' => 'nullable|exists:wards,id',
+            'pourashava_id' => 'nullable|exists:pourashavas,id',
+            'pourashava_ward_id' => 'nullable|exists:pourashava_wards,id',
 
-            'village'    => 'nullable|string|max:255',
+            'village' => 'nullable|string|max:255',
             'occupation' => 'nullable|string|max:255',
 
             'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
@@ -608,14 +602,14 @@ class UserController extends Controller
         // Only require password fields if changing password
         if ($request->filled('password') || $request->filled('old_password')) {
             $rules['old_password'] = 'required|string';
-            $rules['password']     = 'required|string|min:6|confirmed';
+            $rules['password'] = 'required|string|min:6|confirmed';
         }
 
         $validated = $request->validate($rules);
 
         // ---------- OLD PASSWORD CHECK ----------
         if ($request->filled('password')) {
-            if (! Hash::check($request->old_password, $user->password)) {
+            if (!Hash::check($request->old_password, $user->password)) {
                 return back()->withErrors([
                     'old_password' => 'Old password is incorrect',
                 ])->withInput();
@@ -625,43 +619,43 @@ class UserController extends Controller
         // ---------- LOCATION EXCLUSIVITY ----------
         // district_id is the common parent for all three sub-paths — keep it.
         // Only ONE sub-path (district / city corp / pourashava) may have data.
-        $districtId         = $validated['district_id']         ?? null;
-        $upazillaId         = $validated['upazilla_id']         ?? null;
-        $unionId            = $validated['union_id']            ?? null;
-        $cityCorporationId  = $validated['city_corporation_id'] ?? null;
-        $wardId             = $validated['ward_id']             ?? null;
-        $pourashavaId       = $validated['pourashava_id']       ?? null;
-        $pourashavaWardId   = $validated['pourashava_ward_id']  ?? null;
+        $districtId = $validated['district_id'] ?? null;
+        $upazillaId = $validated['upazilla_id'] ?? null;
+        $unionId = $validated['union_id'] ?? null;
+        $cityCorporationId = $validated['city_corporation_id'] ?? null;
+        $wardId = $validated['ward_id'] ?? null;
+        $pourashavaId = $validated['pourashava_id'] ?? null;
+        $pourashavaWardId = $validated['pourashava_ward_id'] ?? null;
 
-        if (! empty($cityCorporationId)) {
+        if (!empty($cityCorporationId)) {
             // City corporation path → drop district-path & pourashava-path
-            $upazillaId       = null;
-            $unionId          = null;
-            $pourashavaId     = null;
+            $upazillaId = null;
+            $unionId = null;
+            $pourashavaId = null;
             $pourashavaWardId = null;
-        } elseif (! empty($pourashavaId)) {
+        } elseif (!empty($pourashavaId)) {
             // Pourashava path → drop district-path & city corp path
-            $upazillaId       = null;
-            $unionId          = null;
+            $upazillaId = null;
+            $unionId = null;
             $cityCorporationId = null;
-            $wardId           = null;
+            $wardId = null;
         } else {
             // District path (or nothing picked) → drop city corp & pourashava
             $cityCorporationId = null;
-            $wardId            = null;
-            $pourashavaId      = null;
-            $pourashavaWardId  = null;
+            $wardId = null;
+            $pourashavaId = null;
+            $pourashavaWardId = null;
         }
 
         // Re-normalize dependent fields against their parents
-        $upazillaId       = $districtId ? $upazillaId : null;
-        $unionId          = $upazillaId ? $unionId    : null;
-        $wardId           = $cityCorporationId ? $wardId : null;
+        $upazillaId = $districtId ? $upazillaId : null;
+        $unionId = $upazillaId ? $unionId : null;
+        $wardId = $cityCorporationId ? $wardId : null;
         $pourashavaWardId = $pourashavaId ? $pourashavaWardId : null;
 
         // ---------- UPDATE USER ----------
         $userData = [
-            'name'  => $validated['name'],
+            'name' => $validated['name'],
             'email' => $validated['email'],
             'phone' => $validated['phone'],
         ];
@@ -683,16 +677,16 @@ class UserController extends Controller
         PathockProfile::updateOrCreate(
             ['user_id' => $user->id],
             [
-                'division_id'         => $validated['division_id'] ?? null,
-                'district_id'         => $districtId,
-                'upazilla_id'         => $upazillaId,
-                'union_id'            => $unionId,
+                'division_id' => $validated['division_id'] ?? null,
+                'district_id' => $districtId,
+                'upazilla_id' => $upazillaId,
+                'union_id' => $unionId,
                 'city_corporation_id' => $cityCorporationId,
-                'ward_id'             => $wardId,
-                'pourashava_id'       => $pourashavaId,
-                'pourashava_ward_id'  => $pourashavaWardId,
-                'village'             => $validated['village']    ?? null,
-                'occupation'          => $validated['occupation'] ?? null,
+                'ward_id' => $wardId,
+                'pourashava_id' => $pourashavaId,
+                'pourashava_ward_id' => $pourashavaWardId,
+                'village' => $validated['village'] ?? null,
+                'occupation' => $validated['occupation'] ?? null,
             ]
         );
 
@@ -798,21 +792,21 @@ class UserController extends Controller
         ]);
 
         // ---------- LOCATION EXCLUSIVITY (Restored from store method) ----------
-        if (! empty($validated['city_corporation'])) {
-            $validated['upazila']         = null;
-            $validated['union']           = null;
-            $validated['pourashava']      = null;
+        if (!empty($validated['city_corporation'])) {
+            $validated['upazila'] = null;
+            $validated['union'] = null;
+            $validated['pourashava'] = null;
             $validated['pourashava_ward'] = null;
-        } elseif (! empty($validated['pourashava'])) {
-            $validated['upazila']          = null;
-            $validated['union']            = null;
+        } elseif (!empty($validated['pourashava'])) {
+            $validated['upazila'] = null;
+            $validated['union'] = null;
             $validated['city_corporation'] = null;
-            $validated['ward']             = null;
+            $validated['ward'] = null;
         } else {
             $validated['city_corporation'] = null;
-            $validated['ward']             = null;
-            $validated['pourashava']       = null;
-            $validated['pourashava_ward']  = null;
+            $validated['ward'] = null;
+            $validated['pourashava'] = null;
+            $validated['pourashava_ward'] = null;
         }
 
         // ============ UPDATE USER ============
@@ -830,7 +824,7 @@ class UserController extends Controller
         $user->phone = $validated['phone'];
         $user->image = $photoPath;
 
-        if (! empty($validated['password'])) {
+        if (!empty($validated['password'])) {
             $user->password = Hash::make($validated['password']);
         }
         $user->save();
@@ -877,7 +871,7 @@ class UserController extends Controller
             'nid_number' => $validated['nid_number'],
             'signature' => $signaturePath,
             'nid_file' => $nidPath,
-            'reporter_types' => ! empty($validated['reporter_types'])
+            'reporter_types' => !empty($validated['reporter_types'])
                 ? implode(',', $validated['reporter_types'])
                 : null,
         ]);
