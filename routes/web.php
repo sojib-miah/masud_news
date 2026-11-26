@@ -111,10 +111,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/idcard', [ReporterController::class, 'idCard'])->name('id.card');
         Route::get('/reporter/applicationform', [UserController::class, 'applicationForm'])->name('reporter.application');
         Route::get('/draftnews', [ReporterController::class, 'news'])->name('news');
-        Route::get('/audio/news', [ReporterController::class, 'audioNews'])->name('audio.news');
-        Route::get('/video/news', [ReporterController::class, 'videoNews'])->name('video.news');
-        Route::post('/audio/store', [NewsController::class, 'audioStore'])->name('audio.store');
-        Route::post('/video/store', [NewsController::class, 'videoStore'])->name('video.store');
         Route::resource('reporter/news', NewsController::class);
     });
 
@@ -137,15 +133,15 @@ Route::middleware(['auth'])->group(function () {
         Route::put('/news/update/{id}', [AdminNewsController::class, 'update'])->name('admin.news.update');
 
         Route::delete('/news/delete/{id}', [AdminNewsController::class, 'delete'])->name('admin.news.delete');
-        Route::get('news/{news}/show',       [AdminNewsController::class, 'show'])->name('admin.news.show');
-        Route::patch('news/{news}/status',   [AdminNewsController::class, 'updateStatus'])->name('admin.news.updateStatus');
+        Route::get('news/{news}/show', [AdminNewsController::class, 'show'])->name('admin.news.show');
+        Route::patch('news/{news}/status', [AdminNewsController::class, 'updateStatus'])->name('admin.news.updateStatus');
 
         // pathock and reporetr
         Route::get('/pathock', [AdminController::class, 'pathock'])->name('admin.pathock');
         Route::get('/reporter', [AdminController::class, 'reporter'])->name('admin.reporter');
         Route::delete('/pathock/{id}', [AdminController::class, 'pathockDestroy'])->name('pathock.destroy');
-        Route::post('/pathock/{id}/restore',  [AdminController::class, 'restore'])->name('pathock.restore');
-        Route::delete('/pathock/{id}/force',  [AdminController::class, 'forceDelete'])->name('pathock.forceDelete');
+        Route::post('/pathock/{id}/restore', [AdminController::class, 'restore'])->name('pathock.restore');
+        Route::delete('/pathock/{id}/force', [AdminController::class, 'forceDelete'])->name('pathock.forceDelete');
         Route::put('/reporter/status/{id}', [ReporterController::class, 'updateStatus'])->name('reporters.updateStatus');
         Route::get('/trash', [AdminController::class, 'trashList'])->name('trash.index');
 

@@ -410,6 +410,7 @@ async function updateStatus(newStatus) {
                             <option value="published">Published</option>
                             <option value="draft">Draft</option>
                             <option value="breaking">Breaking</option>
+                            <option value="schedule">Schedule</option>
                         </select>
                     </div>
 
@@ -517,14 +518,14 @@ async function updateStatus(newStatus) {
                                     #
                                 </th>
                                 <th
-                                    class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500"
-                                >
-                                    Title
-                                </th>
-                                <th
                                     class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 w-24"
                                 >
                                     Image
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500"
+                                >
+                                    Title
                                 </th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 w-32"
@@ -540,6 +541,11 @@ async function updateStatus(newStatus) {
                                     class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 w-24"
                                 >
                                     Breaking
+                                </th>
+                                <th
+                                    class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 w-32"
+                                >
+                                    Schedule
                                 </th>
                                 <th
                                     class="px-4 py-3 text-left text-xs font-bold uppercase tracking-wider text-slate-500 w-32"
@@ -565,13 +571,6 @@ async function updateStatus(newStatus) {
                                     {{ globalIndex(i) }}
                                 </td>
                                 <td class="px-4 py-3">
-                                    <p
-                                        class="text-sm font-semibold text-slate-800 leading-6 line-clamp-2 max-w-md"
-                                    >
-                                        {{ item.title }}
-                                    </p>
-                                </td>
-                                <td class="px-4 py-3">
                                     <img
                                         v-if="item.image"
                                         :src="`/storage/${item.image}`"
@@ -592,6 +591,13 @@ async function updateStatus(newStatus) {
                                             class="fa-regular fa-image text-slate-400"
                                         ></i>
                                     </div>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <p
+                                        class="text-sm font-semibold text-slate-800 leading-6 line-clamp-2 max-w-md"
+                                    >
+                                        {{ item.title }}
+                                    </p>
                                 </td>
                                 <td class="px-4 py-3">
                                     <span
@@ -633,6 +639,13 @@ async function updateStatus(newStatus) {
                                     >
                                         {{ item.breaking ? "Yes" : "No" }}
                                     </span>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <p
+                                        class="text-sm font-medium text-slate-600"
+                                    >
+                                        {{ formatDate(item.schedule) }}
+                                    </p>
                                 </td>
                                 <td class="px-4 py-3">
                                     <p
@@ -777,6 +790,9 @@ async function updateStatus(newStatus) {
                             <span class="text-slate-400">•</span>
                             <span class="font-medium text-slate-500">
                                 {{ formatDate(item.created_at) }}
+                            </span>
+                            <span class="font-medium text-slate-500">
+                                / Schedule - {{ formatDate(item.schedule) }}
                             </span>
                         </div>
 
@@ -1057,38 +1073,99 @@ async function updateStatus(newStatus) {
                                     <div
                                         class="grid grid-cols-2 sm:grid-cols-4 gap-3"
                                     >
+                                        <!-- Categories & Subcategories -->
                                         <div
-                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
+                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-3 col-span-full"
                                         >
-                                            <p
-                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
-                                            >
-                                                Category
-                                            </p>
-                                            <p
-                                                class="text-sm font-semibold text-slate-800 truncate"
-                                            >
-                                                {{
-                                                    newsDetails.category ?? "—"
-                                                }}
-                                            </p>
-                                        </div>
-                                        <div
-                                            class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"
-                                        >
-                                            <p
-                                                class="text-[10px] font-bold uppercase tracking-wider text-slate-500"
-                                            >
-                                                Subcategory
-                                            </p>
-                                            <p
-                                                class="text-sm font-semibold text-slate-800 truncate"
-                                            >
-                                                {{
-                                                    newsDetails.subcategory ??
-                                                    "—"
-                                                }}
-                                            </p>
+                                            <!-- Categories -->
+                                            <div class="mb-3">
+                                                <p
+                                                    class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5"
+                                                >
+                                                    Categories
+                                                </p>
+                                                <div
+                                                    class="flex flex-wrap gap-1.5"
+                                                >
+                                                    <template
+                                                        v-if="
+                                                            newsDetails?.categories &&
+                                                            newsDetails
+                                                                .categories
+                                                                .length > 0
+                                                        "
+                                                    >
+                                                        <span
+                                                            v-for="cat in newsDetails.categories"
+                                                            :key="cat.id"
+                                                            class="inline-block px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-md border border-indigo-100"
+                                                        >
+                                                            {{ cat.name }}
+                                                        </span>
+                                                    </template>
+                                                    <!-- Fallback to old single category if pivot is empty -->
+                                                    <span
+                                                        v-else-if="
+                                                            newsDetails?.category
+                                                        "
+                                                        class="inline-block px-2.5 py-1 bg-indigo-50 text-indigo-700 text-xs font-semibold rounded-md border border-indigo-100"
+                                                    >
+                                                        {{
+                                                            newsDetails.category
+                                                        }}
+                                                    </span>
+                                                    <span
+                                                        v-else
+                                                        class="text-sm text-slate-400 italic"
+                                                        >—</span
+                                                    >
+                                                </div>
+                                            </div>
+
+                                            <!-- Subcategories -->
+                                            <div>
+                                                <p
+                                                    class="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5"
+                                                >
+                                                    Subcategories
+                                                </p>
+                                                <div
+                                                    class="flex flex-wrap gap-1.5"
+                                                >
+                                                    <template
+                                                        v-if="
+                                                            newsDetails?.subcategories &&
+                                                            newsDetails
+                                                                .subcategories
+                                                                .length > 0
+                                                        "
+                                                    >
+                                                        <span
+                                                            v-for="sub in newsDetails.subcategories"
+                                                            :key="sub.id"
+                                                            class="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-100"
+                                                        >
+                                                            {{ sub.name }}
+                                                        </span>
+                                                    </template>
+                                                    <!-- Fallback to old single subcategory if pivot is empty -->
+                                                    <span
+                                                        v-else-if="
+                                                            newsDetails?.subcategory
+                                                        "
+                                                        class="inline-block px-2.5 py-1 bg-emerald-50 text-emerald-700 text-xs font-semibold rounded-md border border-emerald-100"
+                                                    >
+                                                        {{
+                                                            newsDetails.subcategory
+                                                        }}
+                                                    </span>
+                                                    <span
+                                                        v-else
+                                                        class="text-sm text-slate-400 italic"
+                                                        >None</span
+                                                    >
+                                                </div>
+                                            </div>
                                         </div>
                                         <div
                                             class="rounded-lg bg-slate-50 ring-1 ring-slate-200 p-2.5"

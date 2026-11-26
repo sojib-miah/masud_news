@@ -22,7 +22,7 @@ class AdminNewsController extends Controller
         // Validate allowed filter and sorting values
         $validated = $request->validate([
             'search' => ['nullable', 'string', 'max:255'],
-            'status' => ['nullable', 'in:published,draft,breaking'],
+            'status' => ['nullable', 'in:published,draft,breaking,schedule'],
             'sort' => ['nullable', 'in:newest,oldest,views,title'],
             'page' => ['nullable', 'integer', 'min:1'],
         ]);
@@ -50,6 +50,10 @@ class AdminNewsController extends Controller
 
             case 'breaking':
                 $query->where('breaking', 1);
+                break;
+
+            case 'schedule':
+                $query->whereNotNull('schedule');
                 break;
         }
 
@@ -160,8 +164,8 @@ class AdminNewsController extends Controller
         $news = News::findOrFail($id);
 
         return Inertia::render('FrontEnd/AdminNews/EditNews', [
-            'news'          => $news,
-            'categories'    => Category::all(),
+            'news' => $news,
+            'categories' => Category::all(),
             'subcategories' => SubCategory::all(),
         ]);
     }
@@ -169,17 +173,17 @@ class AdminNewsController extends Controller
     public function update(Request $request, $id)
     {
         $request->validate([
-            'language'       => 'required',
-            'title'          => 'required',
-            'description'    => 'required',
-            'category_id'    => 'required',
+            'language' => 'required',
+            'title' => 'required',
+            'description' => 'required',
+            'category_id' => 'required',
             'subcategory_id' => 'nullable',
-            'tag'            => 'nullable|string',
-            'featured'       => 'required|boolean',
-            'breaking'       => 'required|boolean',
-            'status'         => 'required|boolean',
-            'image'          => 'nullable|image|max:2048',
-            'division_name'  => 'nullable|string|max:255',
+            'tag' => 'nullable|string',
+            'featured' => 'required|boolean',
+            'breaking' => 'required|boolean',
+            'status' => 'required|boolean',
+            'image' => 'nullable|image|max:2048',
+            'division_name' => 'nullable|string|max:255',
             'imagenote' => 'required|string|max:255',
         ]);
 
@@ -199,19 +203,19 @@ class AdminNewsController extends Controller
         $tags = explode(',', $request->tag ?? '');
 
         $news->update([
-            'language'       => $request->language,
-            'title'          => $request->title,
-            'slug'           => Str::slug($request->title) . '-' . $news->id,
-            'metatag'        => $request->title,
-            'tag'            => json_encode($tags),
-            'description'    => $request->description,
-            'image'          => $imagePath,
-            'category_id'    => $request->category_id,
+            'language' => $request->language,
+            'title' => $request->title,
+            'slug' => Str::slug($request->title) . '-' . $news->id,
+            'metatag' => $request->title,
+            'tag' => json_encode($tags),
+            'description' => $request->description,
+            'image' => $imagePath,
+            'category_id' => $request->category_id,
             'subcategory_id' => $request->subcategory_id,
-            'featured'       => $request->featured,
-            'breaking'       => $request->breaking,
-            'status'         => $request->status,
-            'division_name'  => $request->division_name,
+            'featured' => $request->featured,
+            'breaking' => $request->breaking,
+            'status' => $request->status,
+            'division_name' => $request->division_name,
             'imagenote' => $request->imagenote,
             // 'created_at' => now(),
             'updated_at' => now(),
@@ -239,32 +243,34 @@ class AdminNewsController extends Controller
     // GET /admin/news/{news}/show — returns full details as JSON
     public function show(News $news)
     {
-        $news->load(['category', 'subcategory']);
+        $news->load(['category', 'subcategory', 'categories', 'subcategories']);
 
         return response()->json([
             'news' => [
-                'id'             => $news->id,
-                'title'          => $news->title,
-                'slug'           => $news->slug,
-                'metatag'        => $news->metatag,
-                'tag'            => $news->tag,
-                'description'    => $news->description,
-                'image'          => $news->image,
-                'imagenote'      => $news->imagenote,
-                'category'       => $news->category?->name,
-                'subcategory'    => $news->subcategory?->name,
-                'featured'       => (bool) $news->featured,
-                'breaking'       => (bool) $news->breaking,
-                'schedule'       => $news->schedule,
-                'expire'         => $news->expire,
-                'status'         => (int) $news->status,
-                'total_view'     => (int) $news->total_view,
-                'current_view'   => (int) $news->current_view,
-                'division_name'  => $news->division_name,
-                'created_at'     => $news->created_at?->toIso8601String(),
-                'updated_at'     => $news->updated_at?->toIso8601String(),
-                'published_by'   => $news->published_by,
-                'created_by'     => $news->created_by,
+                'id' => $news->id,
+                'title' => $news->title,
+                'slug' => $news->slug,
+                'metatag' => $news->metatag,
+                'tag' => $news->tag,
+                'description' => $news->description,
+                'image' => $news->image,
+                'imagenote' => $news->imagenote,
+                'category' => $news->category?->name,
+                'subcategory' => $news->subcategory?->name,
+                'categories' => $news->categories->map(fn($cat) => ['id' => $cat->id, 'name' => $cat->name]),
+                'subcategories' => $news->subcategories->map(fn($sub) => ['id' => $sub->id, 'name' => $sub->name]),
+                'featured' => (bool) $news->featured,
+                'breaking' => (bool) $news->breaking,
+                'schedule' => $news->schedule,
+                'expire' => $news->expire,
+                'status' => (int) $news->status,
+                'total_view' => (int) $news->total_view,
+                'current_view' => (int) $news->current_view,
+                'division_name' => $news->division_name,
+                'created_at' => $news->created_at?->toIso8601String(),
+                'updated_at' => $news->updated_at?->toIso8601String(),
+                'published_by' => $news->published_by,
+                'created_by' => $news->created_by,
             ],
             'publishers' => User::whereIn('id', function ($q) {
                 // You can restrict this — for now, list all users
@@ -295,8 +301,8 @@ class AdminNewsController extends Controller
         return response()->json([
             'message' => 'Status updated successfully',
             'news' => [
-                'id'           => $news->id,
-                'status'       => (int) $news->status,
+                'id' => $news->id,
+                'status' => (int) $news->status,
                 'published_by' => $news->published_by,
             ],
         ]);

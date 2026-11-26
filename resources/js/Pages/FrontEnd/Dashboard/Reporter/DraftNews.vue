@@ -97,6 +97,15 @@ function postType(item) {
         cls: "bg-slate-50 text-slate-600 border-slate-200",
     };
 }
+
+function formatDate(d) {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("bn-BD", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+}
 </script>
 
 <template>
@@ -226,6 +235,9 @@ function postType(item) {
                                         Views
                                     </th>
                                     <th class="px-4 py-3 font-semibold">
+                                        Schedule
+                                    </th>
+                                    <th class="px-4 py-3 font-semibold">
                                         Created
                                     </th>
                                     <th
@@ -274,6 +286,16 @@ function postType(item) {
                                             class="inline-block text-xs bg-slate-100 text-slate-700 px-2 py-1 rounded-md"
                                         >
                                             {{ item.category?.name || "—" }}
+                                            <span
+                                                v-if="
+                                                    item.categories?.length > 1
+                                                "
+                                                class="text-xs text-slate-400"
+                                            >
+                                                +{{
+                                                    item.categories.length - 1
+                                                }}
+                                            </span>
                                         </span>
                                     </td>
                                     <td class="px-4 py-3">
@@ -349,6 +371,11 @@ function postType(item) {
                                                 {{ item.current_view ?? 0 }}
                                             </div>
                                         </div>
+                                    </td>
+                                    <td
+                                        class="px-4 py-3 text-slate-600 text-xs whitespace-nowrap"
+                                    >
+                                        {{ formatDate(item.schedule) }}
                                     </td>
                                     <td
                                         class="px-4 py-3 text-slate-600 text-xs whitespace-nowrap"
@@ -462,6 +489,12 @@ function postType(item) {
                                 class="text-[11px] bg-slate-100 text-slate-700 px-2 py-0.5 rounded-md"
                             >
                                 {{ item.category?.name || "—" }}
+                                <span
+                                    v-if="item.categories?.length > 1"
+                                    class="text-xs text-slate-400"
+                                >
+                                    +{{ item.categories.length - 1 }}
+                                </span>
                             </span>
                             <span
                                 :class="[
@@ -501,6 +534,7 @@ function postType(item) {
                                     >{{ item.total_view ?? 0 }}</span
                                 >
                             </div>
+                            <span>{{ formatDate(item.schedule) }}</span>
                             <span class="whitespace-nowrap">
                                 {{
                                     new Date(

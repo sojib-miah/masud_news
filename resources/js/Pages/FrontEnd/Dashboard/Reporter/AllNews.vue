@@ -82,6 +82,15 @@ onMounted(() => {
 onUnmounted(() => {
     clearInterval(intervalId);
 });
+
+function formatDate(d) {
+    if (!d) return "—";
+    return new Date(d).toLocaleDateString("bn-BD", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+    });
+}
 </script>
 
 <template>
@@ -166,9 +175,6 @@ onUnmounted(() => {
                                 Category
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
-                                Language
-                            </th>
-                            <th class="px-4 py-4 font-semibold text-center">
                                 Type
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
@@ -176,6 +182,9 @@ onUnmounted(() => {
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
                                 Views
+                            </th>
+                            <th class="px-4 py-4 font-semibold text-center">
+                                Schedule
                             </th>
                             <th class="px-4 py-4 font-semibold text-center">
                                 Date
@@ -231,17 +240,15 @@ onUnmounted(() => {
                                 <span
                                     class="inline-flex px-2.5 py-1 rounded-md bg-blue-50 text-blue-700 text-xs font-semibold"
                                 >
-                                    {{ item.category?.name || "N/A" }}
+                                    {{ item.category?.name || "—" }}
+                                    <span
+                                        v-if="item.categories?.length > 1"
+                                        class="text-xs text-slate-400"
+                                    >
+                                        +{{ item.categories.length - 1 }}
+                                    </span>
                                 </span>
                             </td>
-
-                            <!-- Language -->
-                            <td
-                                class="px-4 py-4 text-center text-sm font-medium text-slate-600"
-                            >
-                                {{ item.language == 1 ? "বাংলা" : "English" }}
-                            </td>
-
                             <!-- Post Type -->
                             <td class="px-4 py-4 text-center">
                                 <span
@@ -302,6 +309,12 @@ onUnmounted(() => {
                                 </div>
                             </td>
 
+                            <!-- Schedule -->
+                            <td
+                                class="px-4 py-4 text-center text-xs text-slate-500 font-medium whitespace-nowrap"
+                            >
+                                {{ formatDate(item.schedule) }}
+                            </td>
                             <!-- Date -->
                             <td
                                 class="px-4 py-4 text-center text-xs text-slate-500 font-medium whitespace-nowrap"
@@ -387,7 +400,13 @@ onUnmounted(() => {
                                 >
                                 <span
                                     class="text-[10px] font-semibold text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded"
-                                    >{{ item.category?.name }}</span
+                                    >{{ item.category?.name || "—" }}
+                                    <span
+                                        v-if="item.categories?.length > 1"
+                                        class="text-xs text-slate-400"
+                                    >
+                                        +{{ item.categories.length - 1 }}
+                                    </span></span
                                 >
                             </div>
                         </div>
@@ -456,6 +475,15 @@ onUnmounted(() => {
                                         year: "numeric",
                                     },
                                 )
+                            }}</span>
+                        </div>
+                        <div>
+                            <span
+                                class="block text-[11px] font-semibold text-slate-400 mb-0.5"
+                                >Schedule</span
+                            >
+                            <span class="font-bold text-slate-700">{{
+                                formatDate(item.schedule)
                             }}</span>
                         </div>
                     </div>

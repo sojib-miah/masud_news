@@ -3,7 +3,6 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
-use App\Models\ReporterType;
 use App\Models\SubCategory;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -21,21 +20,11 @@ class ReporterController extends Controller
     {
         $subcategories = SubCategory::all();
         $categories = Category::all();
-        return Inertia::render('FrontEnd/Dashboard/Reporter/News', ['categories' => $categories, 'subcategories' => $subcategories]);
-    }
 
-    public function audioNews()
-    {
-        $subcategories = SubCategory::all();
-        $categories = Category::all();
-        return Inertia::render('FrontEnd/Dashboard/Reporter/AudioNews', ['categories' => $categories, 'subcategories' => $subcategories]);
-    }
-
-    public function videoNews()
-    {
-        $subcategories = SubCategory::all();
-        $categories = Category::all();
-        return Inertia::render('FrontEnd/Dashboard/Reporter/VideoNews', ['categories' => $categories, 'subcategories' => $subcategories]);
+        return Inertia::render('FrontEnd/Dashboard/Reporter/News', [
+            'categories' => $categories,
+            'subcategories' => $subcategories
+        ]);
     }
 
     // category and sub ategory 
@@ -43,20 +32,38 @@ class ReporterController extends Controller
     {
         $categories = Category::with('subcategories')->get();
         $subcategories = SubCategory::with('category')->get();
-        return Inertia::render('FrontEnd/Dashboard/Reporter/Category', ['categories' => $categories, 'subcategories' => $subcategories,]);
+
+        return Inertia::render('FrontEnd/Dashboard/Reporter/Category', [
+            'categories' => $categories,
+            'subcategories' => $subcategories,
+        ]);
     }
 
     public function store(Request $request)
     {
-        $request->validate(['name' => 'required|string|max:255|unique:categories,name',]);
-        Category::create(['name' => $request->name, 'slug' => Str::slug($request->name),]);
+        $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name',
+        ]);
+
+        Category::create([
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+        ]);
+
         return back()->with('status', 'Category created successfully');
     }
 
     public function update(Request $request, Category $category)
     {
-        $request->validate(['name' => 'required|string|max:255|unique:categories,name,' . $category->id,]);
-        $category->update(['name' => $request->name, 'slug' => Str::slug($request->name),]);
+        $request->validate([
+            'name' => 'required|string|max:255|unique:categories,name,' . $category->id,
+        ]);
+
+        $category->update([
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+        ]);
+
         return back()->with('status', 'Category updated successfully');
     }
 
@@ -71,15 +78,33 @@ class ReporterController extends Controller
     // subcategory management
     public function substore(Request $request)
     {
-        $request->validate(['category_id' => 'required|exists:categories,id', 'name' => 'required|string|max:255|unique:sub_categories,name',]);
-        SubCategory::create(['category_id' => $request->category_id, 'name' => $request->name, 'slug' => Str::slug($request->name),]);
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'name' => 'required|string|max:255|unique:sub_categories,name',
+        ]);
+
+        SubCategory::create([
+            'category_id' => $request->category_id,
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+        ]);
+
         return back()->with('status', 'Subcategory created successfully');
     }
 
     public function subupdate(Request $request, SubCategory $subcategory)
     {
-        $request->validate(['category_id' => 'required|exists:categories,id', 'name' => 'required|string|max:255|unique:sub_categories,name,' . $subcategory->id,]);
-        $subcategory->update(['category_id' => $request->category_id, 'name' => $request->name, 'slug' => Str::slug($request->name),]);
+        $request->validate([
+            'category_id' => 'required|exists:categories,id',
+            'name' => 'required|string|max:255|unique:sub_categories,name,' . $subcategory->id,
+        ]);
+
+        $subcategory->update([
+            'category_id' => $request->category_id,
+            'name' => $request->name,
+            'slug' => Str::slug($request->name),
+        ]);
+
         return back()->with('status', 'Subcategory updated successfully');
     }
 
@@ -95,9 +120,12 @@ class ReporterController extends Controller
         $request->validate([
             'status' => 'required|in:pending,approved',
         ]);
+
         $user = User::findOrFail($id);
         $user->status = $request->status;
+
         $user->save();
+
         return back()->with('status', 'Reporter status updated successfully');
     }
 }

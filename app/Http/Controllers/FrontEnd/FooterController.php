@@ -18,17 +18,18 @@ class FooterController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'som' => 'nullable|string',
-            'pro' => 'nullable|string',
-            'bab' => 'nullable|string',
-            'nir' => 'nullable|string',
-            'ban' => 'nullable|string',
-            'phone1' => 'nullable|string',
-            'phone2' => 'nullable|string',
-            'email' => 'nullable|email',
-            'web1' => 'nullable|string',
-            'web2' => 'nullable|string',
-            'copy' => 'nullable|string',
+            'som' => 'nullable|string|max:255',
+            'pro' => 'nullable|string|max:255',
+            'bab' => 'nullable|string|max:255',
+            'nir' => 'nullable|string|max:255',
+            'ban' => 'nullable|string|max:255',
+            'barta' => 'nullable|string|max:255',
+            'phone1' => 'nullable|string|max:255',
+            'phone2' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'web1' => 'nullable|string|max:255',
+            'web2' => 'nullable|string|max:255',
+            'copy' => 'nullable|string|max:255',
         ]);
         Footer::create($data);
         return redirect()->back()->with('status', 'Footer created successfully!');
@@ -37,17 +38,18 @@ class FooterController extends Controller
     public function update(Request $request, Footer $footer)
     {
         $data = $request->validate([
-            'som' => 'nullable|string',
-            'pro' => 'nullable|string',
-            'bab' => 'nullable|string',
-            'nir' => 'nullable|string',
-            'ban' => 'nullable|string',
-            'phone1' => 'nullable|string',
-            'phone2' => 'nullable|string',
-            'email' => 'nullable|email',
-            'web1' => 'nullable|string',
-            'web2' => 'nullable|string',
-            'copy' => 'nullable|string',
+            'som' => 'nullable|string|max:255',
+            'pro' => 'nullable|string|max:255',
+            'bab' => 'nullable|string|max:255',
+            'nir' => 'nullable|string|max:255',
+            'ban' => 'nullable|string|max:255',
+            'barta' => 'nullable|string|max:255',
+            'phone1' => 'nullable|string|max:255',
+            'phone2' => 'nullable|string|max:255',
+            'email' => 'nullable|email|max:255',
+            'web1' => 'nullable|string|max:255',
+            'web2' => 'nullable|string|max:255',
+            'copy' => 'nullable|string|max:255',
         ]);
         $footer->update($data);
         return redirect()->back()->with('status', 'Footer updated successfully!');

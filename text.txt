@@ -51,3 +51,54 @@ cd /home/avnewsbd/public_html
 
 ///// add live server database 
 
+CREATE TABLE `category_news` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `news_id` BIGINT UNSIGNED NOT NULL,
+    `category_id` BIGINT UNSIGNED NOT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+
+    PRIMARY KEY (`id`),
+
+    UNIQUE KEY `category_news_news_id_category_id_unique`
+        (`news_id`, `category_id`),
+
+    CONSTRAINT `category_news_news_id_foreign`
+        FOREIGN KEY (`news_id`)
+        REFERENCES `news` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `category_news_category_id_foreign`
+        FOREIGN KEY (`category_id`)
+        REFERENCES `categories` (`id`)
+        ON DELETE CASCADE
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+
+
+CREATE TABLE `news_subcategory` (
+    `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    `news_id` BIGINT UNSIGNED NOT NULL,
+    `subcategory_id` BIGINT UNSIGNED NOT NULL,
+    `created_at` TIMESTAMP NULL DEFAULT NULL,
+    `updated_at` TIMESTAMP NULL DEFAULT NULL,
+
+    PRIMARY KEY (`id`),
+
+    UNIQUE KEY `news_subcategory_news_id_subcategory_id_unique`
+        (`news_id`, `subcategory_id`),
+
+    CONSTRAINT `news_subcategory_news_id_foreign`
+        FOREIGN KEY (`news_id`)
+        REFERENCES `news` (`id`)
+        ON DELETE CASCADE,
+
+    CONSTRAINT `news_subcategory_subcategory_id_foreign`
+        FOREIGN KEY (`subcategory_id`)
+        REFERENCES `sub_categories` (`id`)
+        ON DELETE CASCADE
+) ENGINE=InnoDB
+DEFAULT CHARSET=utf8mb4
+COLLATE=utf8mb4_unicode_ci;
+

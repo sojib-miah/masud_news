@@ -19,6 +19,7 @@ const form = useForm({
     bab: "",
     nir: "",
     ban: "",
+    barta: "",
     phone1: "",
     phone2: "",
     email: "",
@@ -60,6 +61,14 @@ const contentFields = [
         color: "text-violet-600",
         bg: "bg-violet-50",
         ring: "ring-violet-200",
+    },
+    {
+        key: "barta",
+        label: "বার্তা সম্পাদক",
+        icon: "fa-solid fa-user-group",
+        color: "text-rose-600",
+        bg: "bg-rose-50",
+        ring: "ring-rose-200",
     },
     {
         key: "ban",
@@ -551,6 +560,25 @@ function cleanWebsite(url) {
                                     class="text-xs text-red-500 mt-1"
                                 >
                                     {{ form.errors.nir }}
+                                </p>
+                            </div>
+
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    বার্তা সম্পাদক
+                                </label>
+                                <input
+                                    v-model="form.barta"
+                                    placeholder="বার্তা সম্পাদক..."
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200"
+                                />
+                                <p
+                                    v-if="form.errors.barta"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.barta }}
                                 </p>
                             </div>
 

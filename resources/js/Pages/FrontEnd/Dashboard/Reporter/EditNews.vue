@@ -29,6 +29,8 @@ const props = defineProps({
     categories: { type: Array, default: () => [] },
     subcategories: { type: Array, default: () => [] },
     news: { type: Object, required: true },
+    selectedCategories: { type: Array, default: () => [] },
+    selectedSubcategories: { type: Array, default: () => [] },
 });
 
 const form = useForm({
@@ -39,10 +41,11 @@ const form = useForm({
     image: null,
     division_name: props.news.division_name ?? "",
     imagenote: props.news.imagenote ?? "",
-    category: props.news.category_id ?? "",
-    subcategory: props.news.subcategory_id ?? "",
+    categories: [...props.selectedCategories].map(Number),
+    subcategories: [...props.selectedSubcategories].map(Number),
     featured: props.news.featured ? "yes" : "no",
     breaking: props.news.breaking ? "yes" : "no",
+    schedule: props.news.schedule ? props.news.schedule.substring(0, 10) : "",
 });
 
 // ==================== TAGS ====================
@@ -78,11 +81,34 @@ const removeTag = (index) => {
 
 // ==================== SUBCATEGORY FILTER ====================
 const filteredSubcategories = computed(() => {
-    if (!form.category) return [];
-    return props.subcategories.filter(
-        (sub) => Number(sub.category_id) === Number(form.category),
+    if (!form.categories.length) return [];
+    const catIds = form.categories.map(Number);
+    return props.subcategories.filter((sub) =>
+        catIds.includes(Number(sub.category_id)),
     );
 });
+
+function toggleCategory(id) {
+    const numId = Number(id);
+    const i = form.categories.indexOf(numId);
+    if (i === -1) form.categories.push(numId);
+    else form.categories.splice(i, 1);
+
+    // drop subcategories that no longer belong to a selected category
+    const allowed = new Set(
+        props.subcategories
+            .filter((s) => form.categories.includes(Number(s.category_id)))
+            .map((s) => Number(s.id)),
+    );
+    form.subcategories = form.subcategories.filter((sid) => allowed.has(sid));
+}
+
+function toggleSubcategory(id) {
+    const numId = Number(id);
+    const i = form.subcategories.indexOf(numId);
+    if (i === -1) form.subcategories.push(numId);
+    else form.subcategories.splice(i, 1);
+}
 
 // ==================== IMAGE PREVIEW ====================
 const imagePreview = ref(null);
@@ -425,101 +451,140 @@ const submit = () => {
                             </div>
                         </div>
 
-                        <!-- ===== LOCATION & CATEGORY ===== -->
-                        <div
-                            class="bg-white rounded-2xl shadow-sm border border-slate-200"
-                        >
-                            <div
-                                class="px-5 py-3 border-b border-slate-100 bg-slate-50 rounded-t-2xl"
-                            >
-                                <h3
-                                    class="text-sm font-bold text-slate-700 uppercase flex items-center gap-2"
+                        <div class="p-5 space-y-4">
+                            <!-- Division (unchanged) -->
+                            <div>
+                                <label
+                                    class="block text-sm font-semibold text-slate-700 mb-1"
                                 >
-                                    <i
-                                        class="fa-solid fa-folder-tree text-green-600"
-                                    ></i>
-                                    Category
-                                </h3>
+                                    Division <span class="text-red-500">*</span>
+                                </label>
+                                <select
+                                    v-model="form.division_name"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition bg-white"
+                                >
+                                    <option value="">Select Division</option>
+                                    <option
+                                        v-for="division in divisions"
+                                        :key="division.name"
+                                        :value="division.name"
+                                    >
+                                        {{ division.name }}
+                                    </option>
+                                </select>
+                                <p
+                                    v-if="form.errors.division_name"
+                                    class="text-red-500 text-xs mt-1"
+                                >
+                                    {{ form.errors.division_name }}
+                                </p>
                             </div>
 
-                            <div class="p-5 space-y-4">
-                                <!-- Division -->
-                                <div>
+                            <!-- MULTI Category -->
+                            <div>
+                                <label
+                                    class="block text-sm font-semibold text-slate-700 mb-2"
+                                >
+                                    Categories
+                                    <span class="text-red-500">*</span>
+                                    <span
+                                        class="text-xs text-slate-400 font-normal ml-1"
+                                        >(multiple allowed)</span
+                                    >
+                                </label>
+
+                                <div
+                                    class="max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1 bg-slate-50"
+                                >
                                     <label
-                                        class="block text-sm font-semibold text-slate-700 mb-1"
+                                        v-for="cat in props.categories"
+                                        :key="cat.id"
+                                        class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white cursor-pointer text-sm text-slate-700"
                                     >
-                                        Division
-                                        <span class="text-red-500">*</span>
+                                        <input
+                                            type="checkbox"
+                                            :value="cat.id"
+                                            :checked="
+                                                form.categories.includes(
+                                                    Number(cat.id),
+                                                )
+                                            "
+                                            @change="toggleCategory(cat.id)"
+                                            class="accent-green-600"
+                                        />
+                                        {{ cat.name }}
                                     </label>
-                                    <select
-                                        v-model="form.division_name"
-                                        class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500 transition bg-white"
+                                </div>
+
+                                <p
+                                    v-if="form.errors.categories"
+                                    class="text-red-500 text-xs mt-1"
+                                >
+                                    {{ form.errors.categories }}
+                                </p>
+                                <p class="text-[11px] text-slate-400 mt-1">
+                                    Selected: {{ form.categories.length }}
+                                </p>
+                            </div>
+
+                            <!-- MULTI Subcategory -->
+                            <div>
+                                <label
+                                    class="block text-sm font-semibold text-slate-700 mb-2"
+                                >
+                                    Subcategories
+                                    <span
+                                        class="text-xs text-slate-400 font-normal ml-1"
+                                        >(filtered by categories)</span
                                     >
-                                        <option value="">
-                                            Division Select
-                                        </option>
-                                        <option
-                                            v-for="division in divisions"
-                                            :key="division.name"
-                                            :value="division.name"
+                                </label>
+
+                                <div
+                                    class="max-h-48 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1 bg-slate-50"
+                                >
+                                    <template v-if="form.categories.length">
+                                        <label
+                                            v-for="sub in filteredSubcategories"
+                                            :key="sub.id"
+                                            class="flex items-center gap-2 px-2 py-1.5 rounded-md hover:bg-white cursor-pointer text-sm text-slate-700"
                                         >
-                                            {{ division.name }}
-                                        </option>
-                                    </select>
+                                            <input
+                                                type="checkbox"
+                                                :value="sub.id"
+                                                :checked="
+                                                    form.subcategories.includes(
+                                                        Number(sub.id),
+                                                    )
+                                                "
+                                                @change="
+                                                    toggleSubcategory(sub.id)
+                                                "
+                                                class="accent-green-600"
+                                            />
+                                            {{ sub.name }}
+                                        </label>
+                                        <p
+                                            v-if="!filteredSubcategories.length"
+                                            class="text-xs text-slate-400 italic px-2 py-1"
+                                        >
+                                            No subcategories for the selected
+                                            categories.
+                                        </p>
+                                    </template>
                                     <p
-                                        v-if="form.errors.division_name"
-                                        class="text-red-500 text-xs mt-1"
+                                        v-else
+                                        class="text-xs text-slate-400 italic px-2 py-1"
                                     >
-                                        {{ form.errors.division_name }}
+                                        Select at least one category first.
                                     </p>
                                 </div>
 
-                                <!-- Category -->
-                                <div>
-                                    <label
-                                        class="block text-sm font-semibold text-slate-700 mb-1"
-                                    >
-                                        Category
-                                        <span class="text-red-500">*</span>
-                                    </label>
-                                    <SelectInput
-                                        v-model="form.category"
-                                        placeholder="Select Category"
-                                        :options="
-                                            props.categories.map((cat) => ({
-                                                label: cat.name,
-                                                value: cat.id,
-                                            }))
-                                        "
-                                        :error="form.errors.category"
-                                    />
-                                </div>
-
-                                <!-- Subcategory -->
-                                <div>
-                                    <label
-                                        class="block text-sm font-semibold text-slate-700 mb-1"
-                                    >
-                                        Subcategory
-                                    </label>
-                                    <SelectInput
-                                        v-model="form.subcategory"
-                                        :placeholder="
-                                            form.category
-                                                ? 'Select Subcategory'
-                                                : 'First select a category'
-                                        "
-                                        :options="
-                                            filteredSubcategories.map(
-                                                (sub) => ({
-                                                    label: sub.name,
-                                                    value: sub.id,
-                                                }),
-                                            )
-                                        "
-                                        :error="form.errors.subcategory"
-                                    />
-                                </div>
+                                <p
+                                    v-if="form.errors.subcategories"
+                                    class="text-red-500 text-xs mt-1"
+                                >
+                                    {{ form.errors.subcategories }}
+                                </p>
                             </div>
                         </div>
 
@@ -630,6 +695,45 @@ const submit = () => {
                                         </label>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+                        <!-- ===== SCHEDULE ===== -->
+                        <div
+                            class="bg-white rounded-2xl shadow-sm border border-slate-200"
+                        >
+                            <div
+                                class="px-5 py-3 border-b border-slate-100 bg-slate-50 rounded-t-2xl"
+                            >
+                                <h3
+                                    class="text-sm font-bold text-slate-700 uppercase flex items-center gap-2"
+                                >
+                                    <i
+                                        class="fa-regular fa-calendar text-green-600"
+                                    ></i>
+                                    Schedule
+                                </h3>
+                            </div>
+                            <div class="p-5">
+                                <label
+                                    class="block text-sm font-semibold text-slate-700 mb-1"
+                                >
+                                    Publish Date
+                                </label>
+                                <input
+                                    v-model="form.schedule"
+                                    type="date"
+                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                                />
+                                <p
+                                    v-if="form.errors.schedule"
+                                    class="text-red-500 text-xs mt-1"
+                                >
+                                    {{ form.errors.schedule }}
+                                </p>
+                                <p class="text-[11px] text-slate-400 mt-1">
+                                    Leave empty to publish as soon as it's
+                                    approved.
+                                </p>
                             </div>
                         </div>
 

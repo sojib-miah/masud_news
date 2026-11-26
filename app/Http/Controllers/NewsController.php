@@ -7,7 +7,6 @@ use App\Models\Comment;
 use App\Models\News;
 use App\Models\NewsUserView;
 use App\Models\NewsView;
-use App\Models\SiteSetting;
 use App\Models\SubCategory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,13 +23,16 @@ class NewsController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required',
             'image' => 'required|image',
-            'category' => 'required',
-            'subcategory' => 'nullable',
+            'categories' => 'required|array|min:1',
+            'categories.*' => 'integer|exists:categories,id',
+            'subcategories' => 'nullable|array',
+            'subcategories.*' => 'integer|exists:sub_categories,id',
             'tag' => 'nullable|string|max:255',
             'featured' => 'nullable|in:yes,no',
             'breaking' => 'nullable|in:yes,no',
             'division_name' => 'required|string',
             'imagenote' => 'required|string|max:255',
+            'schedule' => 'nullable|date',
         ]);
 
         $imagePath = $request->hasFile('image')
@@ -39,7 +41,10 @@ class NewsController extends Controller
 
         $tags = explode(',', $request->tag ?? '');
 
-        News::create([
+        $firstCategory = $request->categories[0] ?? null;
+        $firstSubcategory = $request->subcategories[0] ?? null;
+
+        $news = News::create([
             'language' => $request->language,
             'title' => $request->title,
             'slug' => Str::slug($request->title) . '-' . time(),
@@ -49,112 +54,35 @@ class NewsController extends Controller
             'image' => $imagePath,
             'division_name' => $request->division_name,
             'imagenote' => $request->imagenote,
-            'category_id' => $request->category,
-            'subcategory_id' => $request->subcategory,
-            'featured' => $request->featured == 'yes' ? 1 : 0,
-            'breaking' => $request->breaking == 'yes' ? 1 : 0,
-            'status' => 0,
-            'created_by' => Auth::id(),
-            'created_at' => now(),
-            // 'updated_at' => now(),
-        ]);
 
-        $user = Auth::user();
-        $user->increment('published_news', 1);
-        // $sitesetting = SiteSetting::first();
-        // $perViewAmount = $sitesetting->create_news ?? 0;
-        // $user->increment('reporter_income', $perViewAmount);
+            'category_id' => $firstCategory,
+            'subcategory_id' => $firstSubcategory,
 
-        return redirect()->route('news.all')->with('status', 'News Created Successfully');
-    }
-
-    public function videoStore(Request $request)
-    {
-        $request->validate([
-            'language' => 'required',
-            'title' => 'required|string|max:255',
-            'description' => 'required',
-            'image' => 'required|image',
-            'category' => 'required',
-            'video' => 'required',
-            'subcategory' => 'nullable',
-        ]);
-
-        $imagePath = null;
-
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('images/news', 'public');
-        }
-
-        News::create([
-            'language' => $request->language == 'Bangla' ? 1 : 2,
-            'title' => $request->title,
-            'slug' => Str::slug($request->title) . '-' . time(),
-            'metatag' => $request->title,
-            'tag' => json_encode(explode(',', $request->tag ?? '')),
-            'description' => $request->description,
-            'image' => $imagePath,
-            'imagenote' => $request->imageNote,
-            'category_id' => $request->category,
-            'subcategory_id' => $request->subcategory,
-            'featured' => $request->featured == 'yes' ? 1 : 0,
-            'breaking' => $request->breaking == 'yes' ? 1 : 0,
-            'video' => $request->video,
+            'featured' => $request->featured === 'yes' ? 1 : 0,
+            'breaking' => $request->breaking === 'yes' ? 1 : 0,
+            'schedule' => $request->schedule ?: null,
             'status' => 0,
             'created_by' => Auth::id(),
         ]);
 
-        return redirect()->route('news.all')->with('status', 'News Created Successfully');
-    }
-    public function audioStore(Request $request)
-    {
-        $request->validate([
-            'language' => 'required',
-            'title' => 'required|string|max:255',
-            'description' => 'required',
-            'image' => 'required|image',
-            'category' => 'required',
-            'subcategory' => 'nullable',
-            'audio' => 'nullable|mimes:mp3,wav,ogg',
-        ]);
+        $news->categories()->sync($request->categories ?? []);
+        $news->subcategories()->sync($request->subcategories ?? []);
 
-        $imagePath = null;
-        $audio = null;
-
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('images/news', 'public');
-        }
-        if ($request->hasFile('audio')) {
-            $audio = $request->file('audio')->store('images/news', 'public');
-        }
-
-        News::create([
-            'language' => $request->language == 'Bangla' ? 1 : 2,
-            'title' => $request->title,
-            'slug' => Str::slug($request->title) . '-' . time(),
-            'metatag' => $request->title,
-            'tag' => json_encode(explode(',', $request->tag ?? '')),
-            'description' => $request->description,
-            'image' => $imagePath,
-            'audio' => $audio,
-            'division_name' => $request->division_name,
-            'category_id' => $request->category,
-            'subcategory_id' => $request->subcategory,
-            'featured' => $request->featured == 'yes' ? 1 : 0,
-            'breaking' => $request->breaking == 'yes' ? 1 : 0,
-            'status' => 0,
-            'created_by' => Auth::id(),
-        ]);
+        Auth::user()->increment('published_news', 1);
 
         return redirect()->route('news.all')->with('status', 'News Created Successfully');
     }
 
     public function edit(News $news)
     {
+        $news->load(['categories', 'subcategories']);
+
         return Inertia::render('FrontEnd/Dashboard/Reporter/EditNews', [
             'news' => $news,
-            'categories' => Category::all(),
-            'subcategories' => SubCategory::all(),
+            'categories' => Category::orderBy('name')->get(),
+            'subcategories' => SubCategory::orderBy('name')->get(),
+            'selectedCategories' => $news->categories->pluck('id'),
+            'selectedSubcategories' => $news->subcategories->pluck('id'),
         ]);
     }
 
@@ -165,25 +93,31 @@ class NewsController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required',
             'image' => 'nullable|image',
-            'category' => 'required',
-            'subcategory' => 'nullable',
+            'categories' => 'required|array|min:1',
+            'categories.*' => 'integer|exists:categories,id',
+            'subcategories' => 'nullable|array',
+            'subcategories.*' => 'integer|exists:sub_categories,id',
             'tag' => 'nullable|string|max:255',
             'featured' => 'nullable|in:yes,no',
             'breaking' => 'nullable|in:yes,no',
             'division_name' => 'required|string',
             'imagenote' => 'required|string|max:255',
+            'schedule' => 'nullable|date',
         ]);
 
+        // Image
         $imagePath = $news->image;
         if ($request->hasFile('image')) {
             if ($news->image && Storage::disk('public')->exists($news->image)) {
                 Storage::disk('public')->delete($news->image);
             }
-
             $imagePath = $request->file('image')->store('images/news', 'public');
         }
 
         $tags = explode(',', $request->tag ?? '');
+
+        $firstCategory = $request->categories[0] ?? null;
+        $firstSubcategory = $request->subcategories[0] ?? null;
 
         $news->update([
             'language' => $request->language,
@@ -193,15 +127,19 @@ class NewsController extends Controller
             'tag' => json_encode($tags),
             'description' => $request->description,
             'image' => $imagePath,
-            'category_id' => $request->category,
-            'subcategory_id' => $request->subcategory ?? null,
+
+            'category_id' => $firstCategory,
+            'subcategory_id' => $firstSubcategory,
+
             'featured' => $request->featured === 'yes' ? 1 : 0,
             'breaking' => $request->breaking === 'yes' ? 1 : 0,
             'division_name' => $request->division_name,
             'imagenote' => $request->imagenote,
-            // 'created_at' => now(),
-            'updated_at' => now(),
+            'schedule' => $request->schedule ?: null,   // ← NEW
         ]);
+
+        $news->categories()->sync($request->categories ?? []);
+        $news->subcategories()->sync($request->subcategories ?? []);
 
         return redirect()->route('news.all')->with('status', 'News Updated Successfully');
     }
@@ -225,7 +163,7 @@ class NewsController extends Controller
     // all news
     public function allNews(Request $request)
     {
-        $query = News::with(['category', 'subcategory'])
+        $query = News::with(['category', 'subcategory', 'categories', 'subcategories'])
             ->where('created_by', Auth::id())
             ->latest();
 
@@ -243,13 +181,12 @@ class NewsController extends Controller
 
     public function featuredNews(Request $request)
     {
-        $query = News::query()
+        $query = News::with(['category', 'subcategory', 'categories', 'subcategories'])
             ->where('featured', 1)->where('created_by', Auth::id())
             ->latest();
 
         if ($request->filled('search')) {
             $search = $request->search;
-
             $query->where('title', 'like', '%' . $search . '%');
         }
 
@@ -263,7 +200,7 @@ class NewsController extends Controller
 
     public function breakingNews(Request $request)
     {
-        $query = News::with(['category', 'subcategory'])
+        $query = News::with(['category', 'subcategory', 'categories', 'subcategories'])
             ->where('breaking', 1)->where('created_by', Auth::id())
             ->latest();
 
@@ -283,7 +220,7 @@ class NewsController extends Controller
 
     public function pendingNews(Request $request)
     {
-        $query = News::with(['category', 'subcategory'])
+        $query = News::with(['category', 'subcategory', 'categories', 'subcategories'])
             ->where('status', 0)->where('created_by', Auth::id())
             ->latest();
 
@@ -303,7 +240,7 @@ class NewsController extends Controller
 
     public function draftNews(Request $request)
     {
-        $query = News::with(['category', 'subcategory'])
+        $query = News::with(['category', 'subcategory', 'categories', 'subcategories'])
             ->where('status', 0)->where('created_by', Auth::id())
             ->latest();
 
@@ -323,12 +260,13 @@ class NewsController extends Controller
 
     public function scheduleNews(Request $request)
     {
-        $query = News::with(['category', 'subcategory'])->where('created_by', Auth::id())
-            ->latest();
+        $query = News::with(['category', 'subcategory', 'categories', 'subcategories'])
+            ->whereNotNull('schedule')
+            ->where('created_by', Auth::id())
+            ->orderBy('schedule', 'asc');
 
         if ($request->filled('search')) {
             $search = $request->search;
-
             $query->where('title', 'like', '%' . $search . '%');
         }
 

@@ -8,12 +8,10 @@ class News extends Model
 {
     protected $guarded = [];
 
-    // protected $casts = [
-    //     'featured' => 'boolean',
-    //     'breaking' => 'boolean',
-    //     'status' => 'boolean',
-    //     'tag' => 'array',
-    // ];
+    protected $casts = [
+        'schedule' => 'date:Y-m-d',
+        'expire' => 'date:Y-m-d',
+    ];
 
     public function category()
     {
@@ -23,6 +21,18 @@ class News extends Model
     public function subcategory()
     {
         return $this->belongsTo(SubCategory::class);
+    }
+
+    public function categories()
+    {
+        return $this->belongsToMany(Category::class, 'category_news', 'news_id', 'category_id')
+            ->withTimestamps();
+    }
+
+    public function subcategories()
+    {
+        return $this->belongsToMany(SubCategory::class, 'news_subcategory', 'news_id', 'subcategory_id')
+            ->withTimestamps();
     }
 
     public function user()

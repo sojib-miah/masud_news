@@ -64,9 +64,9 @@ const web2 = computed(() => props.footer?.web2 || "");
                             <span class="lbl">প্রধান আইন উপদেষ্টা : </span>
                             <span class="val">{{ footer.pro }}</span>
                         </li>
-                        <li>
+                        <li v-if="footer?.barta">
                             <span class="lbl">বার্তা সম্পাদক : </span>
-                            <span class="val">মিসেস রহিমা হোসাইন</span>
+                            <span class="val">{{ footer.barta }}</span>
                         </li>
                         <li v-if="footer?.bab">
                             <span class="lbl">ব্যবস্থাপনা সম্পাদক : </span>
