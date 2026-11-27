@@ -10,6 +10,7 @@ use App\Http\Controllers\Admin\CacheController;
 use App\Http\Controllers\Admin\EmailController;
 use App\Http\Controllers\Admin\LanguageController;
 use App\Http\Controllers\Admin\MenuController;
+use App\Http\Controllers\Admin\NotificationController;
 use App\Http\Controllers\Admin\PageController;
 use App\Http\Controllers\Admin\PermissionController;
 use App\Http\Controllers\Admin\RoleController;
@@ -103,20 +104,11 @@ Route::middleware(['auth', 'role:admin,sales,sup_admin,sub_admin'])->group(funct
     });
 });
 
-// notifications 
-Route::get('/admin/notifications', [AdminController::class, 'notifications'])->name('notifications.index');
-
 // public billing 
 Route::get('/invoice/{invoice}/download', [BillingController::class, 'downloadInvoicePdf'])->name('admin.invoice.download');
 Route::get('/invoice/{invoice}/download2', [BillingController::class, 'downloadInvoicePdf2'])->name('admin.invoice.download2');
 Route::get('/invoice/{invoice}/{token}', [BillingController::class, 'publicInvoice'])->name('public.invoice');
 Route::get('/invoice/print/{invoice}/{token}', [BillingController::class, 'publicInvoicePrint'])->name('public.invoice.print');
-
-// Route::get('/test-email', [BillingController::class, 'sendTestEmail']);
-// Route::get('/test-notify', function () {
-//     auth()->user()->notify(new \App\Notifications\NewMessageNotification());
-//     return 'Notification sent';
-// })->middleware('auth');
 
 // grapes js editor route 
 Route::middleware(['auth', 'role:admin,sales,sup_admin,sub_admin'])->prefix('admin')->group(function () {
@@ -127,8 +119,7 @@ Route::middleware(['auth', 'role:admin,sales,sup_admin,sub_admin'])->prefix('adm
     Route::put('/pages/{id}', [PageController::class, 'update'])->name('pages.update');
 
     Route::post('/pages/{id}/grapes-store', [PageController::class, 'grapesStore'])->name('pages.grapes-store');
-    Route::get('/pages/{id}/grapes-load', [PageController::class, 'grapesLoad'])
-        ->name('pages.grapes-load');
+    Route::get('/pages/{id}/grapes-load', [PageController::class, 'grapesLoad'])->name('pages.grapes-load');
 
     Route::post('/upload-image', [PageController::class, 'uploadImage'])->name('pages.uploadImage');
     Route::delete('/destroy/{id}', [PageController::class, 'destroy'])->name('pages.destroy');
@@ -143,6 +134,12 @@ Route::prefix('admin')->group(function () {
     Route::post('/video', [VideoController::class, 'store'])->name('admin.video.store');
     Route::put('/video/{video}', [VideoController::class, 'update'])->name('admin.video.update');
     Route::delete('/video/{video}', [VideoController::class, 'destroy'])->name('admin.video.destroy');
+
+    // notifications 
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::get('/notifications/{id}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
+    Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+    Route::delete('/notifications/{id}', [NotificationController::class, 'destroy'])->name('notifications.destroy');
 });
 
 // External route link

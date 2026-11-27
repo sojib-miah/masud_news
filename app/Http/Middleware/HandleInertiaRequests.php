@@ -140,6 +140,9 @@ class HandleInertiaRequests extends Middleware
             'session' => [
                 'impersonator_id' => $request->session()->get('impersonator_id'),
             ],
+            'unreadCount' => fn() => $request->user()
+                ? $request->user()->unreadNotifications()->count()
+                : 0,
         ]);
     }
 }

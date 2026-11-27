@@ -29,10 +29,8 @@ use Inertia\Inertia;
 
 class UserController extends Controller
 {
-
     public function home()
     {
-        // Required fields for the homepage news cards.
         $newsColumns = [
             'id',
             'category_id',
@@ -45,14 +43,120 @@ class UserController extends Controller
             'created_at',
         ];
 
-        // Reusable eager-loading constraint.
-        $loadNews = function (int $limit) use ($newsColumns) {
-            return function ($query) use ($limit, $newsColumns) {
-                $query->select($newsColumns)
-                    ->where('status', 1)
-                    ->latest('created_at')
-                    ->limit($limit);
-            };
+        $loadCategoryNews = function ($categories, int $perCategory = 5) use ($newsColumns) {
+            $ids = $categories->pluck('id')->all();
+            if (empty($ids)) {
+                foreach ($categories as $cat) {
+                    $cat->setRelation('news', collect());
+                }
+                return $categories;
+            }
+
+            $buffer = max(count($ids) * $perCategory * 4, 40);
+
+            $allNews = News::query()
+                ->select($newsColumns)
+                ->with('categories:id')
+                ->published()
+                ->where(function ($q) use ($ids) {
+                    $q->whereIn('category_id', $ids)
+                        ->orWhereHas('categories', function ($cq) use ($ids) {
+                            $cq->whereIn('categories.id', $ids);
+                        });
+                })
+                ->latest('created_at')
+                ->limit($buffer)
+                ->get();
+
+            // Bucket per category
+            $grouped = [];
+            foreach ($ids as $id) {
+                $grouped[$id] = collect();
+            }
+
+            foreach ($allNews as $item) {
+                $matched = [];
+
+                if (in_array($item->category_id, $ids, true)) {
+                    $matched[] = $item->category_id;
+                }
+
+                foreach (($item->categories ?? collect()) as $c) {
+                    if (in_array($c->id, $ids, true)) {
+                        $matched[] = $c->id;
+                    }
+                }
+
+                foreach (array_unique($matched) as $cid) {
+                    if ($grouped[$cid]->count() < $perCategory) {
+                        $grouped[$cid]->push($item);
+                    }
+                }
+            }
+
+            foreach ($categories as $cat) {
+                $cat->setRelation('news', $grouped[$cat->id] ?? collect());
+            }
+
+            return $categories;
+        };
+
+        $loadSubCategoryNews = function ($subCategories, int $perSub = 6) use ($newsColumns) {
+            $ids = $subCategories->pluck('id')->all();
+
+            if (empty($ids)) {
+                foreach ($subCategories as $sub) {
+                    $sub->setRelation('news', collect());
+                }
+                return $subCategories;
+            }
+
+            $buffer = max(count($ids) * $perSub * 4, 40);
+
+            $allNews = News::query()
+                ->select($newsColumns)
+                ->with('subcategories:id')
+                ->published()
+                ->where(function ($q) use ($ids) {
+                    $q->whereIn('subcategory_id', $ids)
+                        ->orWhereHas('subcategories', function ($sq) use ($ids) {
+                            $sq->whereIn('sub_categories.id', $ids);
+                        });
+                })
+                ->latest('created_at')
+                ->limit($buffer)
+                ->get();
+
+            $grouped = [];
+            foreach ($ids as $id) {
+                $grouped[$id] = collect();
+            }
+
+            foreach ($allNews as $item) {
+                $matched = [];
+
+                if (in_array($item->subcategory_id, $ids, true)) {
+                    $matched[] = $item->subcategory_id;
+                }
+
+                foreach (($item->subcategories ?? collect()) as $s) {
+                    if (in_array($s->id, $ids, true)) {
+                        $matched[] = $s->id;
+                    }
+                }
+
+                foreach (array_unique($matched) as $sid) {
+                    if ($grouped[$sid]->count() < $perSub) {
+                        $grouped[$sid]->push($item);
+                    }
+                }
+            }
+
+            foreach ($subCategories as $sub) {
+                $sub->setRelation('news', $grouped[$sub->id] ?? collect());
+            }
+
+            return $subCategories;
         };
 
         $divisions = Division::query()
@@ -68,60 +172,50 @@ class UserController extends Controller
         $homeCategories = Category::query()
             ->select('id', 'name', 'slug')
             ->whereIn('slug', ['jateey', 'sarades'])
-            ->with(['news' => $loadNews(5)])
             ->get();
+        $loadCategoryNews($homeCategories, 5);
 
         $rajcategories = Category::query()
             ->select('id', 'name', 'slug')
-            ->whereIn('slug', [
-                'rajneeti',
-                'antrjatik',
-                'kheladhula',
-            ])
-            ->with(['news' => $loadNews(5)])
+            ->whereIn('slug', ['rajneeti', 'antrjatik', 'kheladhula'])
             ->get();
+        $loadCategoryNews($rajcategories, 5);
 
         $techCategories = Category::query()
             ->select('id', 'name', 'slug')
             ->whereIn('slug', ['przukti', 'binodn'])
-            ->with(['news' => $loadNews(10)])
             ->get();
-
-        $subCategories = SubCategory::query()
-            ->select('id', 'category_id', 'name', 'slug')
-            ->whereIn('slug', [
-                'swasthz-oo-cikittsa',
-                'ain-adalt',
-            ])
-            ->with([
-                'category:id,name,slug',
-                'news' => $loadNews(6),
-            ])
-            ->get();
-
-        $sompadokiyos = SubCategory::query()
-            ->select('id', 'category_id', 'name', 'slug')
-            ->whereIn('slug', ['smpadkeez', 'orthneeti'])
-            ->with([
-                'category:id,name,slug',
-                'news' => $loadNews(6),
-            ])
-            ->get();
+        $loadCategoryNews($techCategories, 10);
 
         $mainCategories = Category::query()
             ->select('id', 'name', 'slug')
             ->whereIn('slug', ['krrishi'])
-            ->with(['news' => $loadNews(6)])
             ->get();
+        $loadCategoryNews($mainCategories, 6);
+
+        $subCategories = SubCategory::query()
+            ->select('id', 'category_id', 'name', 'slug')
+            ->whereIn('slug', ['swasthz-oo-cikittsa', 'ain-adalt'])
+            ->with('category:id,name,slug')
+            ->get();
+        $loadSubCategoryNews($subCategories, 6);
+
+        $sompadokiyos = SubCategory::query()
+            ->select('id', 'category_id', 'name', 'slug')
+            ->whereIn('slug', ['smpadkeez', 'orthneeti'])
+            ->with('category:id,name,slug')
+            ->get();
+        $loadSubCategoryNews($sompadokiyos, 6);
 
         $subCategory = SubCategory::query()
             ->select('id', 'category_id', 'name', 'slug')
             ->where('slug', 'cakurir-khbr')
-            ->with([
-                'category:id,name,slug',
-                'news' => $loadNews(6),
-            ])
+            ->with('category:id,name,slug')
             ->first();
+
+        if ($subCategory) {
+            $loadSubCategoryNews(collect([$subCategory]), 6);
+        }
 
         $sarades = Category::query()
             ->select('id', 'name', 'slug')
@@ -134,7 +228,6 @@ class UserController extends Controller
             ->with('subcategories')
             ->first();
 
-        // Map.vue uses these fields to filter and display news.
         $allNews = News::query()
             ->select([
                 'id',
@@ -146,7 +239,7 @@ class UserController extends Controller
                 'division_name',
                 'created_at',
             ])
-            ->where('status', 1)
+            ->published()
             ->latest('created_at')
             ->limit(50)
             ->get();
@@ -169,24 +262,44 @@ class UserController extends Controller
 
     public function allNews($categorySlug, $subcategorySlug = null)
     {
-        $category = Category::where('slug', $categorySlug)
-            ->firstOrFail();
+        $category = Category::where('slug', $categorySlug)->firstOrFail();
 
         $subcategory = null;
-
         if ($subcategorySlug) {
             $subcategory = SubCategory::where('slug', $subcategorySlug)
                 ->where('category_id', $category->id)
                 ->firstOrFail();
         }
 
-        // Base query: only published news from this category/subcategory
-        $baseQuery = News::where('status', 1);
+        // Only published, non-scheduled news
+        $baseQuery = News::where('status', 1)
+            ->where(function ($q) {
+                $q->whereNull('schedule')
+                    ->orWhere('schedule', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('expire')
+                    ->orWhere('expire', '>=', now());
+            });
 
         if ($subcategory) {
-            $baseQuery->where('subcategory_id', $subcategory->id);
+            $baseQuery->where(function ($q) use ($subcategory) {
+                $q->where('subcategory_id', $subcategory->id)
+                    ->orWhereHas(
+                        'subcategories',
+                        fn($sq) =>
+                            $sq->where('subcategory_id', $subcategory->id)
+                    );
+            });
         } else {
-            $baseQuery->where('category_id', $category->id);
+            $baseQuery->where(function ($q) use ($category) {
+                $q->where('category_id', $category->id)
+                    ->orWhereHas(
+                        'categories',
+                        fn($cq) =>
+                            $cq->where('category_id', $category->id)
+                    );
+            });
         }
 
         $featuredNews = (clone $baseQuery)
@@ -196,9 +309,8 @@ class UserController extends Controller
             ->get();
 
         $news = (clone $baseQuery)
-            ->where(function ($query) {
-                $query->where('featured', '!=', 1)
-                    ->orWhereNull('featured');
+            ->where(function ($q) {
+                $q->where('featured', '!=', 1)->orWhereNull('featured');
             })
             ->latest('created_at')
             ->paginate(12)
@@ -221,6 +333,7 @@ class UserController extends Controller
         $date = $validated['date'] ?? now()->toDateString();
 
         $news = News::query()
+            ->published()
             ->whereDate('created_at', $date)
             ->latest('created_at')
             ->paginate(12)
@@ -245,6 +358,7 @@ class UserController extends Controller
             'comments',
             'publishedBy'
         ])
+            ->published()
             ->where('slug', $slug)
             ->firstOrFail();
 
@@ -882,10 +996,5 @@ class UserController extends Controller
     public function applicationForm()
     {
         return Inertia::render('FrontEnd/Dashboard/Reporter/Application');
-    }
-
-    public function addNews()
-    {
-        return Inertia::render('FrontEnd/Dashboard/Reporter/AddNews');
     }
 }

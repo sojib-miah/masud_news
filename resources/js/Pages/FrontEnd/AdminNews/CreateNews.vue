@@ -6,7 +6,7 @@ import TextInput from "@/Shared/TextInput.vue";
 import RichTextEditor from "@/Shared/RichTextEditor.vue";
 import FileInput from "@/Shared/FileInput.vue";
 import FlashMessage from "@/Shared/FlashMessage.vue";
-import { computed, ref } from "vue";
+import { computed, ref, watch } from "vue";
 import { route } from "ziggy-js";
 
 const languages = [
@@ -30,6 +30,7 @@ const props = defineProps({
     subcategories: Array,
 });
 
+// ==================== FORM ====================
 const form = useForm({
     language: "",
     title: "",
@@ -39,24 +40,38 @@ const form = useForm({
     image: null,
     division_name: "",
     imagenote: "",
-    category_id: "",
-    subcategory_id: "",
-    featured: 0,
-    breaking: 0,
+    categories: [],
+    subcategories: [],
+    featured: "no",
+    breaking: "no",
     status: 0,
+    schedule: "",
+    expire: "",
 });
 
+// ==================== COMPUTED ====================
 const filteredSubcategories = computed(() => {
-    if (!form.category_id) return [];
-    return props.subcategories.filter(
-        (sub) => Number(sub.category_id) === Number(form.category_id),
+    if (!form.categories.length) return [];
+    const catIds = form.categories.map(Number);
+    return props.subcategories.filter((sub) =>
+        catIds.includes(Number(sub.category_id)),
     );
 });
 
-// Reset subcategory if category changes
-function onCategoryChange() {
-    form.subcategory_id = "";
-}
+// ==================== WATCHERS ====================
+watch(
+    () => form.categories,
+    () => {
+        const catIds = form.categories.map(Number);
+        form.subcategories = form.subcategories.filter((sid) => {
+            const sub = props.subcategories.find(
+                (s) => Number(s.id) === Number(sid),
+            );
+            return sub && catIds.includes(Number(sub.category_id));
+        });
+    },
+    { deep: true },
+);
 
 // ==================== TAGS ====================
 const newTag = ref("");
@@ -65,21 +80,18 @@ const tags = ref([]);
 const addTag = (event) => {
     event.preventDefault();
     const v = newTag.value.trim();
-    if (v && !tags.value.includes(v)) {
-        tags.value.push(v);
-    }
+    if (v && !tags.value.includes(v)) tags.value.push(v);
     newTag.value = "";
 };
 
-const removeTag = (index) => {
-    tags.value.splice(index, 1);
-};
+const removeTag = (index) => tags.value.splice(index, 1);
 
 // ==================== SUBMIT ====================
 const submit = () => {
     form.tag = tags.value.join(",");
     form.post(route("admin.news.store"), {
         preserveScroll: true,
+        forceFormData: true,
         onSuccess: () => {
             form.reset();
             form.clearErrors();
@@ -88,15 +100,14 @@ const submit = () => {
     });
 };
 
-// Toggle helper for radio groups
 function setField(field, value) {
-    form[field] = Number(value);
+    form[field] = value;
 }
 </script>
 
 <template>
     <Layout>
-        <Head title="Create News Page" />
+        <Head title="Create News (Admin)" />
         <Breadcrumb />
 
         <FlashMessage
@@ -105,7 +116,7 @@ function setField(field, value) {
             type="success"
         />
 
-        <!-- ==================== PAGE HEADER ==================== -->
+        <!-- HEADER -->
         <div
             class="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 px-5 py-6 sm:px-8 shadow-xl mb-6"
         >
@@ -122,7 +133,7 @@ function setField(field, value) {
                     <p
                         class="text-emerald-400 text-xs font-semibold uppercase tracking-wider mb-1"
                     >
-                        <i class="fa-solid fa-pen-to-square mr-1"></i> Content
+                        <i class="fa-solid fa-user-shield mr-1"></i> Admin
                     </p>
                     <h1
                         class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight"
@@ -144,11 +155,9 @@ function setField(field, value) {
 
         <form @submit.prevent="submit">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
-                <!-- ============================================= -->
-                <!-- ================= LEFT COLUMN =============== -->
-                <!-- ============================================= -->
+                <!-- LEFT -->
                 <div class="lg:col-span-2 order-2 lg:order-1 space-y-5">
-                    <!-- CONTENT CARD -->
+                    <!-- CONTENT -->
                     <div
                         class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
                     >
@@ -239,7 +248,6 @@ function setField(field, value) {
                                         >(Enter চাপুন যোগ করতে)</span
                                     >
                                 </label>
-
                                 <div class="relative">
                                     <i
                                         class="fa-solid fa-hashtag absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"
@@ -262,7 +270,6 @@ function setField(field, value) {
                                         Add
                                     </button>
                                 </div>
-
                                 <div
                                     v-if="tags.length"
                                     class="flex flex-wrap gap-2 mt-3"
@@ -280,7 +287,6 @@ function setField(field, value) {
                                             type="button"
                                             class="ml-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-violet-200 text-violet-700 hover:bg-red-500 hover:text-white transition"
                                             @click="removeTag(index)"
-                                            title="Remove tag"
                                         >
                                             <i
                                                 class="fa-solid fa-xmark text-[8px]"
@@ -317,11 +323,9 @@ function setField(field, value) {
                     </div>
                 </div>
 
-                <!-- ============================================= -->
-                <!-- ================= RIGHT COLUMN ============== -->
-                <!-- ============================================= -->
+                <!-- RIGHT -->
                 <div class="lg:col-span-1 order-1 lg:order-2 space-y-5">
-                    <!-- MEDIA CARD -->
+                    <!-- MEDIA -->
                     <div
                         class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
                     >
@@ -344,7 +348,6 @@ function setField(field, value) {
                                 </p>
                             </div>
                         </div>
-
                         <div class="p-5">
                             <label
                                 class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
@@ -358,8 +361,6 @@ function setField(field, value) {
                                 :multiple="false"
                                 :error="form.errors.image"
                             />
-
-                            <!-- imagenote -->
                             <div class="mt-5">
                                 <label
                                     class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
@@ -380,7 +381,7 @@ function setField(field, value) {
                         </div>
                     </div>
 
-                    <!-- TAXONOMY CARD -->
+                    <!-- TAXONOMY -->
                     <div
                         class="rounded-2xl bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
                     >
@@ -399,73 +400,175 @@ function setField(field, value) {
                                     Categorize
                                 </h2>
                                 <p class="text-xs text-slate-500">
-                                    Category & location
+                                    Category, subcategory & location
                                 </p>
                             </div>
                         </div>
-
                         <div class="p-5 space-y-4">
-                            <!-- Category -->
+                            <!-- Categories (checkboxes) -->
                             <div>
-                                <label
-                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                <div
+                                    class="flex items-center justify-between mb-1.5"
                                 >
-                                    Category <span class="text-red-500">*</span>
-                                </label>
-                                <select
-                                    v-model="form.category_id"
-                                    @change="onCategoryChange"
-                                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white"
+                                    <label
+                                        class="block text-xs font-bold uppercase tracking-wider text-slate-600"
+                                    >
+                                        <i
+                                            class="fa-solid fa-layer-group text-indigo-600 mr-1"
+                                        ></i>
+                                        Categories
+                                        <span class="text-red-500">*</span>
+                                    </label>
+                                    <span
+                                        class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-indigo-200"
+                                    >
+                                        <i
+                                            class="fa-solid fa-check text-[9px]"
+                                        ></i>
+                                        {{ form.categories.length }} selected
+                                    </span>
+                                </div>
+
+                                <div
+                                    class="rounded-lg border border-slate-300 bg-white max-h-[220px] overflow-y-auto p-2"
                                 >
-                                    <option value="">Select Category</option>
-                                    <option
+                                    <label
                                         v-for="cat in props.categories"
                                         :key="cat.id"
-                                        :value="cat.id"
+                                        class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 cursor-pointer transition hover:bg-indigo-50"
+                                        :class="{
+                                            'bg-indigo-50 text-indigo-700 font-semibold':
+                                                form.categories.includes(
+                                                    cat.id,
+                                                ),
+                                        }"
                                     >
-                                        {{ cat.name }}
-                                    </option>
-                                </select>
+                                        <input
+                                            type="checkbox"
+                                            :value="cat.id"
+                                            v-model="form.categories"
+                                            class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                        />
+                                        <span class="flex-1">{{
+                                            cat.name
+                                        }}</span>
+                                        <span
+                                            v-if="
+                                                form.categories.indexOf(
+                                                    cat.id,
+                                                ) === 0
+                                            "
+                                            class="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700"
+                                        >
+                                            <i
+                                                class="fa-solid fa-star text-[8px]"
+                                            ></i>
+                                            Primary
+                                        </span>
+                                    </label>
+                                </div>
+
                                 <p
-                                    v-if="form.errors.category_id"
+                                    class="text-[10px] text-slate-400 mt-1 italic"
+                                >
+                                    প্রথম সিলেক্ট করা category primary হিসেবে
+                                    সেভ হবে।
+                                </p>
+                                <p
+                                    v-if="form.errors.categories"
                                     class="text-xs text-red-500 mt-1"
                                 >
-                                    {{ form.errors.category_id }}
+                                    {{ form.errors.categories }}
                                 </p>
                             </div>
 
-                            <!-- Subcategory -->
+                            <!-- Subcategories (checkboxes) -->
                             <div>
-                                <label
-                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                <div
+                                    class="flex items-center justify-between mb-1.5"
                                 >
-                                    Subcategory
-                                </label>
-                                <select
-                                    v-model="form.subcategory_id"
-                                    :disabled="!form.category_id"
-                                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white disabled:bg-slate-50 disabled:text-slate-400 disabled:cursor-not-allowed"
-                                >
-                                    <option value="">
-                                        {{
-                                            form.category_id
-                                                ? "Select Subcategory"
-                                                : "Select Category first"
-                                        }}
-                                    </option>
-                                    <option
-                                        v-for="sub in filteredSubcategories"
-                                        :key="sub.id"
-                                        :value="sub.id"
+                                    <label
+                                        class="block text-xs font-bold uppercase tracking-wider text-slate-600"
                                     >
-                                        {{ sub.name }}
-                                    </option>
-                                </select>
+                                        <i
+                                            class="fa-solid fa-diagram-project text-indigo-600 mr-1"
+                                        ></i>
+                                        Subcategories
+                                    </label>
+                                    <span
+                                        class="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2 py-0.5 text-[10px] font-bold text-indigo-700 ring-1 ring-indigo-200"
+                                    >
+                                        <i
+                                            class="fa-solid fa-check text-[9px]"
+                                        ></i>
+                                        {{ form.subcategories.length }} selected
+                                    </span>
+                                </div>
+
+                                <div
+                                    class="rounded-lg border border-slate-300 bg-white max-h-[220px] overflow-y-auto p-2"
+                                    :class="{
+                                        'opacity-60 pointer-events-none':
+                                            !form.categories.length,
+                                    }"
+                                >
+                                    <p
+                                        v-if="!form.categories.length"
+                                        class="text-xs text-slate-400 italic text-center py-4"
+                                    >
+                                        আগে category সিলেক্ট করুন
+                                    </p>
+                                    <p
+                                        v-else-if="
+                                            !filteredSubcategories.length
+                                        "
+                                        class="text-xs text-slate-400 italic text-center py-4"
+                                    >
+                                        এই category-তে কোনো subcategory নেই
+                                    </p>
+                                    <template v-else>
+                                        <label
+                                            v-for="sub in filteredSubcategories"
+                                            :key="sub.id"
+                                            class="flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-slate-700 cursor-pointer transition hover:bg-indigo-50"
+                                            :class="{
+                                                'bg-indigo-50 text-indigo-700 font-semibold':
+                                                    form.subcategories.includes(
+                                                        sub.id,
+                                                    ),
+                                            }"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                :value="sub.id"
+                                                v-model="form.subcategories"
+                                                class="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                                            />
+                                            <span class="flex-1">{{
+                                                sub.name
+                                            }}</span>
+                                            <span
+                                                v-if="
+                                                    form.subcategories.indexOf(
+                                                        sub.id,
+                                                    ) === 0
+                                                "
+                                                class="inline-flex items-center gap-1 rounded bg-emerald-100 px-1.5 py-0.5 text-[9px] font-bold text-emerald-700"
+                                            >
+                                                <i
+                                                    class="fa-solid fa-star text-[8px]"
+                                                ></i>
+                                                Primary
+                                            </span>
+                                        </label>
+                                    </template>
+                                </div>
+
                                 <p
-                                    v-if="form.errors.subcategory_id"
+                                    v-if="form.errors.subcategories"
                                     class="text-xs text-red-500 mt-1"
                                 >
-                                    {{ form.errors.subcategory_id }}
+                                    {{ form.errors.subcategories }}
                                 </p>
                             </div>
 
@@ -477,7 +580,7 @@ function setField(field, value) {
                                     <i
                                         class="fa-solid fa-location-dot text-rose-600 mr-1"
                                     ></i>
-                                    Division
+                                    Division <span class="text-red-500">*</span>
                                 </label>
                                 <select
                                     v-model="form.division_name"
@@ -499,10 +602,62 @@ function setField(field, value) {
                                     {{ form.errors.division_name }}
                                 </p>
                             </div>
+
+                            <!-- Schedule -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-clock text-amber-600 mr-1"
+                                    ></i>
+                                    Schedule (publish date)
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    v-model="form.schedule"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white"
+                                />
+                                <p
+                                    class="text-[10px] text-slate-400 mt-1 italic"
+                                >
+                                    খালি রাখলে এখনই publish (status=Published
+                                    হলে)
+                                </p>
+                                <p
+                                    v-if="form.errors.schedule"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.schedule }}
+                                </p>
+                            </div>
+
+                            <!-- Expire -->
+                            <div>
+                                <label
+                                    class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
+                                >
+                                    <i
+                                        class="fa-solid fa-hourglass-end text-rose-600 mr-1"
+                                    ></i>
+                                    Expire (auto-unpublish)
+                                </label>
+                                <input
+                                    type="datetime-local"
+                                    v-model="form.expire"
+                                    class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 bg-white"
+                                />
+                                <p
+                                    v-if="form.errors.expire"
+                                    class="text-xs text-red-500 mt-1"
+                                >
+                                    {{ form.errors.expire }}
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- FLAGS CARD -->
+                    <!-- FLAGS -->
                     <div
                         class="rounded-2xl mb-8 bg-white ring-1 ring-slate-200 shadow-md overflow-hidden"
                     >
@@ -525,7 +680,6 @@ function setField(field, value) {
                                 </p>
                             </div>
                         </div>
-
                         <div class="p-5 space-y-4">
                             <!-- Featured -->
                             <div>
@@ -540,10 +694,10 @@ function setField(field, value) {
                                 <div class="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
-                                        @click="setField('featured', 1)"
+                                        @click="setField('featured', 'yes')"
                                         class="rounded-lg py-2 text-xs font-bold transition"
                                         :class="
-                                            Number(form.featured) === 1
+                                            form.featured === 'yes'
                                                 ? 'bg-gradient-to-r from-amber-500 to-orange-600 text-white shadow-md'
                                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
                                         "
@@ -553,10 +707,10 @@ function setField(field, value) {
                                     </button>
                                     <button
                                         type="button"
-                                        @click="setField('featured', 0)"
+                                        @click="setField('featured', 'no')"
                                         class="rounded-lg py-2 text-xs font-bold transition"
                                         :class="
-                                            Number(form.featured) === 0
+                                            form.featured === 'no'
                                                 ? 'bg-slate-800 text-white shadow-md'
                                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
                                         "
@@ -580,10 +734,10 @@ function setField(field, value) {
                                 <div class="grid grid-cols-2 gap-2">
                                     <button
                                         type="button"
-                                        @click="setField('breaking', 1)"
+                                        @click="setField('breaking', 'yes')"
                                         class="rounded-lg py-2 text-xs font-bold transition"
                                         :class="
-                                            Number(form.breaking) === 1
+                                            form.breaking === 'yes'
                                                 ? 'bg-gradient-to-r from-red-500 to-rose-600 text-white shadow-md'
                                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
                                         "
@@ -593,10 +747,10 @@ function setField(field, value) {
                                     </button>
                                     <button
                                         type="button"
-                                        @click="setField('breaking', 0)"
+                                        @click="setField('breaking', 'no')"
                                         class="rounded-lg py-2 text-xs font-bold transition"
                                         :class="
-                                            Number(form.breaking) === 0
+                                            form.breaking === 'no'
                                                 ? 'bg-slate-800 text-white shadow-md'
                                                 : 'bg-slate-100 text-slate-600 hover:bg-slate-200 ring-1 ring-slate-200'
                                         "
@@ -606,7 +760,8 @@ function setField(field, value) {
                                     </button>
                                 </div>
                             </div>
-                            <!-- Status toggle -->
+
+                            <!-- Status -->
                             <div>
                                 <label
                                     class="block text-xs font-bold uppercase tracking-wider text-slate-600 mb-1.5"
@@ -672,8 +827,8 @@ function setField(field, value) {
                         <p
                             class="text-center text-[10px] text-slate-400 mt-2 uppercase tracking-wider font-semibold"
                         >
-                            <i class="fa-solid fa-lock mr-1"></i>
-                            All data saved securely
+                            <i class="fa-solid fa-lock mr-1"></i> All data saved
+                            securely
                         </p>
                     </div>
                 </div>

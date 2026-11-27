@@ -8,8 +8,11 @@ use App\Models\News;
 use App\Models\NewsUserView;
 use App\Models\NewsView;
 use App\Models\SubCategory;
+use App\Models\User;
+use App\Notifications\NewsStored;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
@@ -69,6 +72,14 @@ class NewsController extends Controller
         $news->subcategories()->sync($request->subcategories ?? []);
 
         Auth::user()->increment('published_news', 1);
+
+        // Admins-দের notify (news জমা পড়েছে)
+        $admins = User::role('admin')->get();
+
+        Notification::send($admins, new NewsStored(
+            news: $news,
+            message: "{$news->user->name} একটি নতুন নিউজ জমা দিয়েছেন: {$news->title}",
+        ));
 
         return redirect()->route('news.all')->with('status', 'News Created Successfully');
     }

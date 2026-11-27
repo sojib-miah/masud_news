@@ -75,17 +75,6 @@ class AdminController extends Controller
         ]);
     }
 
-    // push notification
-    public function notifications()
-    {
-        $user = auth()->user();
-        $user->unreadNotifications->markAsRead();
-
-        return inertia('Admin/Notifications/NotificationsPage', [
-            'notifications' => $user->notifications()->latest()->get()
-        ]);
-    }
-
     public function subscriptions(Request $request)
     {
         $query = NewsletterSubscriber::query();

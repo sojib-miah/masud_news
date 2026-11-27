@@ -24,8 +24,8 @@ return new class extends Migration {
             $table->foreignId('subcategory_id')->nullable()->constrained()->nullOnDelete();
             $table->boolean('featured')->default(0);
             $table->boolean('breaking')->default(0);
-            $table->date('schedule')->nullable();
-            $table->date('expire')->nullable();
+            $table->dateTime('schedule')->nullable();
+            $table->dateTime('expire')->nullable();
             $table->boolean('status')->default(0);
             $table->integer('total_view')->default(0);
             $table->integer('current_view')->default(0);

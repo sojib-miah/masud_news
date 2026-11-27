@@ -83,13 +83,19 @@ onUnmounted(() => {
     clearInterval(intervalId);
 });
 
-function formatDate(d) {
+function formatDateTime(d) {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("bn-BD", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
+    try {
+        return new Date(d).toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    } catch {
+        return d;
+    }
 }
 </script>
 
@@ -313,7 +319,7 @@ function formatDate(d) {
                             <td
                                 class="px-4 py-4 text-center text-xs text-slate-500 font-medium whitespace-nowrap"
                             >
-                                {{ formatDate(item.schedule) }}
+                                {{ formatDateTime(item.schedule) }}
                             </td>
                             <!-- Date -->
                             <td
@@ -333,6 +339,7 @@ function formatDate(d) {
                             <!-- Actions -->
                             <td class="px-4 py-4 text-right">
                                 <div
+                                    v-if="item.status == 0"
                                     class="flex items-center justify-end gap-2 opacity-100 lg:opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
                                     <Link
@@ -483,13 +490,14 @@ function formatDate(d) {
                                 >Schedule</span
                             >
                             <span class="font-bold text-slate-700">{{
-                                formatDate(item.schedule)
+                                formatDateTime(item.schedule)
                             }}</span>
                         </div>
                     </div>
 
                     <!-- Mobile Card Actions -->
                     <div
+                        v-if="item.status == 0"
                         class="p-3 border-t border-slate-100 flex justify-end gap-2 bg-white"
                     >
                         <Link

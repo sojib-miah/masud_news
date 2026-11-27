@@ -60,4 +60,8 @@ return Application::configure(basePath: dirname(__DIR__))
             return $response;
         });
     })
+    ->withProviders([
+        App\Providers\AppServiceProvider::class,
+        App\Providers\BroadcastServiceProvider::class,
+    ])
     ->create();

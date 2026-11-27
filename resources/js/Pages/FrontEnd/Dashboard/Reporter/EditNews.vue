@@ -33,6 +33,27 @@ const props = defineProps({
     selectedSubcategories: { type: Array, default: () => [] },
 });
 
+// ── Normalize schedule/expire for <input type="datetime-local"> ──
+function toDateTimeLocal(value) {
+    if (!value) return "";
+
+    if (value instanceof Date) {
+        const pad = (n) => String(n).padStart(2, "0");
+        return `${value.getFullYear()}-${pad(value.getMonth() + 1)}-${pad(value.getDate())}T${pad(value.getHours())}:${pad(value.getMinutes())}`;
+    }
+
+    const str = String(value).trim();
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+        return `${str}T00:00`;
+    }
+
+    const m = str.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/);
+    if (m) return `${m[1]}T${m[2]}`;
+
+    return "";
+}
+
 const form = useForm({
     language: props.news.language ?? null,
     title: props.news.title ?? "",
@@ -45,7 +66,7 @@ const form = useForm({
     subcategories: [...props.selectedSubcategories].map(Number),
     featured: props.news.featured ? "yes" : "no",
     breaking: props.news.breaking ? "yes" : "no",
-    schedule: props.news.schedule ? props.news.schedule.substring(0, 10) : "",
+    schedule: toDateTimeLocal(props.news.schedule),
 });
 
 // ==================== TAGS ====================
@@ -721,7 +742,7 @@ const submit = () => {
                                 </label>
                                 <input
                                     v-model="form.schedule"
-                                    type="date"
+                                    type="datetime-local"
                                     class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-green-500"
                                 />
                                 <p

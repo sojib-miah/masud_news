@@ -98,13 +98,19 @@ function postType(item) {
     };
 }
 
-function formatDate(d) {
+function formatDateTime(d) {
     if (!d) return "—";
-    return new Date(d).toLocaleDateString("bn-BD", {
-        year: "numeric",
-        month: "short",
-        day: "numeric",
-    });
+    try {
+        return new Date(d).toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+        });
+    } catch {
+        return d;
+    }
 }
 </script>
 
@@ -375,7 +381,7 @@ function formatDate(d) {
                                     <td
                                         class="px-4 py-3 text-slate-600 text-xs whitespace-nowrap"
                                     >
-                                        {{ formatDate(item.schedule) }}
+                                        {{ formatDateTime(item.schedule) }}
                                     </td>
                                     <td
                                         class="px-4 py-3 text-slate-600 text-xs whitespace-nowrap"
@@ -391,7 +397,10 @@ function formatDate(d) {
                                         }}
                                     </td>
                                     <td class="px-4 py-3">
-                                        <div class="flex gap-2 justify-center">
+                                        <div
+                                            class="flex gap-2 justify-center"
+                                            v-if="item.status == 0"
+                                        >
                                             <Link
                                                 :href="
                                                     route('news.edit', item.id)
@@ -534,7 +543,7 @@ function formatDate(d) {
                                     >{{ item.total_view ?? 0 }}</span
                                 >
                             </div>
-                            <span>{{ formatDate(item.schedule) }}</span>
+                            <span>{{ formatDateTime(item.schedule) }}</span>
                             <span class="whitespace-nowrap">
                                 {{
                                     new Date(
@@ -549,7 +558,7 @@ function formatDate(d) {
                         </div>
 
                         <!-- actions -->
-                        <div class="flex gap-2 pt-1">
+                        <div class="flex gap-2 pt-1" v-if="item.status == 0">
                             <Link
                                 :href="route('news.edit', item.id)"
                                 class="flex-1 inline-flex items-center justify-center gap-1.5 bg-blue-50 text-blue-600 hover:bg-blue-600 hover:text-white font-semibold text-xs py-2 rounded-lg transition"

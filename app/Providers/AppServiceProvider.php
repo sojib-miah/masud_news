@@ -44,7 +44,7 @@ class AppServiceProvider extends ServiceProvider
                         'image',
                         'created_at',
                     ])
-                    ->where('status', 1)
+                    ->published()
                     ->where('breaking', 1)
                     ->latest('created_at')
                     ->limit(10)
@@ -60,7 +60,7 @@ class AppServiceProvider extends ServiceProvider
                         'image',
                         'created_at',
                     ])
-                    ->where('status', 1)
+                    ->published()
                     ->latest('created_at')
                     ->limit(10)
                     ->get();
@@ -76,7 +76,7 @@ class AppServiceProvider extends ServiceProvider
                         'total_view',
                         'created_at',
                     ])
-                    ->where('status', 1)
+                    ->published()
                     ->orderByDesc('total_view')
                     ->limit(10)
                     ->get();

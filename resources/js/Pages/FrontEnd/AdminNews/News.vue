@@ -9,22 +9,10 @@ import axios from "axios";
 
 const props = defineProps({
     news: Object,
-    filters: {
-        type: Object,
-        default: () => ({}),
-    },
-    publishedCount: {
-        type: Number,
-        default: 0,
-    },
-    draftCount: {
-        type: Number,
-        default: 0,
-    },
-    breakingCount: {
-        type: Number,
-        default: 0,
-    },
+    filters: { type: Object, default: () => ({}) },
+    publishedCount: { type: Number, default: 0 },
+    draftCount: { type: Number, default: 0 },
+    breakingCount: { type: Number, default: 0 },
 });
 
 // Filter state
@@ -644,7 +632,7 @@ async function updateStatus(newStatus) {
                                     <p
                                         class="text-sm font-medium text-slate-600"
                                     >
-                                        {{ formatDate(item.schedule) }}
+                                        {{ formatDateTime(item.schedule) }}
                                     </p>
                                 </td>
                                 <td class="px-4 py-3">
@@ -792,7 +780,7 @@ async function updateStatus(newStatus) {
                                 {{ formatDate(item.created_at) }}
                             </span>
                             <span class="font-medium text-slate-500">
-                                / Schedule - {{ formatDate(item.schedule) }}
+                                / Schedule - {{ formatDateTime(item.schedule) }}
                             </span>
                         </div>
 
@@ -1179,7 +1167,7 @@ async function updateStatus(newStatus) {
                                                 class="text-sm font-semibold text-slate-800"
                                             >
                                                 {{
-                                                    formatDate(
+                                                    formatDateTime(
                                                         newsDetails.schedule,
                                                     )
                                                 }}

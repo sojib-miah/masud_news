@@ -6,6 +6,8 @@ use Illuminate\Database\Eloquent\Model;
 
 class SubCategory extends Model
 {
+    protected $table = 'sub_categories';
+
     protected $guarded = [];
 
     public function category()
@@ -13,8 +15,13 @@ class SubCategory extends Model
         return $this->belongsTo(Category::class);
     }
 
-     public function news()
+    public function news()
     {
         return $this->hasMany(News::class, 'subcategory_id', 'id');
+    }
+
+    public function newsMany()
+    {
+        return $this->belongsToMany(News::class, 'news_subcategory');
     }
 }

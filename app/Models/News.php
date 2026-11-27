@@ -8,10 +8,10 @@ class News extends Model
 {
     protected $guarded = [];
 
-    protected $casts = [
-        'schedule' => 'date:Y-m-d',
-        'expire' => 'date:Y-m-d',
-    ];
+    // protected $casts = [
+    //     'schedule' => 'datetime',
+    //     'expire' => 'datetime',
+    // ];
 
     public function category()
     {
@@ -53,5 +53,18 @@ class News extends Model
     public function publishedBy()
     {
         return $this->belongsTo(User::class, 'published_by');
+    }
+
+    public function scopePublished($query)
+    {
+        return $query->where('status', 1)
+            ->where(function ($q) {
+                $q->whereNull('schedule')
+                    ->orWhere('schedule', '<=', now());
+            })
+            ->where(function ($q) {
+                $q->whereNull('expire')
+                    ->orWhere('expire', '>=', now());
+            });
     }
 }

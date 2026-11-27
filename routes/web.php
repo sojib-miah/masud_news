@@ -94,8 +94,6 @@ Route::middleware(['auth'])->group(function () {
     Route::put('/motamot/update/{id}', [MotamotController::class, 'update'])->name('motamot.update');
     Route::delete('/motamot/delete/{id}', [MotamotController::class, 'destroy'])->name('motamot.destroy');
 
-    Route::get('/add/news', [UserController::class, 'addNews'])->name('add.news');
-
     // reporter all route
     Route::get('/dashboard/reporter', [UserController::class, 'reporterDashboard'])->name('dashboard.reporter');
     Route::get('/reporter/{id}/edit', [UserController::class, 'editReporter'])->name('reporter.edit');
@@ -129,8 +127,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/news/create', [AdminNewsController::class, 'create'])->name('admin.news.create');
         Route::post('/news/store', [AdminNewsController::class, 'store'])->name('admin.news.store');
 
-        Route::get('/news/edit/{id}', [AdminNewsController::class, 'edit'])->name('admin.news.edit');
-        Route::put('/news/update/{id}', [AdminNewsController::class, 'update'])->name('admin.news.update');
+        Route::get('/news/edit/{news}', [AdminNewsController::class, 'edit'])->name('admin.news.edit');
+        Route::put('/news/update/{news}', [AdminNewsController::class, 'update'])->name('admin.news.update');
 
         Route::delete('/news/delete/{id}', [AdminNewsController::class, 'delete'])->name('admin.news.delete');
         Route::get('news/{news}/show', [AdminNewsController::class, 'show'])->name('admin.news.show');

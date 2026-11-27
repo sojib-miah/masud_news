@@ -18,9 +18,11 @@ use App\Models\Union;
 use App\Models\Upazila;
 use App\Models\User;
 use App\Models\Ward;
+use App\Notifications\ReporterRegistered;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 use Inertia\Inertia;
 
@@ -131,77 +133,77 @@ class RegisterController extends Controller
     public function storePathock(Request $request)
     {
         $data = $request->validate([
-            'name'     => 'required|string|max:255',
-            'phone'    => 'required|string|max:20|unique:users,phone',
+            'name' => 'required|string|max:255',
+            'phone' => 'required|string|max:20|unique:users,phone',
             'password' => 'required|min:6|confirmed',
-            'email'    => 'nullable|email|unique:users,email',
+            'email' => 'nullable|email|unique:users,email',
 
             'division_id' => 'nullable|exists:divisions,id',
             // District path
             'district_id' => 'nullable|exists:districts,id',
             'upazilla_id' => 'nullable|exists:upazilas,id',
-            'union_id'    => 'nullable|exists:unions,id',
+            'union_id' => 'nullable|exists:unions,id',
             // City corporation path
             'city_corporation_id' => 'nullable|exists:city_corporations,id',
-            'ward_id'             => 'nullable|exists:wards,id',
+            'ward_id' => 'nullable|exists:wards,id',
             // Pourashava path
-            'pourashava_id'       => 'nullable|exists:pourashavas,id',
-            'pourashava_ward_id'  => 'nullable|exists:pourashava_wards,id',
+            'pourashava_id' => 'nullable|exists:pourashavas,id',
+            'pourashava_ward_id' => 'nullable|exists:pourashava_wards,id',
 
-            'village'    => 'nullable|string|max:255',
+            'village' => 'nullable|string|max:255',
             'occupation' => 'nullable|string|max:255',
-            'ref'        => 'nullable|string|max:255',
+            'ref' => 'nullable|string|max:255',
         ]);
 
         // ---------------- LOCATION EXCLUSIVITY ----------------
         // district_id is the common parent for all three sub-paths; keep it.
         // Only one sub-path (district / city corp / pourashava) may have data.
-        if (! empty($data['city_corporation_id'])) {
+        if (!empty($data['city_corporation_id'])) {
             // City corporation chosen → drop district & pourashava sub-paths
-            $data['upazilla_id']        = null;
-            $data['union_id']           = null;
-            $data['pourashava_id']      = null;
+            $data['upazilla_id'] = null;
+            $data['union_id'] = null;
+            $data['pourashava_id'] = null;
             $data['pourashava_ward_id'] = null;
-        } elseif (! empty($data['pourashava_id'])) {
+        } elseif (!empty($data['pourashava_id'])) {
             // Pourashava chosen → drop district & city corp sub-paths
-            $data['upazilla_id']        = null;
-            $data['union_id']           = null;
+            $data['upazilla_id'] = null;
+            $data['union_id'] = null;
             $data['city_corporation_id'] = null;
-            $data['ward_id']            = null;
+            $data['ward_id'] = null;
         } else {
             // District path chosen (or nothing) → drop city corp & pourashava
             $data['city_corporation_id'] = null;
-            $data['ward_id']            = null;
-            $data['pourashava_id']      = null;
+            $data['ward_id'] = null;
+            $data['pourashava_id'] = null;
             $data['pourashava_ward_id'] = null;
         }
 
         // ---------------- CREATE USER ----------------
         $user = User::create([
-            'name'     => $data['name'],
-            'phone'    => $data['phone'],
+            'name' => $data['name'],
+            'phone' => $data['phone'],
             'password' => Hash::make($data['password']),
-            'role'     => 'pathock',
-            'email'    => $data['email'] ?? 'pathock' . Str::random(5) . '@pathock.com',
+            'role' => 'pathock',
+            'email' => $data['email'] ?? 'pathock' . Str::random(5) . '@pathock.com',
         ]);
 
         // ---------------- CREATE PROFILE ----------------
         PathockProfile::create([
-            'user_id'             => $user->id,
-            'division_id'         => $data['division_id']         ?? null,
-            'district_id'         => $data['district_id']         ?? null,
-            'upazilla_id'         => $data['upazilla_id']         ?? null,
-            'union_id'            => $data['union_id']            ?? null,
+            'user_id' => $user->id,
+            'division_id' => $data['division_id'] ?? null,
+            'district_id' => $data['district_id'] ?? null,
+            'upazilla_id' => $data['upazilla_id'] ?? null,
+            'union_id' => $data['union_id'] ?? null,
             'city_corporation_id' => $data['city_corporation_id'] ?? null,
-            'ward_id'             => $data['ward_id']             ?? null,
-            'pourashava_id'       => $data['pourashava_id']       ?? null,
-            'pourashava_ward_id'  => $data['pourashava_ward_id']  ?? null,
-            'village'             => $data['village']             ?? null,
-            'occupation'          => $data['occupation']          ?? null,
+            'ward_id' => $data['ward_id'] ?? null,
+            'pourashava_id' => $data['pourashava_id'] ?? null,
+            'pourashava_ward_id' => $data['pourashava_ward_id'] ?? null,
+            'village' => $data['village'] ?? null,
+            'occupation' => $data['occupation'] ?? null,
         ]);
 
         // ---------------- REFERRAL ----------------
-        if (! empty($data['ref'])) {
+        if (!empty($data['ref'])) {
             $refUser = User::where('ref_id', $data['ref'])->first();
             if ($refUser) {
                 $user->referred_by = $refUser->id;
@@ -256,8 +258,8 @@ class RegisterController extends Controller
             'city_corporation' => 'nullable|exists:city_corporations,id',
             'ward' => 'nullable|exists:wards,id',
             // pourashava path 
-            'pourashava'       => 'nullable|exists:pourashavas,id',
-            'pourashava_ward'  => 'nullable|exists:pourashava_wards,id',
+            'pourashava' => 'nullable|exists:pourashavas,id',
+            'pourashava_ward' => 'nullable|exists:pourashava_wards,id',
 
             'village' => 'nullable|string|max:255',
             'reporter_area' => 'required|string',
@@ -273,24 +275,24 @@ class RegisterController extends Controller
         // ---------- LOCATION EXCLUSIVITY ----------
         // Only one sub-path (upazila / city corp / pourashava) may have data.
 
-        if (! empty($data['city_corporation'])) {
+        if (!empty($data['city_corporation'])) {
             // City corporation chosen → drop district path & pourashava path
-            $data['upazila']         = null;
-            $data['union']           = null;
-            $data['pourashava']      = null;
+            $data['upazila'] = null;
+            $data['union'] = null;
+            $data['pourashava'] = null;
             $data['pourashava_ward'] = null;
-        } elseif (! empty($data['pourashava'])) {
+        } elseif (!empty($data['pourashava'])) {
             // Pourashava chosen → drop district path & city corp path
-            $data['upazila']          = null;
-            $data['union']            = null;
+            $data['upazila'] = null;
+            $data['union'] = null;
             $data['city_corporation'] = null;
-            $data['ward']             = null;
+            $data['ward'] = null;
         } else {
             // Upazila path chosen (or nothing) → drop city corp & pourashava
             $data['city_corporation'] = null;
-            $data['ward']             = null;
-            $data['pourashava']       = null;
-            $data['pourashava_ward']  = null;
+            $data['ward'] = null;
+            $data['pourashava'] = null;
+            $data['pourashava_ward'] = null;
         }
 
         $imagePath = $request->file('image')->store('images/avatars', 'public');
@@ -336,14 +338,20 @@ class RegisterController extends Controller
             'nid_number' => $data['nid_number'] ?? null,
             'signature' => $signaturePath,
             'nid_file' => $nidPath ?? null,
-            'reporter_types' => ! empty($data['reporter_types'])
+            'reporter_types' => !empty($data['reporter_types'])
                 ? implode(',', $data['reporter_types'])
                 : null,
             'is_approved' => false,
         ]);
 
-        return redirect()
-            ->route('user.login')
-            ->with('status', 'Reporter Registered Successfully');
+        // Admins-দের notify
+        $admins = User::role('admin')->get();
+
+        Notification::send($admins, new ReporterRegistered(
+            reporter: $user,
+            message: "নতুন রিপোর্টার নিবন্ধিত হয়েছেন: {$user->name} ({$user->phone})",
+        ));
+
+        return redirect()->route('user.login')->with('status', 'Reporter Registered Successfully');
     }
 }

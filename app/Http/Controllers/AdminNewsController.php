@@ -9,6 +9,7 @@ use App\Models\NewsUserView;
 use App\Models\NewsView;
 use App\Models\SubCategory;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -101,12 +102,9 @@ class AdminNewsController extends Controller
 
     public function create()
     {
-        $categories = Category::all();
-        $subcategories = SubCategory::all();
-
         return Inertia::render('FrontEnd/AdminNews/CreateNews', [
-            'categories' => $categories,
-            'subcategories' => $subcategories
+            'categories' => Category::orderBy('name')->get(['id', 'name']),
+            'subcategories' => SubCategory::orderBy('name')->get(['id', 'category_id', 'name']),
         ]);
     }
 
@@ -114,28 +112,33 @@ class AdminNewsController extends Controller
     {
         $request->validate([
             'language' => 'required',
-            'title' => 'required',
+            'title' => 'required|string|max:255',
             'description' => 'required',
-            'category_id' => 'required',
-            'subcategory_id' => 'nullable',
-            'tag' => 'nullable|string',
-            'featured' => 'required|boolean',
-            'breaking' => 'required|boolean',
-            'status' => 'required|boolean',
             'image' => 'required|image|max:2048',
-            'division_name' => 'nullable|string|max:255',
+            'categories' => 'required|array|min:1',
+            'categories.*' => 'integer|exists:categories,id',
+            'subcategories' => 'nullable|array',
+            'subcategories.*' => 'integer|exists:sub_categories,id',
+            'tag' => 'nullable|string|max:255',
+            'featured' => 'nullable|in:yes,no',
+            'breaking' => 'nullable|in:yes,no',
+            'status' => 'required|in:0,1',
+            'division_name' => 'required|string|max:255',
             'imagenote' => 'required|string|max:255',
+            'schedule' => 'nullable|date',
+            'expire' => 'nullable|date|after_or_equal:schedule',
         ]);
 
-        $imagePath = null;
-
-        if ($request->hasFile('image')) {
-            $imagePath = $request->file('image')->store('images/news', 'public');
-        }
+        $imagePath = $request->hasFile('image')
+            ? $request->file('image')->store('images/news', 'public')
+            : null;
 
         $tags = explode(',', $request->tag ?? '');
 
-        News::create([
+        $firstCategory = $request->categories[0] ?? null;
+        $firstSubcategory = $request->subcategories[0] ?? null;
+
+        $news = News::create([
             'language' => $request->language,
             'title' => $request->title,
             'slug' => Str::slug($request->title) . '-' . time(),
@@ -143,83 +146,97 @@ class AdminNewsController extends Controller
             'tag' => json_encode($tags),
             'description' => $request->description,
             'image' => $imagePath,
-            'category_id' => $request->category_id,
-            'subcategory_id' => $request->subcategory_id,
-            'featured' => $request->featured,
-            'breaking' => $request->breaking,
-            'status' => $request->status,
             'division_name' => $request->division_name,
             'imagenote' => $request->imagenote,
+
+            'category_id' => $firstCategory,
+            'subcategory_id' => $firstSubcategory,
+
+            'featured' => $request->featured === 'yes' ? 1 : 0,
+            'breaking' => $request->breaking === 'yes' ? 1 : 0,
+            'schedule' => $request->schedule ?: null,
+            'expire' => $request->expire ?: null,
+            'status' => (int) $request->status,
             'created_by' => Auth::id(),
-            'created_at' => now(),
-            // 'updated_at' => now(),
         ]);
 
-        return redirect()->route('admin.news')
-            ->with('status', 'News Created Successfully');
+        $news->categories()->sync($request->categories ?? []);
+        $news->subcategories()->sync($request->subcategories ?? []);
+
+        return redirect()->route('admin.news')->with('status', 'News Created Successfully');
     }
 
-    public function edit($id)
+    public function edit(News $news)
     {
-        $news = News::findOrFail($id);
+        $news->load(['categories', 'subcategories']);
+
+        $news->schedule = $news->schedule
+            ? Carbon::parse($news->schedule)->format('Y-m-d H:i:s')
+            : null;
+        $news->expire = $news->expire
+            ? Carbon::parse($news->expire)->format('Y-m-d H:i:s')
+            : null;
 
         return Inertia::render('FrontEnd/AdminNews/EditNews', [
             'news' => $news,
-            'categories' => Category::all(),
-            'subcategories' => SubCategory::all(),
+            'categories' => Category::orderBy('name')->get(['id', 'name']),
+            'subcategories' => SubCategory::orderBy('name')->get(['id', 'category_id', 'name']),
+            'selectedCategories' => $news->categories->pluck('id'),
+            'selectedSubcategories' => $news->subcategories->pluck('id'),
         ]);
     }
 
-    public function update(Request $request, $id)
+    public function update(Request $request, News $news)
     {
         $request->validate([
             'language' => 'required',
-            'title' => 'required',
+            'title' => 'required|string|max:255',
             'description' => 'required',
-            'category_id' => 'required',
-            'subcategory_id' => 'nullable',
-            'tag' => 'nullable|string',
-            'featured' => 'required|boolean',
-            'breaking' => 'required|boolean',
-            'status' => 'required|boolean',
             'image' => 'nullable|image|max:2048',
-            'division_name' => 'nullable|string|max:255',
+            'categories' => 'required|array|min:1',
+            'categories.*' => 'integer|exists:categories,id',
+            'subcategories' => 'nullable|array',
+            'subcategories.*' => 'integer|exists:sub_categories,id',
+            'tag' => 'nullable|string|max:255',
+            'featured' => 'nullable|in:yes,no',
+            'breaking' => 'nullable|in:yes,no',
+            'status' => 'required|in:0,1',
+            'division_name' => 'required|string|max:255',
             'imagenote' => 'required|string|max:255',
+            'schedule' => 'nullable|date',
+            'expire' => 'nullable|date|after_or_equal:schedule',
         ]);
 
-        $news = News::findOrFail($id);
-
-        // Start with the current image path (do NOT wipe it)
         $imagePath = $news->image;
-
         if ($request->hasFile('image')) {
-            // Delete the old image from disk before storing the new one
-            if ($news->image && Storage::disk('public')->exists($news->image)) {
-                Storage::disk('public')->delete($news->image);
-            }
             $imagePath = $request->file('image')->store('images/news', 'public');
         }
 
         $tags = explode(',', $request->tag ?? '');
 
+        $firstCategory = $request->categories[0] ?? null;
+        $firstSubcategory = $request->subcategories[0] ?? null;
+
         $news->update([
             'language' => $request->language,
             'title' => $request->title,
-            'slug' => Str::slug($request->title) . '-' . $news->id,
             'metatag' => $request->title,
             'tag' => json_encode($tags),
             'description' => $request->description,
             'image' => $imagePath,
-            'category_id' => $request->category_id,
-            'subcategory_id' => $request->subcategory_id,
-            'featured' => $request->featured,
-            'breaking' => $request->breaking,
-            'status' => $request->status,
             'division_name' => $request->division_name,
             'imagenote' => $request->imagenote,
-            // 'created_at' => now(),
-            'updated_at' => now(),
+            'category_id' => $firstCategory,
+            'subcategory_id' => $firstSubcategory,
+            'featured' => $request->featured === 'yes' ? 1 : 0,
+            'breaking' => $request->breaking === 'yes' ? 1 : 0,
+            'schedule' => $request->schedule ?: null,
+            'expire' => $request->expire ?: null,
+            'status' => (int) $request->status,
         ]);
+
+        $news->categories()->sync($request->categories ?? []);
+        $news->subcategories()->sync($request->subcategories ?? []);
 
         return redirect()->route('admin.news')->with('status', 'News Updated Successfully');
     }
